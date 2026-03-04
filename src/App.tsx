@@ -1,0 +1,88 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import Sidebar from './components/layout/Sidebar';
+import Header from './components/layout/Header';
+import BookingKanban from './components/booking/BookingKanban';
+import RestaurantMap from './components/restaurant-map/RestaurantMap';
+import KitchenDisplay from './components/kitchen/KitchenDisplay';
+import TrainingPortal from './components/training/TrainingPortal';
+import CustomerCRM from './components/crm/CustomerCRM';
+import Settings from './components/settings/Settings';
+import MenuManagement from './components/menu/MenuManagement';
+import AdvancedAnalytics from './components/analytics/AdvancedAnalytics';
+import MobileCaptainApp from './components/mobile/MobileCaptainApp';
+import Login from './components/auth/Login';
+import UserProfile from './components/profile/UserProfile';
+import { useIsMobile } from './hooks/useIsMobile';
+import { useAuth } from './hooks/useAuth';
+
+function MainApp() {
+  const { isAuthenticated, userRole, handleLogin, handleLogout } = useAuth();
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  if (isMobile) {
+    return <MobileCaptainApp onLogout={handleLogout} />;
+  }
+
+  return (
+    <Routes>
+      <Route element={
+        <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
+          <Sidebar
+            isOpen={isSidebarOpen}
+            isCollapsed={isSidebarCollapsed}
+            onClose={() => setIsSidebarOpen(false)}
+            onLogout={handleLogout}
+            userRole={userRole}
+          />
+          <div className="flex-1 flex flex-col min-w-0">
+            <Header
+              onAddBooking={() => setIsBookingModalOpen(true)}
+              onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
+            />
+            <main className="flex-1 relative overflow-y-auto min-h-0">
+              <Outlet />
+            </main>
+          </div>
+        </div>
+      }>
+        <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
+        <Route path="/so-do-nha-hang" element={<RestaurantMap />} />
+        <Route path="/bao-cao" element={<AdvancedAnalytics />} />
+        <Route path="/dat-ban" element={
+          <BookingKanban
+            isModalOpen={isBookingModalOpen}
+            onToggleModal={setIsBookingModalOpen}
+          />
+        } />
+        <Route path="/thuc-don" element={<MenuManagement />} />
+        <Route path="/quan-ly-thuc-don" element={<MenuManagement />} />
+        <Route path="/bep" element={<KitchenDisplay />} />
+        <Route path="/dao-tao" element={<TrainingPortal />} />
+        <Route path="/khach-hang" element={<CustomerCRM />} />
+        <Route path="/cau-hinh" element={<Settings />} />
+        <Route path="/ho-so" element={<UserProfile />} />
+      </Route>
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <MainApp />
+    </BrowserRouter>
+  );
+}
