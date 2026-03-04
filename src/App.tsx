@@ -52,7 +52,7 @@ function MainApp() {
               onAddBooking={() => setIsBookingModalOpen(true)}
               onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
-            <main className="flex-1 relative overflow-y-auto min-h-0">
+            <main className="flex-1 relative overflow-hidden">
               <Outlet />
             </main>
           </div>

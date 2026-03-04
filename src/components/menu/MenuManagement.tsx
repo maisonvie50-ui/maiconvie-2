@@ -322,7 +322,7 @@ export default function MenuManagement() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 relative">
+    <div className="flex flex-col h-full bg-gray-50 overflow-hidden relative">
 
       {/* Top Menu Type Bar */}
       <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center justify-between z-10 flex-shrink-0">
