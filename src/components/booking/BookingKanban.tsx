@@ -539,7 +539,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        <div className="flex gap-4 h-full min-w-[1400px] overflow-x-auto no-scrollbar pb-4" ref={scrollRef}>
+        <div className="flex gap-4 h-full overflow-x-auto no-scrollbar pb-4" ref={scrollRef}>
           {boardColumns.map((col) => {
             const colBookings = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status));
 
@@ -549,7 +549,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 flex flex-col min-w-[260px] max-w-[300px] rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
+                    className={`flex-1 flex flex-col min-w-[240px] rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
                       }`}
                   >
                     {/* Column Header */}
