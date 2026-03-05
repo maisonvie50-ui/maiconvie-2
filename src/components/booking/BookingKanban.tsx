@@ -137,6 +137,30 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     return true;
   });
 
+  // Sync from localStorage for Web Bookings
+  useEffect(() => {
+    const webBookingsStr = localStorage.getItem('maison_vie_web_bookings');
+    if (webBookingsStr) {
+      try {
+        const webBookings = JSON.parse(webBookingsStr);
+        if (webBookings && webBookings.length > 0) {
+          // Merge logic: prepend new bookings and clear localStorage to avoid duplicates
+          setBookings(prev => {
+            // Deduplicate by ID just in case
+            const newBookings = webBookings.filter((wb: Booking) => !prev.some(pb => pb.id === wb.id));
+            if (newBookings.length > 0) {
+              return [...newBookings, ...prev];
+            }
+            return prev;
+          });
+          localStorage.removeItem('maison_vie_web_bookings');
+        }
+      } catch (e) {
+        console.error('Failed to parse web bookings', e);
+      }
+    }
+  }, [bookings.length]); // Re-run if length changes (simple pooling)
+
   // New Booking Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newBooking, setNewBooking] = useState<Partial<Booking>>({

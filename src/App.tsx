@@ -20,6 +20,7 @@ import Login from './components/auth/Login';
 import UserProfile from './components/profile/UserProfile';
 import { useIsMobile } from './hooks/useIsMobile';
 import { useAuth } from './hooks/useAuth';
+import PublicBookingForm from './components/booking/PublicBookingForm';
 
 function MainApp() {
   const { isAuthenticated, userRole, handleLogin, handleLogout } = useAuth();
@@ -28,52 +29,54 @@ function MainApp() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const isMobile = useIsMobile();
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  if (isMobile) {
-    return <MobileCaptainApp onLogout={handleLogout} />;
-  }
-
   return (
     <Routes>
-      <Route element={
-        <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
-          <Sidebar
-            isOpen={isSidebarOpen}
-            isCollapsed={isSidebarCollapsed}
-            onClose={() => setIsSidebarOpen(false)}
-            onLogout={handleLogout}
-            userRole={userRole}
-          />
-          <div className="flex-1 flex flex-col min-w-0">
-            <Header
-              onAddBooking={() => setIsBookingModalOpen(true)}
-              onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
+      {/* Public Routes */}
+      <Route path="/dat-ban-online" element={<PublicBookingForm />} />
+
+      {/* Protected Routes */}
+      {!isAuthenticated ? (
+        <Route path="*" element={<Login onLogin={handleLogin} />} />
+      ) : isMobile ? (
+        <Route path="*" element={<MobileCaptainApp onLogout={handleLogout} />} />
+      ) : (
+        <Route element={
+          <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
+            <Sidebar
+              isOpen={isSidebarOpen}
+              isCollapsed={isSidebarCollapsed}
+              onClose={() => setIsSidebarOpen(false)}
+              onLogout={handleLogout}
+              userRole={userRole}
             />
-            <main className="flex-1 relative overflow-hidden">
-              <Outlet context={{ isSidebarCollapsed }} />
-            </main>
+            <div className="flex-1 flex flex-col min-w-0">
+              <Header
+                onAddBooking={() => setIsBookingModalOpen(true)}
+                onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
+              />
+              <main className="flex-1 relative overflow-hidden">
+                <Outlet context={{ isSidebarCollapsed }} />
+              </main>
+            </div>
           </div>
-        </div>
-      }>
-        <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
-        <Route path="/so-do-nha-hang" element={<RestaurantMap />} />
-        <Route path="/bao-cao" element={<AdvancedAnalytics />} />
-        <Route path="/dat-ban" element={
-          <BookingKanban
-            isModalOpen={isBookingModalOpen}
-            onToggleModal={setIsBookingModalOpen}
-          />
-        } />
-        <Route path="/thuc-don" element={<MenuManagement />} />
-        <Route path="/bep" element={<KitchenDisplay />} />
-        <Route path="/dao-tao" element={<TrainingPortal />} />
-        <Route path="/khach-hang" element={<CustomerCRM />} />
-        <Route path="/cau-hinh" element={<Settings />} />
-        <Route path="/ho-so" element={<UserProfile />} />
-      </Route>
+        }>
+          <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
+          <Route path="/so-do-nha-hang" element={<RestaurantMap />} />
+          <Route path="/bao-cao" element={<AdvancedAnalytics />} />
+          <Route path="/dat-ban" element={
+            <BookingKanban
+              isModalOpen={isBookingModalOpen}
+              onToggleModal={setIsBookingModalOpen}
+            />
+          } />
+          <Route path="/thuc-don" element={<MenuManagement />} />
+          <Route path="/bep" element={<KitchenDisplay />} />
+          <Route path="/dao-tao" element={<TrainingPortal />} />
+          <Route path="/khach-hang" element={<CustomerCRM />} />
+          <Route path="/cau-hinh" element={<Settings />} />
+          <Route path="/ho-so" element={<UserProfile />} />
+        </Route>
+      )}
     </Routes>
   );
 }
