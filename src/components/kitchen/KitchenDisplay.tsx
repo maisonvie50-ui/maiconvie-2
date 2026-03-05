@@ -327,9 +327,9 @@ export default function KitchenDisplay() {
         {/* Kanban Board Container */}
         <div
           ref={scrollContainerRef}
-          className={`flex-1 overflow-y-auto no-scrollbar font-sans ${viewMode === 'table'
-            ? 'flex overflow-x-auto snap-x snap-mandatory w-full items-start py-4'
-            : 'block w-full overflow-x-hidden p-4 md:px-8'
+          className={`flex-1 overflow-y-auto no-scrollbar font-sans pb-10 ${viewMode === 'table'
+            ? 'flex overflow-x-auto snap-x snap-mandatory w-full items-start p-4 md:p-8 pt-8' // Added pt-8
+            : 'block w-full overflow-x-hidden p-4 md:p-8'
             }`}
         >
           {viewMode === 'table' ? (
@@ -340,7 +340,7 @@ export default function KitchenDisplay() {
               {orderChunks.map((chunk, chunkIndex) => (
                 <div
                   key={`page-${chunkIndex}`}
-                  className="min-w-full flex-shrink-0 snap-start grid grid-cols-5 gap-4 px-4 md:px-8"
+                  className="min-w-full flex-shrink-0 snap-start grid grid-cols-5 gap-4 md:gap-8 px-2 pt-4" // Added pt-4
                 >
                   {chunk.map((order) => {
                     const elapsed = getElapsedTime(order.orderTime);
