@@ -152,19 +152,19 @@ export default function KitchenDisplay() {
 
   const getStatusStyles = (minutes: number) => {
     if (minutes >= 15) return {
-      card: 'border-red-500 shadow-red-200 animate-pulse-slow',
-      header: 'bg-red-600 text-white border-b border-red-700',
-      timer: 'text-white bg-red-700 px-2 py-0.5 rounded'
+      card: 'border border-red-500 shadow-sm',
+      header: 'bg-[#E52020] text-white',
+      timer: 'text-white border border-white/20 bg-white/10 px-2 py-0.5 rounded'
     }; // Critical
     if (minutes >= 10) return {
-      card: 'border-amber-400 shadow-amber-200',
-      header: 'bg-amber-400 text-amber-900 border-b border-amber-500',
-      timer: 'text-amber-900 bg-amber-500/50 px-2 py-0.5 rounded'
+      card: 'border border-amber-400 shadow-sm',
+      header: 'bg-amber-500 text-white',
+      timer: 'text-white border border-white/20 bg-white/10 px-2 py-0.5 rounded'
     }; // Warning
     return {
-      card: 'border-green-400 shadow-green-100',
-      header: 'bg-green-500 text-white border-b border-green-600',
-      timer: 'text-white bg-green-600 px-2 py-0.5 rounded'
+      card: 'border border-gray-200 shadow-sm',
+      header: 'bg-white text-gray-800 border-b border-gray-100',
+      timer: 'text-gray-500 bg-gray-100 px-2 py-0.5 rounded'
     }; // Normal (On track)
   };
 
@@ -188,14 +188,8 @@ export default function KitchenDisplay() {
     }))
     .filter(order => order.items.length > 0);
 
-  // Group orders into chunks of 5 for table view
-  const orderChunks = React.useMemo(() => {
-    const chunks = [];
-    for (let i = 0; i < filteredOrders.length; i += 5) {
-      chunks.push(filteredOrders.slice(i, i + 5));
-    }
-    return chunks;
-  }, [filteredOrders]);
+  // We no longer need orderChunks, we will render filteredOrders directly
+
 
   // Aggregation logic for Dish View
   const aggregatedItems = React.useMemo(() => {
@@ -292,14 +286,14 @@ export default function KitchenDisplay() {
 
         <div className="flex flex-1 items-center justify-start md:justify-end shrink-0">
           {/* Category Filter */}
-          <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200 min-w-max">
+          <div className="flex items-center gap-1 md:gap-2 min-w-max px-2">
             {(['All', 'Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'] as const).map(cat => (
               <button
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${filterCategory === cat
-                  ? 'bg-teal-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-200'
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${filterCategory === cat
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
                   }`}
               >
                 {cat === 'All' ? 'Tất cả món' : cat}
@@ -328,7 +322,7 @@ export default function KitchenDisplay() {
         <div
           ref={scrollContainerRef}
           className={`flex-1 overflow-y-auto no-scrollbar font-sans pb-10 ${viewMode === 'table'
-            ? 'flex overflow-x-auto snap-x snap-mandatory w-full items-start p-4 md:p-8 pt-8' // Added pt-8
+            ? 'flex overflow-x-auto snap-x w-full items-start px-6 md:px-8 lg:px-10 py-6 gap-3 md:gap-5' // Added stronger horizontal padding
             : 'block w-full overflow-x-hidden p-4 md:p-8'
             }`}
         >
@@ -337,152 +331,147 @@ export default function KitchenDisplay() {
             // TABLE VIEW
             // =============================
             <>
-              {orderChunks.map((chunk, chunkIndex) => (
-                <div
-                  key={`page-${chunkIndex}`}
-                  className="min-w-full flex-shrink-0 snap-start grid grid-cols-5 gap-4 md:gap-8 px-2 pt-4" // Added pt-4
-                >
-                  {chunk.map((order) => {
-                    const elapsed = getElapsedTime(order.orderTime);
-                    const isCritical = elapsed >= 15;
-                    const styles = getStatusStyles(elapsed);
-                    const allItemsDone = order.items.every(i => i.status === 'done');
+              {filteredOrders.map((order) => {
+                const elapsed = getElapsedTime(order.orderTime);
+                const isCritical = elapsed >= 15;
+                const styles = getStatusStyles(elapsed);
+                const allItemsDone = order.items.every(i => i.status === 'done');
 
-                    const sortedItems = [...order.items].sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]);
+                const sortedItems = [...order.items].sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]);
 
-                    return (
-                      <div
-                        key={order.id}
-                        className={`flex flex-col rounded-2xl border-[2px] bg-white transition-all w-full h-max ${styles.card}`}
-                      >
-                        {/* Header */}
-                        <div className={`px-3 py-2 2xl:py-6 flex justify-between items-center rounded-t-xl ${styles.header} relative`}>
-                          <h3 className="text-xl 2xl:text-4xl font-black flex items-center gap-2 tracking-tight">
-                            {order.table}
-                            {isCritical && <Flame className="w-8 h-8 animate-bounce fill-current" />}
-                          </h3>
+                return (
+                  <div
+                    key={order.id}
+                    className={`flex flex-col rounded-xl bg-white transition-all flex-shrink-0 snap-start w-[85vw] sm:w-[250px] md:w-[230px] lg:w-[240px] xl:w-[250px] 2xl:w-[260px] h-max ${styles.card}`}
+                  >
+                    {/* Header */}
+                    <div className={`px-3 py-2 md:px-4 md:py-2.5 flex justify-between items-start rounded-t-xl ${styles.header}`}>
+                      <h3 className="text-lg md:text-xl font-black flex items-center gap-1.5 mt-0.5 tracking-tight">
+                        {order.table}
+                        {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 animate-pulse text-white" />}
+                      </h3>
 
-                          <div className="flex flex-col items-end gap-2">
-                            <div className={`flex items-center gap-1 font-mono text-lg font-black ${styles.timer}`}>
-                              <Clock className="w-5 h-5" />
-                              {elapsed}'
-                            </div>
-
-                            {/* Mark All Done Button (Small size in top-right) */}
-                            {!allItemsDone && (
-                              <button
-                                onClick={() => markAllDone(order.id)}
-                                className="py-1 px-2.5 rounded-lg bg-black/10 hover:bg-black/20 text-current border border-black/10 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs"
-                                title="Đánh dấu xong tất cả"
-                              >
-                                <CheckSquare className="w-3.5 h-3.5" /> Xong tất cả
-                              </button>
-                            )}
-                          </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <div className={`flex items-center gap-1 font-mono text-xs md:text-sm font-bold ${styles.timer}`}>
+                          <Clock className="w-3.5 h-3.5" />
+                          {elapsed}'
                         </div>
 
-                        {/* Body */}
-                        <div className="p-3 flex-1 flex flex-col gap-3 bg-gray-50/50">
+                        {/* Mark All Done Button (Small size in top-right) */}
+                        {!allItemsDone && (
+                          <button
+                            onClick={() => markAllDone(order.id)}
+                            className="py-0.5 px-2 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[10px]"
+                            title="Xong tất cả"
+                          >
+                            <CheckSquare className="w-3 h-3" /> Xong tất cả
+                          </button>
+                        )}
+                      </div>
+                    </div>
 
-                          {sortedItems.map((item, index) => {
-                            const showCategoryHeader = index === 0 || sortedItems[index - 1].category !== item.category;
-                            const isDone = item.status === 'done';
+                    {/* Body */}
+                    <div className="p-2 md:p-3 flex-1 flex flex-col gap-2 bg-white">
 
-                            return (
-                              <React.Fragment key={item.id}>
-                                {showCategoryHeader && (
-                                  <div className="text-sm font-black text-gray-400 uppercase tracking-widest mt-2 px-2 border-b-2 border-gray-200 pb-1">
-                                    {item.category}
+                      {sortedItems.map((item, index) => {
+                        const showCategoryHeader = index === 0 || sortedItems[index - 1].category !== item.category;
+                        const isDone = item.status === 'done';
+
+                        return (
+                          <React.Fragment key={item.id}>
+                            {showCategoryHeader && (
+                              <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5 mb-0.5 px-1">
+                                {item.category}
+                              </div>
+                            )}
+                            <div
+                              onClick={() => cycleItemStatus(order.id, item.id)}
+                              className={`
+                              group cursor-pointer select-none transition-all duration-200 active:scale-[0.98]
+                              flex items-stretch rounded-xl border min-h-[4rem]
+                              ${isDone
+                                  ? 'border-emerald-300 bg-emerald-50/50'
+                                  : 'border-gray-200 bg-white hover:border-teal-400 shadow-sm'
+                                }
+                            `}
+                            >
+                              {/* Quantity Indicator */}
+                              <div className={`
+                                w-10 md:w-12 flex items-center justify-center rounded-l-xl
+                                ${isDone ? 'bg-emerald-400 text-white' : 'bg-white text-red-500'}
+                            `}>
+                                <span className="text-lg md:text-xl font-black font-mono">
+                                  {item.quantity}
+                                </span>
+                              </div>
+
+                              {/* Item Details */}
+                              <div className={`flex-1 p-2 flex flex-col justify-center relative min-w-0 w-full overflow-hidden rounded-r-xl ${isDone ? 'bg-emerald-50/30' : 'bg-white'}`}>
+                                <div className="pr-6 w-full">
+                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight truncate ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
+                                    {item.name}
+                                  </div>
+
+                                  {/* Notes */}
+                                  {item.notes && item.notes.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {item.notes.map((note, idx) => {
+                                        const isAllergy = note.toLowerCase().includes('dị ứng');
+                                        return (
+                                          <span
+                                            key={idx}
+                                            className={`
+                                              inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold uppercase border truncate max-w-full
+                                              ${isAllergy
+                                                ? 'bg-red-50 text-red-600 border-red-200'
+                                                : 'bg-amber-50 text-amber-600 border-amber-200'}
+                                            `}
+                                            title={note}
+                                          >
+                                            <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                                            <span className="truncate">{note}</span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Status Icon Indicator */}
+                                {isDone && (
+                                  <div className="absolute top-1/2 -translate-y-1/2 right-2 text-emerald-500 bg-white rounded-full p-0.5 shadow-sm">
+                                    <CheckCircle className="w-4 h-4 shrink-0" />
                                   </div>
                                 )}
-                                <div
-                                  onClick={() => cycleItemStatus(order.id, item.id)}
-                                  className={`
-                              group cursor-pointer select-none transition-all duration-200 active:scale-[0.98]
-                              flex items-stretch rounded-xl border-2 overflow-hidden shadow-sm min-h-[5rem]
-                              ${isDone
-                                      ? 'border-green-500 bg-green-50/50 opacity-60'
-                                      : 'border-gray-200 bg-white hover:border-teal-400'
-                                    }
-                            `}
-                                >
-                                  {/* Quantity Indicator */}
-                                  <div className={`
-                                w-10 2xl:w-28 flex items-center justify-center border-r-2
-                                ${isDone ? 'bg-green-500 border-green-500 text-white' : 'bg-gray-100 border-gray-200 text-red-600'}
-                            `}>
-                                    <span className="text-2xl 2xl:text-6xl font-black font-mono">
-                                      {item.quantity}
-                                    </span>
-                                  </div>
-
-                                  {/* Item Details */}
-                                  <div className="flex-1 p-2 2xl:p-5 flex flex-col justify-center relative pr-6 2xl:pr-16">
-                                    <div className={`text-base 2xl:text-3xl font-bold leading-tight ${isDone ? 'line-through text-green-700' : 'text-gray-900'}`}>
-                                      {item.name}
-                                    </div>
-
-                                    {/* Notes */}
-                                    {item.notes && item.notes.length > 0 && (
-                                      <div className="mt-2 flex flex-wrap gap-2">
-                                        {item.notes.map((note, idx) => {
-                                          const isAllergy = note.toLowerCase().includes('dị ứng');
-                                          return (
-                                            <span
-                                              key={idx}
-                                              className={`
-                                            inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase border-2
-                                            ${isAllergy
-                                                  ? 'bg-red-100 text-red-800 border-red-300'
-                                                  : 'bg-amber-100 text-amber-800 border-amber-300'}
-                                        `}
-                                            >
-                                              <AlertTriangle className="w-4 h-4" />
-                                              {note}
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-
-                                    {/* Status Icon Indicator */}
-                                    {isDone && (
-                                      <div className="absolute top-1/2 -translate-y-1/2 right-3 text-green-500 bg-white rounded-full p-0.5 shadow-sm">
-                                        <CheckCircle className="w-8 h-8" />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                </div>
-                              </React.Fragment>
-                            );
-                          })}
-                        </div>
-
-                        {/* Footer Action */}
-                        <div className="p-3 bg-white border-t-2 border-gray-100 rounded-b-xl">
-                          <button
-                            onClick={() => completeOrder(order.id)}
-                            disabled={!allItemsDone}
-                            className={`w-full py-2.5 rounded-xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-md ${allItemsDone
-                              ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
-                              : 'bg-gray-100 text-gray-400 cursor-not-allowed hidden'
-                              }`}
-                          >
-                            <BellRing className="w-5 h-5" />
-                            GỌI PHỤC VỤ
-                          </button>
-                          {!allItemsDone && (
-                            <div className="text-center text-xs font-bold text-gray-400 py-1.5">
-                              Làm xong tất cả để phục vụ
+                              </div>
                             </div>
-                          )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer Action */}
+                    <div className="p-2 md:p-3 bg-white border-t border-gray-100 rounded-b-xl">
+                      <button
+                        onClick={() => completeOrder(order.id)}
+                        disabled={!allItemsDone}
+                        className={`w-full py-2 rounded-xl font-black text-sm md:text-base flex items-center justify-center gap-2 transition-all shadow-sm ${allItemsDone
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed hidden'
+                          }`}
+                      >
+                        <BellRing className="w-4 h-4 md:w-5 md:h-5" />
+                        GỌI PHỤC VỤ
+                      </button>
+                      {!allItemsDone && (
+                        <div className="text-center text-[10px] md:text-xs font-bold text-gray-400 py-1">
+                          Làm xong tất cả để phục vụ
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </>
           ) : (
             // =============================
@@ -616,4 +605,3 @@ export default function KitchenDisplay() {
     </div>
   );
 }
-
