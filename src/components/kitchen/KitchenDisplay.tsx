@@ -90,8 +90,16 @@ export default function KitchenDisplay() {
   const [showConfirmedOnly, setShowConfirmedOnly] = useState(true);
   const [notification, setNotification] = useState<{ message: string, visible: boolean }>({ message: '', visible: false });
   const [viewMode, setViewMode] = useState<'table' | 'dish'>('table');
+  const [isMobile, setIsMobile] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -265,40 +273,46 @@ export default function KitchenDisplay() {
         </div>
       )}
 
-      {/* Header controls (Matched to mockup) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between py-4 px-4 md:px-6 bg-white border-b border-gray-200 shrink-0 z-10 w-full overflow-x-auto no-scrollbar gap-4">
-        <div className="flex items-center gap-4 shrink-0">
-          <h2 className="text-2xl font-black text-gray-800 tracking-tight">KDS <span className="text-teal-600">BẾP</span></h2>
+      {/* Header controls — compact on mobile */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between py-3 px-3 md:py-4 md:px-6 bg-white border-b border-gray-200 shrink-0 z-10 w-full gap-3 md:gap-4">
+        <div className="flex items-center gap-3 shrink-0">
+          <h2 className="hidden sm:block text-2xl font-black text-gray-800 tracking-tight">KDS <span className="text-teal-600">BẾP</span></h2>
           <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'table'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'table'
                 ? 'bg-white text-teal-700 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-              <LayoutGrid className="w-5 h-5" /> Theo Bàn
+              <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden xs:inline">Theo Bàn</span><span className="xs:hidden">Bàn</span>
             </button>
             <button
               onClick={() => setViewMode('dish')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'dish'
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'dish'
                 ? 'bg-white text-teal-700 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
                 }`}
             >
-              <List className="w-5 h-5" /> Tổng hợp món
+              <List className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden xs:inline">Tổng hợp món</span><span className="xs:hidden">Món</span>
             </button>
           </div>
+          {/* Mobile table counter */}
+          {isMobile && viewMode === 'table' && (
+            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+              {filteredOrders.length} bàn
+            </span>
+          )}
         </div>
 
-        <div className="flex flex-1 items-center justify-start md:justify-end shrink-0">
-          {/* Category Filter */}
-          <div className="flex items-center gap-1 md:gap-2 min-w-max px-2">
+        <div className="flex flex-1 items-center justify-start md:justify-end shrink-0 overflow-x-auto no-scrollbar">
+          {/* Category Filter — horizontal scroll on mobile */}
+          <div className="flex items-center gap-1.5 md:gap-2 min-w-max">
             {(['All', 'Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'] as const).map(cat => (
               <button
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${filterCategory === cat
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap min-h-[36px] ${filterCategory === cat
                   ? 'bg-teal-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/50'
                   }`}
@@ -314,7 +328,7 @@ export default function KitchenDisplay() {
       <div className="flex-1 relative overflow-hidden flex flex-col md:flex-row group">
 
         {/* Left Scroll Button */}
-        {viewMode === 'table' && (
+        {viewMode === 'table' && !isMobile && (
           <button
             onClick={scrollLeft}
             className="absolute left-2 top-1/2 -translate-y-1/2 z-[55] opacity-0 group-hover:opacity-100 transition-opacity duration-300 focus:outline-none"
@@ -329,8 +343,10 @@ export default function KitchenDisplay() {
         <div
           ref={scrollContainerRef}
           className={`flex-1 overflow-y-auto no-scrollbar font-sans pb-10 ${viewMode === 'table'
-            ? 'flex overflow-x-auto snap-x w-full items-start pr-4 pl-8 md:pr-6 md:pl-12 py-6 gap-4'
-            : 'block w-full overflow-x-hidden p-4 md:p-6'
+            ? isMobile
+              ? 'flex flex-col w-full items-stretch px-3 py-4 gap-3'
+              : 'flex overflow-x-auto snap-x w-full items-start pr-4 pl-8 md:pr-6 md:pl-12 py-6 gap-4'
+            : 'block w-full overflow-x-hidden p-3 sm:p-4 md:p-6'
             }`}
         >
           {viewMode === 'table' ? (
@@ -349,31 +365,29 @@ export default function KitchenDisplay() {
                 return (
                   <div
                     key={order.id}
-                    className={`flex flex-col rounded-xl bg-white transition-all flex-shrink-0 snap-start h-max ${styles.card} ${isSidebarCollapsed
-                      // When sidebar is closed (5 columns)
-                      // Total gap size = 4 gaps * 16px (gap-4) = 64px. 
-                      // 100vw doesn't work well due to padding. Better to use % of parent + calc.
-                      ? 'w-[85vw] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-10.66px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-12.8px)]'
-                      // When sidebar is open (4 columns)
-                      // Total gap size = 3 gaps * 16px = 48px.
-                      : 'w-[85vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10.66px)] xl:w-[calc(25%-12px)]'
+                    className={`flex flex-col rounded-xl bg-white transition-all h-max ${styles.card} ${isMobile
+                      ? 'w-full'
+                      : `flex-shrink-0 snap-start ${isSidebarCollapsed
+                        ? 'sm:w-[calc(50%-8px)] md:w-[calc(33.333%-10.66px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-12.8px)]'
+                        : 'sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10.66px)] xl:w-[calc(25%-12px)]'
+                      }`
                       }`}
                   >
                     {/* Header */}
-                    <div className={`px-3 py-2 md:px-4 md:py-2.5 flex justify-between items-start rounded-t-xl ${styles.header}`}>
-                      <h3 className="text-lg md:text-xl font-black flex items-center gap-1.5 mt-0.5 tracking-tight">
+                    <div className={`px-3 py-2.5 md:px-4 md:py-2.5 flex justify-between items-center rounded-t-xl ${styles.header}`}>
+                      <h3 className="text-lg md:text-xl font-black flex items-center gap-1.5 tracking-tight">
                         {order.table}
                         {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 animate-pulse text-white" />}
                       </h3>
 
-                      <div className="flex flex-col items-end gap-1">
-                        <div className={`flex items-center gap-1 font-mono text-xs md:text-sm font-bold ${styles.timer}`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-1 font-mono text-sm md:text-sm font-bold ${styles.timer}`}>
                           <Clock className="w-3.5 h-3.5" />
                           {elapsed}'
                         </div>
 
-                        {/* Mark All Done Button (Small size in top-right) */}
-                        {!allItemsDone && (
+                        {/* Mark All Done Button — Desktop: small in header, Mobile: hidden here (shown below) */}
+                        {!allItemsDone && !isMobile && (
                           <button
                             onClick={() => markAllDone(order.id)}
                             className="py-0.5 px-2 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[10px]"
@@ -384,6 +398,16 @@ export default function KitchenDisplay() {
                         )}
                       </div>
                     </div>
+
+                    {/* Mobile-only: Full-width "Xong tất cả" button below header */}
+                    {!allItemsDone && isMobile && (
+                      <button
+                        onClick={() => markAllDone(order.id)}
+                        className="mx-2 mt-2 py-2.5 rounded-lg bg-gray-800 hover:bg-gray-900 text-white font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-sm"
+                      >
+                        <CheckSquare className="w-4 h-4" /> Xong tất cả
+                      </button>
+                    )}
 
                     {/* Body */}
                     <div className="p-2 md:p-3 flex-1 flex flex-col gap-2 bg-white">
@@ -423,7 +447,7 @@ export default function KitchenDisplay() {
                               {/* Item Details */}
                               <div className={`flex-1 p-2 flex flex-col justify-center relative min-w-0 w-full overflow-hidden rounded-r-xl ${isDone ? 'bg-emerald-50/30' : 'bg-white'}`}>
                                 <div className="pr-6 w-full">
-                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight truncate ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
+                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight ${isMobile ? 'break-words' : 'truncate'} ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
                                     {item.name}
                                   </div>
 
@@ -492,7 +516,7 @@ export default function KitchenDisplay() {
             // =============================
             // DISH VIEW (Tổng hợp món)
             // =============================
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 2xl:gap-8 px-4 pb-12">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-8 px-3 sm:px-4 pb-12">
               {aggregatedItems.map((item, index) => {
                 const isDone = item.pendingQuantity === 0;
 
@@ -586,7 +610,7 @@ export default function KitchenDisplay() {
         </div>
 
         {/* Right Scroll Button */}
-        {viewMode === 'table' && (
+        {viewMode === 'table' && !isMobile && (
           <button
             onClick={scrollRight}
             className="absolute right-2 top-1/2 -translate-y-1/2 z-[55] opacity-0 group-hover:opacity-100 transition-opacity duration-300 focus:outline-none"
