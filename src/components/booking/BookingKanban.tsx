@@ -51,7 +51,7 @@ const columns: { id: BookingStatus; label: string; color: string; borderColor: s
   { id: 'confirmed', label: 'Đã xác nhận', color: 'bg-green-50', borderColor: 'border-green-500', icon: CheckCircle },
   { id: 'change_requested', label: 'Đổi giờ/ngày', color: 'bg-purple-50', borderColor: 'border-purple-400', icon: RefreshCw },
   { id: 'arrived', label: 'Đã đến', color: 'bg-teal-50', borderColor: 'border-teal-500', icon: Users },
-  { id: 'no_show', label: 'Không đến (No-show)', color: 'bg-red-50', borderColor: 'border-red-400', icon: UserX },
+  { id: 'no_show', label: 'Không đến', color: 'bg-red-50', borderColor: 'border-red-400', icon: UserX },
   { id: 'cancelled', label: 'Đã hủy', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Ban },
   { id: 'completed', label: 'Hoàn thành', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Archive },
 ];
@@ -513,7 +513,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               <div className="h-px bg-gray-100 my-2"></div>
               <button onClick={() => handleStatusChange(selectedBooking.id, 'no_show')} className="w-full flex items-center gap-3 p-3 text-left hover:bg-red-50 rounded-lg text-red-600 font-medium">
                 <UserX className="w-5 h-5" />
-                Đánh dấu No-show (Không đến)
+                Đánh dấu Không đến
               </button>
               <button onClick={() => handleStatusChange(selectedBooking.id, 'cancelled')} className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-100 rounded-lg text-gray-500 font-medium">
                 <Ban className="w-5 h-5" />
