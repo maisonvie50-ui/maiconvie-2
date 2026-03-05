@@ -527,70 +527,71 @@ export default function KitchenDisplay() {
                   : 'border-transparent bg-white shadow-[0_3px_15px_rgb(0,0,0,0.05)] hover:shadow-md hover:shadow-red-500/10 hover:border-red-100';
 
                 return (
-                  <div
-                    key={`agg-${index}`}
-                    onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone)}
-                    className={`
-                      relative group flex flex-col p-4 2xl:p-8 rounded-2xl 2xl:rounded-3xl cursor-pointer 
-                      transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.98] 
-                      shadow-sm border overflow-hidden min-h-[8rem] 2xl:min-h-[14rem]
-                      ${cardBorderClass}
-                    `}
-                  >
-                    {/* Subtle decorative background gradient blob for pending items */}
-                    {!isDone && (
-                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-orange-400/10 to-red-500/10 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-60"></div>
-                    )}
+                  <div key={`agg-${index}`} className="h-full w-full">
+                    <div
+                      onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone)}
+                      className={`
+                        h-full w-full relative group flex flex-col p-4 2xl:p-8 rounded-2xl 2xl:rounded-3xl cursor-pointer 
+                        transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.98] 
+                        shadow-sm border overflow-hidden min-h-[8rem] 2xl:min-h-[14rem]
+                        ${cardBorderClass}
+                      `}
+                    >
+                      {/* Subtle decorative background gradient blob for pending items */}
+                      {!isDone && (
+                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-orange-400/10 to-red-500/10 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-60"></div>
+                      )}
 
-                    {/* Top Row: Quantity Badge + Category */}
-                    <div className="flex justify-between items-start mb-3 2xl:mb-6 relative z-10">
-                      <div className={`
+                      {/* Top Row: Quantity Badge + Category */}
+                      <div className="flex justify-between items-start mb-3 2xl:mb-6 relative z-10">
+                        <div className={`
                         flex flex-col items-center justify-center w-12 h-12 2xl:w-24 2xl:h-24 rounded-xl 2xl:rounded-3xl shadow-lg border border-white/20
                         ${qtyClass}
                       `}>
-                        <span className="text-2xl 2xl:text-5xl font-black font-mono leading-none tracking-tighter">
-                          {isDone ? item.doneQuantity : item.pendingQuantity}
-                        </span>
+                          <span className="text-2xl 2xl:text-5xl font-black font-mono leading-none tracking-tighter">
+                            {isDone ? item.doneQuantity : item.pendingQuantity}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`text-[9px] 2xl:text-[14px] font-black uppercase tracking-widest px-2 py-1 2xl:px-4 2xl:py-2 rounded-full border shadow-sm ${isDone ? 'bg-emerald-100 text-emerald-700 border-emerald-200/50' : 'bg-gray-50 text-gray-500 border-gray-200/50'}`}>
+                            {item.category}
+                          </span>
+                          <span className={`text-[10px] 2xl:text-base font-bold uppercase mt-1.5 2xl:mt-3 tracking-wider ${isDone ? 'text-emerald-500' : 'text-red-500/80 animate-pulse'}`}>
+                            {isDone ? 'Hoàn tất' : 'Đang chờ'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col items-end">
-                        <span className={`text-[9px] 2xl:text-[14px] font-black uppercase tracking-widest px-2 py-1 2xl:px-4 2xl:py-2 rounded-full border shadow-sm ${isDone ? 'bg-emerald-100 text-emerald-700 border-emerald-200/50' : 'bg-gray-50 text-gray-500 border-gray-200/50'}`}>
-                          {item.category}
-                        </span>
-                        <span className={`text-[10px] 2xl:text-base font-bold uppercase mt-1.5 2xl:mt-3 tracking-wider ${isDone ? 'text-emerald-500' : 'text-red-500/80 animate-pulse'}`}>
-                          {isDone ? 'Hoàn tất' : 'Đang chờ'}
-                        </span>
+
+                      {/* Middle: Dish Name */}
+                      <div className="relative z-10 flex-1 flex flex-col justify-start">
+                        <h3 className={`text-lg 2xl:text-4xl font-black leading-tight tracking-tight break-words pr-2 ${isDone ? 'line-through text-emerald-700/50' : 'text-slate-800'}`}>
+                          {item.name}
+                        </h3>
                       </div>
-                    </div>
 
-                    {/* Middle: Dish Name */}
-                    <div className="relative z-10 flex-1 flex flex-col justify-start">
-                      <h3 className={`text-lg 2xl:text-4xl font-black leading-tight tracking-tight break-words pr-2 ${isDone ? 'line-through text-emerald-700/50' : 'text-slate-800'}`}>
-                        {item.name}
-                      </h3>
-                    </div>
-
-                    {/* Bottom: Notes */}
-                    {item.notes.length > 0 && (
-                      <div className="mt-3 2xl:mt-8 flex flex-wrap gap-1.5 2xl:gap-3 relative z-10">
-                        {item.notes.map((note, idx) => (
-                          <span key={idx} className={`
+                      {/* Bottom: Notes */}
+                      {item.notes.length > 0 && (
+                        <div className="mt-3 2xl:mt-8 flex flex-wrap gap-1.5 2xl:gap-3 relative z-10">
+                          {item.notes.map((note, idx) => (
+                            <span key={idx} className={`
                             inline-flex items-center gap-1 text-[10px] 2xl:text-sm font-black uppercase 
                             px-2 py-1 2xl:px-4 2xl:py-2 rounded-lg 2xl:rounded-2xl border shadow-sm backdrop-blur-sm transition-colors
                             ${isDone ? 'bg-white/50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'}
                           `}>
-                            <AlertTriangle className={`w-3 h-3 2xl:w-5 2xl:h-5 ${isDone ? 'text-emerald-500' : 'text-amber-500'}`} />
-                            {note}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                              <AlertTriangle className={`w-3 h-3 2xl:w-5 2xl:h-5 ${isDone ? 'text-emerald-500' : 'text-amber-500'}`} />
+                              {note}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
-                    {/* Done Icon Overlay */}
-                    {isDone && (
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <CheckCircle className="w-24 h-24 2xl:w-32 2xl:h-32 text-emerald-500/10" />
-                      </div>
-                    )}
+                      {/* Done Icon Overlay */}
+                      {isDone && (
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                          <CheckCircle className="w-24 h-24 2xl:w-32 2xl:h-32 text-emerald-500/10" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
