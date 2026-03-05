@@ -22,7 +22,8 @@ import {
   Edit,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Archive
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { initialBookings } from '../../data/mockData';
@@ -52,9 +53,16 @@ const columns: { id: BookingStatus; label: string; color: string; borderColor: s
   { id: 'arrived', label: 'Đã đến', color: 'bg-teal-50', borderColor: 'border-teal-500', icon: Users },
   { id: 'no_show', label: 'Không đến (No-show)', color: 'bg-red-50', borderColor: 'border-red-400', icon: UserX },
   { id: 'cancelled', label: 'Đã hủy', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Ban },
+  { id: 'completed', label: 'Hoàn thành', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Archive },
 ];
 
-
+const boardColumns = [
+  { id: 'col_new', label: 'Mới nhận', color: 'bg-blue-50', borderColor: 'border-blue-500', icon: Plus, statuses: ['new'], defaultStatus: 'new' },
+  { id: 'col_pending', label: 'Chờ xác nhận', color: 'bg-orange-50', borderColor: 'border-orange-400', icon: Clock, statuses: ['waiting_info', 'pending', 'change_requested'], defaultStatus: 'pending' },
+  { id: 'col_confirmed', label: 'Đã xác nhận', color: 'bg-green-50', borderColor: 'border-green-500', icon: CheckCircle, statuses: ['confirmed'], defaultStatus: 'confirmed' },
+  { id: 'col_arrived', label: 'Đã đến', color: 'bg-teal-50', borderColor: 'border-teal-500', icon: Users, statuses: ['arrived'], defaultStatus: 'arrived' },
+  { id: 'col_history', label: 'Lịch sử', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Archive, statuses: ['completed', 'cancelled', 'no_show'], defaultStatus: 'completed' },
+];
 
 interface BookingKanbanProps {
   isModalOpen?: boolean;
@@ -186,14 +194,18 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!result.destination) return;
 
     const { source, destination } = result;
-    const sourceStatus = source.droppableId as BookingStatus;
-    const destStatus = destination.droppableId as BookingStatus;
+    const sourceDroppable = source.droppableId;
+    const destDroppable = destination.droppableId;
 
-    if (sourceStatus === destStatus) return;
+    if (sourceDroppable === destDroppable) return;
+
+    const destColumn = boardColumns.find(c => c.id === destDroppable);
+    if (!destColumn) return;
+    const newStatus = destColumn.defaultStatus as BookingStatus;
 
     const updatedBookings = bookings.map(booking => {
       if (booking.id === result.draggableId) {
-        return { ...booking, status: destStatus };
+        return { ...booking, status: newStatus };
       }
       return booking;
     });
@@ -527,9 +539,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           <ChevronLeft className="w-6 h-6" />
         </button>
 
-        <div className="flex gap-4 h-full min-w-[1600px] overflow-x-auto no-scrollbar pb-4" ref={scrollRef}> {/* Increased width for more columns */}
-          {columns.map((col) => {
-            const colBookings = bookings.filter(b => b.status === col.id);
+        <div className="flex gap-4 h-full min-w-[1400px] overflow-x-auto no-scrollbar pb-4" ref={scrollRef}>
+          {boardColumns.map((col) => {
+            const colBookings = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status));
 
             return (
               <Droppable key={col.id} droppableId={col.id}>
@@ -570,16 +582,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName}</h4>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditBooking(booking);
-                                  }}
-                                  className="text-gray-400 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  title="Chỉnh sửa"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {col.statuses.length > 1 && (
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${columns.find(c => c.id === booking.status)?.color} ${columns.find(c => c.id === booking.status)?.borderColor.replace('border-', 'text-')}`}>
+                                      {columns.find(c => c.id === booking.status)?.label}
+                                    </span>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditBooking(booking);
+                                    }}
+                                    className="text-gray-400 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Chỉnh sửa"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
 
                               <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">

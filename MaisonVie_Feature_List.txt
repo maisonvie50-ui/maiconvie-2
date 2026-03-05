@@ -1,0 +1,437 @@
+﻿Maison Vie Platform
+Complete Feature List
+Danh sách đầy đủ các chức năng cần triển khai
+Version 1.0 | February 2026
+Executive Summary
+Metric
+	Value
+	Total Features
+	51
+	Phase 1 (MVP) Features
+	30 features
+	Phase 1.5 Features
+	6 features
+	Phase 2 Features
+	15 features
+	Total Modules
+	10
+	Legend
+Phase:
+P1
+	Phase 1 – MVP (Must-have để chạy vận hành: 1 sổ chung + intake đa kênh + capacity + bếp + chatbot website/fanpage)
+	P1.5
+	Phase 1.5 – Nice-to-have (tối ưu trải nghiệm/kiểm soát, làm sau khi P1 ổn)
+	P2
+	Phase 2 – Web App nội bộ + Đào tạo 5 cấp (login, phân quyền, thao tác nhanh, báo cáo đào tạo)
+	User Roles:
+Guest
+	Khách đặt bàn / hỏi thông tin
+	Receptionist
+	Lễ tân nhận & xử lý booking
+	Kitchen
+	Bếp xem danh sách khách theo ngày
+	Manager
+	Quản lý cấu hình, xem báo cáo
+	Admin
+	Quản trị hệ thống
+	System
+	Tự động/automation chạy nền
+	________________
+1. AUTHENTICATION & USER MANAGEMENT (Internal Web App)
+Total: 10 features | P1: 0 | P1.5: 1 | P2: 9
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	AUTH-01
+	Đăng nhập bằng email/password
+	Receptionist/Manager/Kitchen
+	P2
+	Login success, session valid, redirect đúng dashboard theo role
+	AUTH-02
+	Đăng xuất
+	Receptionist/Manager/Kitchen
+	P2
+	Clear session/token, redirect về login
+	AUTH-03
+	Quên mật khẩu / Reset password
+	Receptionist/Manager/Kitchen
+	P2
+	Email reset link, expires 24h
+	AUTH-04
+	Xem & chỉnh sửa hồ sơ cá nhân (tên, SĐT)
+	Receptionist/Manager/Kitchen
+	P2
+	Update thành công, log thay đổi
+	AUTH-05
+	Quản lý danh sách users
+	Admin/Manager
+	P2
+	Search + filter theo role + pagination
+	AUTH-06
+	Xem chi tiết user
+	Admin/Manager
+	P2
+	Hiển thị role + trạng thái + lịch sử hoạt động cơ bản
+	AUTH-07
+	Kích hoạt / Vô hiệu hoá user
+	Admin/Manager
+	P2
+	Soft disable, user không login được, có thể restore
+	AUTH-08
+	Phân quyền user (assign role)
+	Admin/Manager
+	P2
+	Assign đúng: Receptionist/Manager/Kitchen/Admin
+	AUTH-09
+	Giới hạn truy cập theo role (RBAC)
+	System
+	P2
+	Kitchen không thấy màn quản trị/khách; Receptionist không thấy cấu hình nhạy cảm
+	AUTH-10
+	Upload avatar (tuỳ chọn)
+	Receptionist/Manager/Kitchen
+	P1.5
+	Max 2MB, crop support
+	
+
+________________
+2. CONFIGURATION & STANDARDIZATION (Kickoff)
+Total: 8 features | P1: 8 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	CFG-01
+	Chuẩn hoá “Booking Master Schema” (mẫu sổ đặt bàn chuẩn)
+	Admin/Manager
+	P1
+	Có 1 schema thống nhất field + kiểu dữ liệu + required
+	CFG-02
+	Cấu hình tổng sức chứa (default 250)
+	Manager
+	P1
+	Total capacity lưu được, dùng trong tính “còn chỗ”
+	CFG-03
+	Cấu hình khu vực & sức chứa theo khu
+	Manager
+	P1
+	Lưu được khu vực + max pax; dùng trong booking & capacity
+	CFG-04
+	Cấu hình Tầng 3 theo layout (40/60/80/100)
+	Manager
+	P1
+	Chọn layout theo ngày; capacity tính theo layout đã chọn
+	CFG-05
+	Cấu hình giờ mở/đóng & khung giờ nhận đặt
+	Manager
+	P1
+	Chặn booking ngoài khung; chatbot/app phản hồi đúng
+	CFG-06
+	Cấu hình time-slot & duration (default slot 30’, duration 120’)
+	Manager
+	P1
+	Slot chạy đúng, booking chiếm chỗ đúng duration
+	CFG-07
+	Cấu hình trạng thái booking & trạng thái nào được tính vào capacity
+	Admin/Manager
+	P1
+	Rule rõ ràng, capacity không cộng nhầm status loại trừ
+	CFG-08
+	Chuẩn hoá menu theo ngày (dataset cho chatbot)
+	Admin
+	P1
+	Menu load đúng theo ngày; có format cố định để cập nhật
+	
+
+________________
+3. BOOKING INTAKE (Multi-channel → 1 Sổ Chung)
+Total: 10 features | P1: 10 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	INK-01
+	Intake từ Website/Form → ghi booking vào sổ chung
+	System
+	P1
+	Booking tạo đúng field, đúng format, có tag nguồn “Website/Form”
+	INK-02
+	Import/migrate dữ liệu từ Excel hiện tại
+	Admin
+	P1
+	Import thành công, mapping đúng cột quan trọng, không mất bản ghi
+	INK-03
+	Intake từ Fanpage Messenger (chatbot → link form)
+	Guest/System
+	P1
+	Chatbot luôn điều hướng form; booking vào sổ với tag “Fanpage”
+	INK-04
+	Intake Email đối tác lữ hành (VI/EN/FR)
+	System
+	P1
+	Parser trích được ngày/giờ/pax/tên/liên hệ; log nếu fail
+	INK-05
+	Intake Email khách lẻ
+	System
+	P1
+	Parser hoạt động với mẫu phổ biến; fail → tạo ticket “Cần xử lý”
+	INK-06
+	WhatsApp tiết kiệm: template trả lời + link form
+	Receptionist
+	P1
+	Có 1 template chuẩn; form điền xong tạo booking đúng
+	INK-07
+	Điện thoại: nhập nhanh qua form nội bộ (phase 1)
+	Receptionist
+	P1
+	Tạo booking < 30s; có tag nguồn “Phone”
+	INK-08
+	Walk-in: tạo booking nhanh
+	Receptionist
+	P1
+	Tạo booking < 20s; tag “Walk-in”
+	INK-09
+	Gắn “Source Channel” tự động cho mọi booking
+	System
+	P1
+	100% booking có source; dùng được để lọc/báo cáo
+	INK-10
+	Chống trùng booking cơ bản (same date/time/phone)
+	System
+	P1
+	Cảnh báo trùng; cho phép merge/confirm
+	________________
+4. BOOKING WORKFLOW & STATUS MANAGEMENT
+Total: 7 features | P1: 7 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	WFL-01
+	Hỗ trợ trạng thái: Mới nhận/Chờ bổ sung/Chờ xác nhận/Đã xác nhận/Đã đến/No-show/Đổi giờ-đổi ngày
+	Receptionist
+	P1
+	Status thay đổi được; lịch sử status có timestamp
+	WFL-02
+	Validate thông tin bắt buộc khi “xác nhận”
+	System
+	P1
+	Thiếu field bắt buộc → không cho set “Đã xác nhận”
+	WFL-03
+	Tự gắn status “Chờ bổ sung” khi thiếu dữ liệu
+	System
+	P1
+	Detect thiếu giờ/pax/phone/khu… và gắn status đúng
+	WFL-04
+	Mẫu phản hồi khi thiếu thông tin (WhatsApp/Email)
+	System
+	P1
+	Generate template đúng ngôn ngữ; copy-paste dùng được
+	WFL-05
+	Reschedule: đổi giờ/đổi ngày
+	Receptionist
+	P1
+	Đổi xong cập nhật capacity, bếp view, và log thay đổi
+	WFL-06
+	Cancel booking
+	Receptionist
+	P1
+	Cancel → không tính vào capacity; giữ record (soft)
+	WFL-07
+	No-show marking
+	Receptionist
+	P1
+	No-show → không tính capacity; dùng cho báo cáo
+	________________
+5. CAPACITY ENGINE (250 pax + theo khu vực + theo slot)
+Total: 7 features | P1: 7 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	CAP-01
+	Tính tổng pax theo slot cho toàn nhà hàng
+	System
+	P1
+	Tổng pax/slot khớp dữ liệu booking hợp lệ
+	CAP-02
+	Tính pax theo khu vực (Tầng 1/Tầng 2 phòng/Tầng 3 layout)
+	System
+	P1
+	Không vượt capacity khu; báo cảnh báo khi gần đầy
+	CAP-03
+	Áp rule status nào được tính vào capacity
+	System
+	P1
+	Chỉ cộng booking status hợp lệ (ví dụ: Chờ xác nhận/Đã xác nhận)
+	CAP-04
+	Hiển thị trạng thái Còn/Gần đầy/Hết
+	System
+	P1
+	Ngưỡng cấu hình; hiển thị đúng cho từng slot/khu
+	CAP-05
+	Gợi ý slot gần nhất còn chỗ khi slot khách chọn đã đầy
+	System
+	P1
+	Đề xuất 1–3 slot gần nhất phù hợp
+	CAP-06
+	Cảnh báo overbook khi tạo/sửa booking
+	Receptionist/System
+	P1
+	Overbook → cảnh báo; yêu cầu Manager override (nếu bật)
+	CAP-07
+	Recalculate tự động khi reschedule/cancel/no-show
+	System
+	P1
+	Capacity update tức thời, không lệch số
+	________________
+6. KITCHEN VIEW (Bếp xem danh sách khách theo ngày)
+Total: 4 features | P1: 4 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	KIT-01
+	View “Hôm nay” theo ngày: giờ/khung giờ, pax, khu vực
+	Kitchen
+	P1
+	Bếp mở 1 màn là thấy đầy đủ
+	KIT-02
+	Hiển thị ghi chú quan trọng (dị ứng/kiêng món/dịp đặc biệt)
+	Kitchen
+	P1
+	Ghi chú nổi bật, không bị ẩn
+	KIT-03
+	Lọc theo khung giờ/slot
+	Kitchen
+	P1
+	Filter hoạt động nhanh, không lag
+	KIT-04
+	Chỉ xem booking đã xác nhận (mặc định)
+	Kitchen/System
+	P1
+	Default filter = Đã xác nhận; có tuỳ chọn xem “Chờ xác nhận”
+	7. CHATBOT (Website/Fanpage) – Multi-language & Booking Guidance
+Total: 7 features | P1: 7 | P1.5: 0 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	BOT-01
+	Tư vấn menu theo ngày
+	Guest
+	P1
+	Trả lời đúng theo dataset menu của ngày đó
+	BOT-02
+	Gợi ý món tương tự (basic recommendation)
+	Guest
+	P1
+	Có suggestion hợp lý dựa trên mapping/mô tả
+	BOT-03
+	Hỏi “còn chỗ không?” (ngày/giờ/pax/khu)
+	Guest
+	P1
+	Trả đúng theo CAP engine
+	BOT-04
+	Khi khách muốn đặt bàn → gửi link form chuẩn
+	Guest
+	P1
+	Luôn điều hướng về form; giảm thiếu dữ liệu
+	BOT-05
+	Đa ngôn ngữ VI/EN/FR/JP
+	Guest
+	P1
+	Chuyển ngôn ngữ → trả đúng, không lẫn ngôn ngữ
+	BOT-06
+	Tone “lịch sự, chuẩn nhà hàng”
+	System
+	P1
+	100% response theo guideline đã chốt
+	BOT-07
+	Thu thập câu hỏi phổ biến cho báo cáo FAQ
+	System
+	P1
+	Log intent/question + count theo ngày/tuần
+	________________
+8. REPORTING & ANALYTICS
+Total: 6 features | P1: 5 | P1.5: 1 | P2: 0
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	RPT-01
+	Tổng booking theo ngày/tuần/tháng
+	Manager
+	P1
+	Có tổng + breakdown theo nguồn
+	RPT-02
+	Khung giờ đông nhất (slot heatmap)
+	Manager
+	P1
+	Hiển thị slot peak; lọc theo ngày/tuần
+	RPT-03
+	Báo cáo “còn chỗ” theo slot/khu
+	Manager
+	P1
+	Near-full/full rõ ràng; đối chiếu được với booking
+	RPT-04
+	Báo cáo trạng thái booking (confirm/cancel/no-show)
+	Manager
+	P1
+	Số liệu đúng theo status
+	RPT-05
+	FAQ chatbot: top câu hỏi nhiều nhất
+	Admin/Manager
+	P1
+	Top intents/questions + count
+	RPT-06
+	Export báo cáo (CSV/PDF tuỳ nền tảng)
+	Manager
+	P1.5
+	Export đúng filter đang chọn
+	9. TRAINING (5 Levels, max 25 videos)
+Total: 6 features | P1: 0 | P1.5: 0 | P2: 6
+#
+	Feature Description
+	User Role
+	Phase
+	Acceptance Criteria
+	TRN-01
+	Tạo 5 cấp đào tạo (Level 1→5)
+	Admin/Manager
+	P2
+	Tạo/sửa/xoá cấp; sắp xếp thứ tự
+	TRN-02
+	Thêm video theo cấp (tối đa 25)
+	Admin/Manager
+	P2
+	Add link + title; validate tổng ≤ 25
+	TRN-03
+	Video ở chế độ unlisted
+	Admin
+	P2
+	Không public; vẫn xem ổn định trong app
+	TRN-04
+	Tracking tiến độ theo video (watched/completed)
+	System
+	P2
+	Lưu progress theo user + timestamp
+	TRN-05
+	% hoàn thành theo cấp & theo user
+	Manager
+	P2
+	Tính % đúng; hiển thị theo user/cấp
+	TRN-06
+	Báo cáo tổng hợp tiến độ đào tạo theo role
+	Manager
+	P2
+	Filter theo Receptionist/Kitchen/Manager; xem nhanh ai chưa hoàn thành
