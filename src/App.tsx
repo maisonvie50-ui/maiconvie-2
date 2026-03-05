@@ -53,7 +53,7 @@ function MainApp() {
               onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
             <main className="flex-1 relative overflow-hidden">
-              <Outlet />
+              <Outlet context={{ isSidebarCollapsed }} />
             </main>
           </div>
         </div>

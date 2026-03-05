@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Clock, AlertTriangle, CheckCircle, Flame, Check, ChefHat, BellRing, Filter, X, LayoutGrid, List, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
+
+interface ContextType {
+  isSidebarCollapsed: boolean;
+}
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
 type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
@@ -76,6 +81,8 @@ const categoryOrder: Record<ItemCategory, number> = {
 };
 
 export default function KitchenDisplay() {
+  const context = useOutletContext<ContextType>();
+  const isSidebarCollapsed = context ? context.isSidebarCollapsed : false;
   const [orders, setOrders] = useState<OrderTicket[]>(mockOrders);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [filterCategory, setFilterCategory] = useState<ItemCategory | 'All'>('All');
@@ -249,7 +256,7 @@ export default function KitchenDisplay() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-[#f3f4f6] flex flex-col relative overflow-hidden">
+    <div className="h-[calc(100vh-64px)] bg-white flex flex-col relative overflow-hidden">
       {/* Toast Notification */}
       {notification.visible && (
         <div className="fixed top-20 right-6 z-50 bg-gray-900 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right duration-300 font-bold text-lg">
@@ -258,8 +265,8 @@ export default function KitchenDisplay() {
         </div>
       )}
 
-      {/* Header controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border-b shadow-sm shrink-0 z-10 w-full overflow-x-auto no-scrollbar gap-4">
+      {/* Header controls (Matched to mockup) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between py-4 px-4 md:px-6 bg-white border-b border-gray-200 shrink-0 z-10 w-full overflow-x-auto no-scrollbar gap-4">
         <div className="flex items-center gap-4 shrink-0">
           <h2 className="text-2xl font-black text-gray-800 tracking-tight">KDS <span className="text-teal-600">BẾP</span></h2>
           <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
@@ -322,8 +329,8 @@ export default function KitchenDisplay() {
         <div
           ref={scrollContainerRef}
           className={`flex-1 overflow-y-auto no-scrollbar font-sans pb-10 ${viewMode === 'table'
-            ? 'flex overflow-x-auto snap-x w-full items-start px-6 md:px-8 lg:px-10 py-6 gap-3 md:gap-5' // Added stronger horizontal padding
-            : 'block w-full overflow-x-hidden p-4 md:p-8'
+            ? 'flex overflow-x-auto snap-x w-full items-start pr-4 pl-8 md:pr-6 md:pl-12 py-6 gap-4'
+            : 'block w-full overflow-x-hidden p-4 md:p-6'
             }`}
         >
           {viewMode === 'table' ? (
@@ -342,7 +349,15 @@ export default function KitchenDisplay() {
                 return (
                   <div
                     key={order.id}
-                    className={`flex flex-col rounded-xl bg-white transition-all flex-shrink-0 snap-start w-[85vw] sm:w-[250px] md:w-[230px] lg:w-[240px] xl:w-[250px] 2xl:w-[260px] h-max ${styles.card}`}
+                    className={`flex flex-col rounded-xl bg-white transition-all flex-shrink-0 snap-start h-max ${styles.card} ${isSidebarCollapsed
+                      // When sidebar is closed (5 columns)
+                      // Total gap size = 4 gaps * 16px (gap-4) = 64px. 
+                      // 100vw doesn't work well due to padding. Better to use % of parent + calc.
+                      ? 'w-[85vw] sm:w-[calc(50%-8px)] md:w-[calc(33.333%-10.66px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-12.8px)]'
+                      // When sidebar is open (4 columns)
+                      // Total gap size = 3 gaps * 16px = 48px.
+                      : 'w-[85vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10.66px)] xl:w-[calc(25%-12px)]'
+                      }`}
                   >
                     {/* Header */}
                     <div className={`px-3 py-2 md:px-4 md:py-2.5 flex justify-between items-start rounded-t-xl ${styles.header}`}>
