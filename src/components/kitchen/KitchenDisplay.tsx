@@ -513,82 +513,76 @@ export default function KitchenDisplay() {
             // =============================
             // DISH VIEW (Tổng hợp món)
             // =============================
-            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-8 px-3 sm:px-4 pb-12">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 px-6 py-6 pb-12">
               {aggregatedItems.map((item, index) => {
                 const isDone = item.pendingQuantity === 0;
 
-                // Color themes
                 const qtyClass = isDone
-                  ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                  : 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-red-500/30';
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-gradient-to-br from-orange-500 to-red-600 text-white';
 
                 const cardBorderClass = isDone
-                  ? 'border-emerald-200 bg-emerald-50/40 hover:shadow-emerald-100/50'
-                  : 'border-transparent bg-white shadow-[0_3px_15px_rgb(0,0,0,0.05)] hover:shadow-md hover:shadow-red-500/10 hover:border-red-100';
+                  ? 'border-emerald-200 bg-emerald-50/40'
+                  : 'border-gray-200/60 bg-white hover:shadow-md hover:border-gray-300';
 
                 return (
                   <div key={`agg-${index}`} className="h-full w-full">
                     <div
                       onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone)}
                       className={`
-                        h-full w-full relative group flex flex-col p-4 2xl:p-8 rounded-2xl 2xl:rounded-3xl cursor-pointer 
-                        transition-all duration-300 transform hover:-translate-y-1 active:scale-[0.98] 
-                        shadow-sm border overflow-hidden min-h-[8rem] 2xl:min-h-[14rem]
+                        h-full w-full relative group flex flex-col p-3 rounded-xl cursor-pointer 
+                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] 
+                        shadow-sm border overflow-hidden
                         ${cardBorderClass}
                       `}
                     >
-                      {/* Subtle decorative background gradient blob for pending items */}
-                      {!isDone && (
-                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-orange-400/10 to-red-500/10 rounded-full blur-3xl pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-60"></div>
-                      )}
-
                       {/* Top Row: Quantity Badge + Category */}
-                      <div className="flex justify-between items-start mb-3 2xl:mb-6 relative z-10">
+                      <div className="flex justify-between items-start mb-2 relative z-10">
                         <div className={`
-                        flex flex-col items-center justify-center w-12 h-12 2xl:w-24 2xl:h-24 rounded-xl 2xl:rounded-3xl shadow-lg border border-white/20
-                        ${qtyClass}
-                      `}>
-                          <span className="text-2xl 2xl:text-5xl font-black font-mono leading-none tracking-tighter">
+                          flex items-center justify-center w-10 h-10 rounded-lg shadow-sm
+                          ${qtyClass}
+                        `}>
+                          <span className="text-lg font-black font-mono leading-none">
                             {isDone ? item.doneQuantity : item.pendingQuantity}
                           </span>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className={`text-[9px] 2xl:text-[14px] font-black uppercase tracking-widest px-2 py-1 2xl:px-4 2xl:py-2 rounded-full border shadow-sm ${isDone ? 'bg-emerald-100 text-emerald-700 border-emerald-200/50' : 'bg-gray-50 text-gray-500 border-gray-200/50'}`}>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${isDone ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                             {item.category}
                           </span>
-                          <span className={`text-[10px] 2xl:text-base font-bold uppercase mt-1.5 2xl:mt-3 tracking-wider ${isDone ? 'text-emerald-500' : 'text-red-500/80 animate-pulse'}`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide ${isDone ? 'text-emerald-500' : 'text-red-500/80'}`}>
                             {isDone ? 'Hoàn tất' : 'Đang chờ'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Middle: Dish Name */}
+                      {/* Dish Name */}
                       <div className="relative z-10 flex-1 flex flex-col justify-start">
-                        <h3 className={`text-lg 2xl:text-4xl font-black leading-tight tracking-tight break-words pr-2 ${isDone ? 'line-through text-emerald-700/50' : 'text-slate-800'}`}>
+                        <h3 className={`text-sm font-bold leading-snug break-words ${isDone ? 'line-through text-emerald-700/50' : 'text-gray-800'}`}>
                           {item.name}
                         </h3>
                       </div>
 
-                      {/* Bottom: Notes */}
+                      {/* Notes */}
                       {item.notes.length > 0 && (
-                        <div className="mt-3 2xl:mt-8 flex flex-wrap gap-1.5 2xl:gap-3 relative z-10">
+                        <div className="mt-2 flex flex-wrap gap-1 relative z-10">
                           {item.notes.map((note, idx) => (
                             <span key={idx} className={`
-                            inline-flex items-center gap-1 text-[10px] 2xl:text-sm font-black uppercase 
-                            px-2 py-1 2xl:px-4 2xl:py-2 rounded-lg 2xl:rounded-2xl border shadow-sm backdrop-blur-sm transition-colors
-                            ${isDone ? 'bg-white/50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'}
-                          `}>
-                              <AlertTriangle className={`w-3 h-3 2xl:w-5 2xl:h-5 ${isDone ? 'text-emerald-500' : 'text-amber-500'}`} />
+                              inline-flex items-center gap-1 text-[10px] font-bold uppercase 
+                              px-1.5 py-0.5 rounded-md border
+                              ${isDone ? 'bg-white/50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}
+                            `}>
+                              <AlertTriangle className={`w-3 h-3 ${isDone ? 'text-emerald-500' : 'text-amber-500'}`} />
                               {note}
                             </span>
                           ))}
                         </div>
                       )}
 
-                      {/* Done Icon Overlay */}
+                      {/* Done Overlay */}
                       {isDone && (
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                          <CheckCircle className="w-24 h-24 2xl:w-32 2xl:h-32 text-emerald-500/10" />
+                          <CheckCircle className="w-16 h-16 text-emerald-500/10" />
                         </div>
                       )}
                     </div>
