@@ -465,29 +465,51 @@ export default function Settings() {
                         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
                             <h3 className="font-bold text-gray-800 mb-8 flex items-center gap-2"><Clock className="w-5 h-5 text-teal-600" />Cấu hình khung giờ hoạt động</h3>
                             <div className="space-y-12">
+                                {/* Ca Trưa */}
                                 <div>
-                                    <div className="flex justify-between mb-2"><label className="font-medium text-gray-700 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span>Ca Trưa</label><span className="text-sm font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-lg">{lunchStart}:00 - {lunchEnd}:00</span></div>
-                                    <div className="relative h-12 bg-gray-100 rounded-lg flex items-center px-4">
-                                        <div className="absolute left-4 right-4 h-2 bg-gray-200 rounded-full"></div>
-                                        <div className="absolute h-2 bg-orange-400 rounded-full opacity-80" style={{ left: `${((lunchStart - 6) / 18) * 100}%`, width: `${((lunchEnd - lunchStart) / 18) * 100}%` }}></div>
-                                        <input type="range" min="6" max="24" value={lunchStart} onChange={(e) => setLunchStart(Math.min(parseInt(e.target.value), lunchEnd - 1))} className="absolute w-full opacity-0 cursor-pointer z-10" />
-                                        <input type="range" min="6" max="24" value={lunchEnd} onChange={(e) => setLunchEnd(Math.max(parseInt(e.target.value), lunchStart + 1))} className="absolute w-full opacity-0 cursor-pointer z-10" />
-                                        <div className="absolute w-6 h-6 bg-white border-2 border-orange-400 rounded-full shadow cursor-grab flex items-center justify-center text-[10px] font-bold text-orange-600" style={{ left: `calc(${((lunchStart - 6) / 18) * 100}% + 16px)` }}>{lunchStart}</div>
-                                        <div className="absolute w-6 h-6 bg-white border-2 border-orange-400 rounded-full shadow cursor-grab flex items-center justify-center text-[10px] font-bold text-orange-600" style={{ left: `calc(${((lunchEnd - 6) / 18) * 100}% + 16px)` }}>{lunchEnd}</div>
+                                    <div className="flex justify-between items-center mb-4"><label className="font-medium text-gray-700 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-400"></span>Ca Trưa</label><span className="text-sm font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-lg">{lunchStart}:00 - {lunchEnd}:00</span></div>
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-2">Giờ bắt đầu</label>
+                                            <select value={lunchStart} onChange={(e) => { const val = parseInt(e.target.value); if (val < lunchEnd) setLunchStart(val); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-bold text-center focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white cursor-pointer appearance-none">
+                                                {Array.from({ length: 19 }, (_, i) => i + 6).filter(h => h < lunchEnd).map(h => (<option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-2">Giờ kết thúc</label>
+                                            <select value={lunchEnd} onChange={(e) => { const val = parseInt(e.target.value); if (val > lunchStart) setLunchEnd(val); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-bold text-center focus:ring-2 focus:ring-orange-400 focus:border-orange-400 bg-white cursor-pointer appearance-none">
+                                                {Array.from({ length: 19 }, (_, i) => i + 6).filter(h => h > lunchStart).map(h => (<option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between text-xs text-gray-400 mt-2 px-4"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+                                    {/* Visual bar */}
+                                    <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
+                                        <div className="absolute h-full bg-orange-200 rounded-lg transition-all duration-300" style={{ left: `${((lunchStart - 6) / 18) * 100}%`, width: `${((lunchEnd - lunchStart) / 18) * 100}%` }}></div>
+                                        <div className="absolute inset-0 flex justify-between items-center px-3 text-[10px] text-gray-400 pointer-events-none"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+                                    </div>
                                 </div>
+                                {/* Ca Tối */}
                                 <div>
-                                    <div className="flex justify-between mb-2"><label className="font-medium text-gray-700 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span>Ca Tối</label><span className="text-sm font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-lg">{dinnerStart}:00 - {dinnerEnd}:00</span></div>
-                                    <div className="relative h-12 bg-gray-100 rounded-lg flex items-center px-4">
-                                        <div className="absolute left-4 right-4 h-2 bg-gray-200 rounded-full"></div>
-                                        <div className="absolute h-2 bg-indigo-500 rounded-full opacity-80" style={{ left: `${((dinnerStart - 6) / 18) * 100}%`, width: `${((dinnerEnd - dinnerStart) / 18) * 100}%` }}></div>
-                                        <input type="range" min="6" max="24" value={dinnerStart} onChange={(e) => setDinnerStart(Math.min(parseInt(e.target.value), dinnerEnd - 1))} className="absolute w-full opacity-0 cursor-pointer z-10" />
-                                        <input type="range" min="6" max="24" value={dinnerEnd} onChange={(e) => setDinnerEnd(Math.max(parseInt(e.target.value), dinnerStart + 1))} className="absolute w-full opacity-0 cursor-pointer z-10" />
-                                        <div className="absolute w-6 h-6 bg-white border-2 border-indigo-500 rounded-full shadow cursor-grab flex items-center justify-center text-[10px] font-bold text-indigo-600" style={{ left: `calc(${((dinnerStart - 6) / 18) * 100}% + 16px)` }}>{dinnerStart}</div>
-                                        <div className="absolute w-6 h-6 bg-white border-2 border-indigo-500 rounded-full shadow cursor-grab flex items-center justify-center text-[10px] font-bold text-indigo-600" style={{ left: `calc(${((dinnerEnd - 6) / 18) * 100}% + 16px)` }}>{dinnerEnd}</div>
+                                    <div className="flex justify-between items-center mb-4"><label className="font-medium text-gray-700 flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-indigo-500"></span>Ca Tối</label><span className="text-sm font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-lg">{dinnerStart}:00 - {dinnerEnd}:00</span></div>
+                                    <div className="grid grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-2">Giờ bắt đầu</label>
+                                            <select value={dinnerStart} onChange={(e) => { const val = parseInt(e.target.value); if (val < dinnerEnd) setDinnerStart(val); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-bold text-center focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white cursor-pointer appearance-none">
+                                                {Array.from({ length: 19 }, (_, i) => i + 6).filter(h => h < dinnerEnd).map(h => (<option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-2">Giờ kết thúc</label>
+                                            <select value={dinnerEnd} onChange={(e) => { const val = parseInt(e.target.value); if (val > dinnerStart) setDinnerEnd(val); }} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-bold text-center focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white cursor-pointer appearance-none">
+                                                {Array.from({ length: 19 }, (_, i) => i + 6).filter(h => h > dinnerStart).map(h => (<option key={h} value={h}>{h.toString().padStart(2, '0')}:00</option>))}
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-between text-xs text-gray-400 mt-2 px-4"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+                                    {/* Visual bar */}
+                                    <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
+                                        <div className="absolute h-full bg-indigo-200 rounded-lg transition-all duration-300" style={{ left: `${((dinnerStart - 6) / 18) * 100}%`, width: `${((dinnerEnd - dinnerStart) / 18) * 100}%` }}></div>
+                                        <div className="absolute inset-0 flex justify-between items-center px-3 text-[10px] text-gray-400 pointer-events-none"><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+                                    </div>
                                 </div>
                             </div>
                             <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end"><button className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors"><Check className="w-4 h-4" />Lưu cấu hình thời gian</button></div>

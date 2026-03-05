@@ -23,7 +23,11 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Archive
+  Archive,
+  LayoutGrid,
+  List,
+  ChevronDown,
+  Filter
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { initialBookings } from '../../data/mockData';
@@ -79,6 +83,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
 
+  // View Mode (Desktop)
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+
+  // Desktop Status Filter
+  const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
+  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
+
   // Internal modal state for when component is used without controlling props
   const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
   const showModal = isModalOpen !== undefined ? isModalOpen : internalIsModalOpen;
@@ -119,12 +130,24 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     return bookings.filter(b => statusGroups[tab].includes(b.status)).length;
   };
 
+  // Toggle status filter
+  const toggleStatusFilter = (status: BookingStatus) => {
+    setSelectedStatuses(prev =>
+      prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
-    // 1. Filter by Tab (Mobile only logic, but useful to have)
+    // 1. Filter by Tab (Mobile only logic)
     if (isMobile && !statusGroups[activeStatusTab].includes(b.status)) return false;
 
-    // 2. Filter by Search
+    // 2. Filter by Status (Desktop only)
+    if (!isMobile && selectedStatuses.length > 0 && !selectedStatuses.includes(b.status)) return false;
+
+    // 3. Filter by Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
@@ -550,6 +573,192 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     </div>
   );
 
+  // --- Desktop Table View ---
+
+  const areaLabels: Record<string, string> = {
+    indoor: 'Trong nhà',
+    outdoor: 'Ngoài trời',
+    vip: 'VIP',
+    rooftop: 'Sân thượng'
+  };
+
+  const renderDesktopTable = () => {
+    const sorted = [...filteredBookings].sort((a, b) => a.time.localeCompare(b.time));
+
+    return (
+      <div className="flex-1 overflow-auto p-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[80px]">Giờ</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600">Khách hàng</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[120px]">SĐT</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px]">Pax</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[100px]">Khu vực</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[90px]">Nguồn</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[180px]">Trạng thái</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600">Ghi chú</th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px]"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {sorted.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="text-center py-16 text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 opacity-30" />
+                      <span>Không có đơn đặt bàn nào</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                sorted.map(booking => {
+                  const statusConfig = columns.find(c => c.id === booking.status);
+                  const StatusIcon = statusConfig?.icon;
+                  return (
+                    <tr
+                      key={booking.id}
+                      className={`hover:bg-gray-50/80 transition-colors cursor-pointer group border-l-4 ${statusConfig?.borderColor || 'border-transparent'}`}
+                      onClick={() => handleEditBooking(booking)}
+                    >
+                      {/* Giờ */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 font-semibold text-gray-900">
+                          <Clock className="w-3.5 h-3.5 text-gray-400" />
+                          {booking.time}
+                        </div>
+                      </td>
+
+                      {/* Khách hàng */}
+                      <td className="px-4 py-3">
+                        <span className="font-semibold text-gray-900">{booking.customerName}</span>
+                      </td>
+
+                      {/* SĐT */}
+                      <td className="px-4 py-3 text-gray-600">
+                        {booking.phone || <span className="text-gray-300">—</span>}
+                      </td>
+
+                      {/* Pax */}
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1 text-gray-700 font-medium">
+                          <Users className="w-3.5 h-3.5 text-gray-400" />
+                          {booking.pax}
+                        </div>
+                      </td>
+
+                      {/* Khu vực */}
+                      <td className="px-4 py-3">
+                        {booking.area ? (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                            {areaLabels[booking.area] || booking.area}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Nguồn */}
+                      <td className="px-4 py-3">
+                        {booking.source ? (
+                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
+                            {sourceLabels[booking.source] || booking.source}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Trạng thái (Dropdown) */}
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStatusDropdownId(statusDropdownId === booking.id ? null : booking.id);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all hover:shadow-sm ${statusConfig?.color} ${statusConfig?.borderColor} ${statusConfig?.borderColor?.replace('border-', 'text-')}`}
+                          >
+                            {StatusIcon && <StatusIcon className="w-3 h-3" />}
+                            {statusConfig?.label}
+                            <ChevronDown className="w-3 h-3 opacity-50" />
+                          </button>
+
+                          {statusDropdownId === booking.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-[70]"
+                                onClick={() => setStatusDropdownId(null)}
+                              />
+                              <div className="absolute top-full left-0 mt-1 z-[80] bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150">
+                                {columns.map(col => {
+                                  const ColIcon = col.icon;
+                                  const isActive = booking.status === col.id;
+                                  return (
+                                    <button
+                                      key={col.id}
+                                      onClick={() => {
+                                        handleStatusChange(booking.id, col.id);
+                                        setStatusDropdownId(null);
+                                      }}
+                                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-left ${isActive
+                                        ? 'bg-teal-50 text-teal-700 font-bold'
+                                        : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                      {ColIcon && <ColIcon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-500' : 'text-gray-400'}`} />}
+                                      {col.label}
+                                      {isActive && <CheckCircle className="w-3 h-3 ml-auto text-teal-500" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Ghi chú */}
+                      <td className="px-4 py-3">
+                        {booking.notes && booking.notes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {booking.notes.map((note, idx) => (
+                              <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">
+                                <AlertCircle className="w-3 h-3" />
+                                {note}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+
+                      {/* Hành động */}
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditBooking(booking);
+                          }}
+                          className="text-gray-400 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-lg hover:bg-teal-50"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   // --- Desktop Kanban View ---
 
   const renderDesktopKanban = () => (
@@ -704,11 +913,86 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           </div>
         </div>
 
+        {/* View Mode Toggle */}
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setViewMode('kanban')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Kanban"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Bảng"
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
 
       </div>
 
+      {/* Desktop Status Filter Bar */}
+      <div className="hidden md:flex px-6 py-2.5 bg-white border-b border-gray-100 items-center gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mr-1 flex-shrink-0">
+          <Filter className="w-3.5 h-3.5" />
+          Trạng thái
+        </div>
+        <button
+          onClick={() => setSelectedStatuses([])}
+          className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${selectedStatuses.length === 0
+            ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+            }`}
+        >
+          Tất cả
+          <span className={`ml-1 ${selectedStatuses.length === 0 ? 'text-gray-300' : 'text-gray-400'}`}>
+            {bookings.length}
+          </span>
+        </button>
+        {columns.map(col => {
+          const ColIcon = col.icon;
+          const isActive = selectedStatuses.includes(col.id);
+          const count = bookings.filter(b => b.status === col.id).length;
+          return (
+            <button
+              key={col.id}
+              onClick={() => toggleStatusFilter(col.id)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${isActive
+                ? `${col.color} ${col.borderColor} ${col.borderColor.replace('border-', 'text-')} shadow-sm`
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {ColIcon && <ColIcon className="w-3 h-3" />}
+              {col.label}
+              {count > 0 && (
+                <span className={`px-1 py-0 rounded-full text-[10px] ${isActive ? 'bg-white/50' : 'bg-gray-100'
+                  }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {selectedStatuses.length > 0 && (
+          <button
+            onClick={() => setSelectedStatuses([])}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+          >
+            <X className="w-3 h-3" />
+            Xóa lọc
+          </button>
+        )}
+      </div>
+
       {/* Conditional Rendering */}
-      {isMobile ? renderMobileList() : renderDesktopKanban()}
+      {isMobile
+        ? renderMobileList()
+        : viewMode === 'kanban'
+          ? renderDesktopKanban()
+          : renderDesktopTable()
+      }
 
       {/* Add Booking Modal (Shared) */}
       {showModal && (
