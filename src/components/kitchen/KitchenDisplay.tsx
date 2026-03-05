@@ -345,7 +345,7 @@ export default function KitchenDisplay() {
           className={`flex-1 overflow-y-auto no-scrollbar font-sans pb-10 ${viewMode === 'table'
             ? isMobile
               ? 'flex flex-col w-full items-stretch px-3 py-4 gap-3'
-              : 'flex overflow-x-auto snap-x w-full items-start pr-4 pl-8 md:pr-6 md:pl-12 py-6 gap-4'
+              : 'flex flex-wrap w-full items-start px-6 py-6 gap-4'
             : 'block w-full overflow-x-hidden p-3 sm:p-4 md:p-6'
             }`}
         >
@@ -367,10 +367,7 @@ export default function KitchenDisplay() {
                     key={order.id}
                     className={`flex flex-col rounded-xl bg-white transition-all h-max ${styles.card} ${isMobile
                       ? 'w-full'
-                      : `flex-shrink-0 snap-start ${isSidebarCollapsed
-                        ? 'sm:w-[calc(50%-8px)] md:w-[calc(33.333%-10.66px)] lg:w-[calc(25%-12px)] xl:w-[calc(20%-12.8px)]'
-                        : 'sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-10.66px)] xl:w-[calc(25%-12px)]'
-                      }`
+                      : 'flex-shrink-0 snap-start w-[calc(20%-12.8px)]'
                       }`}
                   >
                     {/* Header */}
