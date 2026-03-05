@@ -34,18 +34,7 @@ export interface VipRoom {
     notes?: string;
 }
 
-export interface EditingItem {
-    id?: string;
-    name?: string;
-    type?: 'circle' | 'square' | 'rect';
-    status?: TableStatus | 'empty' | 'in-use';
-    pax?: number;
-    capacity?: number;
-    floor?: 1 | 2 | 3;
-    category: 'table' | 'vip' | 'area' | 'zone';
-}
-
-export interface SetCourseOption {
+interface SetCourseOption {
     id: string;
     nameEn: string;
     nameVn: string;

@@ -68,7 +68,6 @@ function MainApp() {
           />
         } />
         <Route path="/thuc-don" element={<MenuManagement />} />
-        <Route path="/quan-ly-thuc-don" element={<MenuManagement />} />
         <Route path="/bep" element={<KitchenDisplay />} />
         <Route path="/dao-tao" element={<TrainingPortal />} />
         <Route path="/khach-hang" element={<CustomerCRM />} />

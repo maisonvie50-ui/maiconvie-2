@@ -1,25 +1,4 @@
-import type { Category, MenuItem, SetMenu } from '../types';
-
-export const categories: Category[] = [
-    { id: 'appetizer', name: 'Khai vị', count: 8 },
-    { id: 'main', name: 'Món chính', count: 15 },
-    { id: 'dessert', name: 'Tráng miệng', count: 6 },
-    { id: 'drink', name: 'Đồ uống', count: 12 },
-    { id: 'wine', name: 'Rượu vang', count: 8 },
-];
-
-export const menuItems: MenuItem[] = [
-    { id: '1', categoryId: 'appetizer', name: 'Súp bí đỏ kem tươi', description: 'Súp bí đỏ nấu kem với hạt bí rang', price: 65000, image: '🍜', inStock: true, tags: ['Chef recommend', 'Healthy'] },
-    { id: '2', categoryId: 'appetizer', name: 'Salad Caesar', description: 'Rau romaine, phô mai parmesan, crouton', price: 85000, image: '🥗', inStock: true, tags: ['Healthy'] },
-    { id: '3', categoryId: 'main', name: 'Bò Wagyu A5', description: 'Bò Wagyu A5 Nhật Bản nướng than hồng kèm rau củ', price: 1200000, image: '🥩', inStock: true, tags: ['Premium', 'Chef recommend'], variants: ['Tái', 'Chín vừa', 'Chín kỹ'] },
-    { id: '4', categoryId: 'main', name: 'Cá hồi áp chảo', description: 'Cá hồi Na Uy áp chảo sốt chanh dây', price: 220000, image: '🐟', inStock: true, tags: ['Healthy'] },
-    { id: '5', categoryId: 'main', name: 'Mỳ Ý Carbonara', description: 'Spaghetti sốt kem truyền thống với bacon', price: 180000, image: '🍝', inStock: true, tags: [] },
-    { id: '6', categoryId: 'main', name: 'Pizza Hải sản', description: 'Pizza đế mỏng với tôm, mực, sò điệp', price: 210000, image: '🍕', inStock: false, tags: ['Popular'] },
-    { id: '7', categoryId: 'dessert', name: 'Tiramisu', description: 'Bánh Tiramisu truyền thống Ý', price: 95000, image: '🍰', inStock: true, tags: [] },
-    { id: '8', categoryId: 'drink', name: 'Trà đào cam sả', description: 'Trà đào tươi với cam và sả', price: 45000, image: '🍹', inStock: true, tags: ['Popular'] },
-    { id: '9', categoryId: 'drink', name: 'Nước suối', description: 'Nước khoáng thiên nhiên', price: 15000, image: '💧', inStock: true, tags: [] },
-    { id: '10', categoryId: 'wine', name: 'Rượu vang đỏ Pháp', description: 'Bordeaux 2018 - Château Margaux', price: 850000, image: '🍷', inStock: true, tags: ['Premium'] },
-];
+import type { SetMenu } from '../types';
 
 // Simplified menu for mobile order pad
 export const mobileMenuItems = [
