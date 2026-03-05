@@ -402,7 +402,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                         <h4 className="font-bold text-gray-900">{booking.customerName}</h4>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.time}</span>
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {booking.pax} Pax</span>
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {booking.pax}</span>
                           {booking.source && (
                             <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
                               {sourceLabels[booking.source] || booking.source}
@@ -608,7 +608,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Users className="w-3.5 h-3.5 text-gray-400" />
-                                  {booking.pax} Pax
+                                  {booking.pax}
                                 </div>
                                 {booking.source && (
                                   <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source]}`}>
