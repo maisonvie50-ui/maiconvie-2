@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Minus, Search, ShoppingBag, Send, SplitSquareHorizontal, CheckCircle, ArrowRightLeft, Users, ChevronRight } from 'lucide-react';
 import { mockSetMenus } from '../../data/mockMenu';
+import { orderService } from '../../services/orderService';
 
 interface OrderPadProps {
   table: any;
@@ -99,11 +100,32 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     }).filter(i => i.quantity > 0));
   };
 
-  const handleSendOrder = () => {
+  const handleSendOrder = async () => {
+    if (orderItems.length === 0) return;
     setIsOrderSent(true);
-    setTimeout(() => {
-      onClose();
-    }, 1500);
+
+    try {
+      const itemsToCreate = orderItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        notes: item.notes || [],
+        category: item.category || 'Món chính' // Fallback
+      }));
+
+      await orderService.createOrder(
+        table.name,
+        itemsToCreate,
+        table.id
+      );
+
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (error) {
+      console.error('Lỗi khi gửi đơn:', error);
+      alert('Không thể gửi đơn xuống bếp. Vui lòng thử lại!');
+      setIsOrderSent(false); // Reset to try again
+    }
   };
 
   const total = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);

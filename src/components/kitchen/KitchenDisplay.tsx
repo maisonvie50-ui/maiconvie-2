@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Clock, AlertTriangle, CheckCircle, Flame, Check, ChefHat, BellRing, Filter, X, LayoutGrid, List, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
+import { orderService, OrderTicket, OrderItem } from '../../services/orderService';
 
 interface ContextType {
   isSidebarCollapsed: boolean;
@@ -8,70 +9,6 @@ interface ContextType {
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
 type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
-
-interface OrderItem {
-  id: string;
-  name: string;
-  quantity: number;
-  notes?: string[];
-  status: ItemStatus;
-  category: ItemCategory;
-}
-
-interface OrderTicket {
-  id: string;
-  table: string;
-  orderTime: Date;
-  items: OrderItem[];
-  status: 'pending' | 'completed';
-  bookingStatus: 'confirmed' | 'pending' | 'new' | 'arrived';
-}
-
-const generateMockOrders = (): OrderTicket[] => {
-  const getRand = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
-  const categories: ItemCategory[] = ['Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'];
-  const dishNames: Record<ItemCategory, string[]> = {
-    'Khai vị': ['Súp bí đỏ', 'Salad Caesar', 'Khoai tây chiên', 'Nem rán', 'Gỏi cuốn', 'Súp hải sản'],
-    'Món chính': ['Bò bít tết (Medium Rare)', 'Cá hồi áp chảo', 'Mỳ Ý Carbonara', 'Gà nướng mật ong', 'Lẩu hải sản (Lớn)', 'Cơm chiên dương châu', 'Sườn xào chua ngọt', 'Vịt quay Bắc Kinh'],
-    'Tráng miệng': ['Bánh Tiramisu', 'Kem Vanilla', 'Trái cây theo mùa', 'Panna Cotta', 'Chè hạt sen'],
-    'Đồ uống': ['Nước dưa hấu', 'Trà đào cam sả', 'Coca Cola', 'Bia Heineken', 'Rượu vang đỏ']
-  };
-  const statuses: ItemStatus[] = ['pending', 'cooking', 'done'];
-  const notesPool = ['Ít muối', 'Không hành tây', 'Cay nhiều', 'DỊ ỨNG ĐẬU PHỘNG', 'Không đá', 'Nhiều sốt'];
-
-  const orders: OrderTicket[] = [];
-  for (let t = 1; t <= 10; t++) { // Generate 10 active tables
-    const numItems = Math.floor(Math.random() * 6) + 5; // 5 to 10 items per table
-    const items: OrderItem[] = [];
-    for (let i = 1; i <= numItems; i++) {
-      const cat = getRand(categories) as ItemCategory;
-      const name = getRand(dishNames[cat]);
-      const status = getRand(statuses) as ItemStatus;
-      const hasNote = Math.random() > 0.8; // 20% chance to have a note
-      const notes = hasNote ? [getRand(notesPool)] : [];
-      items.push({
-        id: `t${t}-${i}`,
-        name,
-        quantity: Math.floor(Math.random() * 3) + 1, // 1 to 3 qty
-        notes,
-        status,
-        category: cat
-      });
-    }
-
-    orders.push({
-      id: `order-${t}`,
-      table: `Bàn ${t}`,
-      orderTime: new Date(Date.now() - 1000 * 60 * Math.floor(Math.random() * 45)), // 0 to 45 mins ago
-      status: 'pending',
-      bookingStatus: 'confirmed',
-      items
-    });
-  }
-  return orders;
-};
-
-const mockOrders: OrderTicket[] = generateMockOrders();
 
 const categoryOrder: Record<ItemCategory, number> = {
   'Khai vị': 1,
@@ -83,7 +20,8 @@ const categoryOrder: Record<ItemCategory, number> = {
 export default function KitchenDisplay() {
   const context = useOutletContext<ContextType>();
   const isSidebarCollapsed = context ? context.isSidebarCollapsed : false;
-  const [orders, setOrders] = useState<OrderTicket[]>(mockOrders);
+  const [orders, setOrders] = useState<OrderTicket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [filterCategory, setFilterCategory] = useState<ItemCategory | 'All'>('All');
   const [filterTimeSlot, setFilterTimeSlot] = useState<'All' | 'Lunch' | 'Dinner'>('All');
@@ -93,6 +31,29 @@ export default function KitchenDisplay() {
   const [isMobile, setIsMobile] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch orders from Supabase
+  const loadOrders = async () => {
+    try {
+      const data = await orderService.getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to load orders', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+    const subscription = orderService.subscribeToOrders(() => {
+      loadOrders();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -111,39 +72,53 @@ export default function KitchenDisplay() {
     setTimeout(() => setNotification({ message: '', visible: false }), 3000);
   };
 
-  const cycleItemStatus = (orderId: string, itemId: string) => {
-    setOrders(orders.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          items: order.items.map(item => {
-            if (item.id === itemId) {
-              // Simply toggle pending <-> done to minimize touches
-              return { ...item, status: item.status === 'done' ? 'pending' : 'done' };
-            }
-            return item;
-          })
-        };
-      }
-      return order;
-    }));
+  const cycleItemStatus = async (orderId: string, itemId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const item = order.items.find(i => i.id === itemId);
+    if (!item) return;
+
+    // Optimistic UI
+    const targetStatus = item.status === 'done' ? 'pending' : 'done';
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      items: o.items.map(i => i.id === itemId ? { ...i, status: targetStatus } : i)
+    } : o));
+
+    try {
+      await orderService.updateItemStatus(itemId, targetStatus);
+    } catch (error) {
+      console.error('Failed to update status', error);
+      loadOrders(); // fallback
+    }
   };
 
-  const markAllDone = (orderId: string) => {
-    setOrders(orders.map(order => {
-      if (order.id === orderId) {
-        return {
-          ...order,
-          items: order.items.map(item => ({ ...item, status: 'done' }))
-        };
-      }
-      return order;
-    }));
+  const markAllDone = async (orderId: string) => {
+    // Optimistic UI
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      items: o.items.map(i => ({ ...i, status: 'done' }))
+    } : o));
+
+    try {
+      await orderService.markAllItemsDone(orderId);
+    } catch (error) {
+      console.error('Failed to mark all items done', error);
+      loadOrders(); // fallback
+    }
   };
 
-  const completeOrder = (orderId: string) => {
-    setOrders(orders.filter(o => o.id !== orderId));
+  const completeOrder = async (orderId: string) => {
+    // Optimistic UI
+    setOrders(prev => prev.filter(o => o.id !== orderId));
     showNotification('Đã hoàn thành đơn hàng!');
+
+    try {
+      await orderService.completeOrder(orderId);
+    } catch (error) {
+      console.error('Failed to complete order', error);
+      loadOrders(); // fallback
+    }
   };
 
   const scrollLeft = () => {
