@@ -1,48 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Save,
-    User,
-    Clock,
-    Check,
-    Shield,
-    PlaySquare,
-    Youtube,
-    Plus,
-    Trash2,
-    Edit,
-    Link,
-    Image as ImageIcon,
-    ChevronRight,
-    X,
-    Search,
-    Filter,
-    Activity,
-    Settings as SettingsIcon,
-    AlertTriangle,
-    Users,
-    LayoutTemplate
+    Save, User, Clock, Check, Shield, PlaySquare, Youtube, Plus, Trash2, Edit, Link,
+    Image as ImageIcon, ChevronRight, X, Search, Filter, Activity, Settings as SettingsIcon,
+    AlertTriangle, Users, LayoutTemplate
 } from 'lucide-react';
 
-interface Employee {
-    id: string;
-    name: string;
-    email: string;
-    active: boolean;
-    roles: {
-        reception: boolean;
-        kitchen: boolean;
-        server: boolean;
-        manager: boolean;
-    };
-    lastActive?: string;
-}
-
-interface ActivityLog {
-    id: string;
-    action: string;
-    timestamp: string;
-    details: string;
-}
+import { settingsService, Employee, ActivityLog, Station, AppSettings } from '../../services/settingsService';
+import { trainingService, TrainingModule } from '../../services/trainingService';
 
 interface Area {
     id: string;
@@ -50,80 +14,46 @@ interface Area {
     capacity: number;
 }
 
-const mockEmployees: Employee[] = [
-    { id: '1', name: 'Nguyễn Văn A', email: 'a.nguyen@maisonvie.com', active: true, roles: { reception: false, kitchen: false, server: false, manager: true }, lastActive: 'Vừa xong' },
-    { id: '2', name: 'Trần Thị B', email: 'b.tran@maisonvie.com', active: true, roles: { reception: true, kitchen: false, server: true, manager: false }, lastActive: '5 phút trước' },
-    { id: '3', name: 'Lê Văn C', email: 'c.le@maisonvie.com', active: true, roles: { reception: false, kitchen: true, server: false, manager: false }, lastActive: '1 giờ trước' },
-    { id: '4', name: 'Phạm Thị D', email: 'd.pham@maisonvie.com', active: false, roles: { reception: true, kitchen: false, server: false, manager: false }, lastActive: '2 ngày trước' },
-];
-
-const mockActivityLogs: ActivityLog[] = [
-    { id: '1', action: 'Tạo đặt bàn', timestamp: '10:30 26/02', details: 'Khách Nguyễn Văn X (4 pax)' },
-    { id: '2', action: 'Check-in', timestamp: '10:45 26/02', details: 'Bàn 05 - Tầng 1' },
-    { id: '3', action: 'Cập nhật món', timestamp: '11:00 26/02', details: 'Thêm 2 Bia Tiger' },
-    { id: '4', action: 'Thanh toán', timestamp: '12:15 26/02', details: 'Hóa đơn #10234 - 1.500.000đ' },
-];
-
 export default function Settings() {
     const [activeTab, setActiveTab] = useState<'permissions' | 'hours' | 'training' | 'operations' | 'assignments'>('permissions');
     const [isMobile, setIsMobile] = useState(false);
-    const [employees, setEmployees] = useState<Employee[]>(mockEmployees);
-    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'reception' });
-    const [searchQuery, setSearchQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'reception' | 'kitchen' | 'server'>('all');
-    const [userDetailModalOpen, setUserDetailModalOpen] = useState(false);
-    const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
-    const [stations, setStations] = useState([
-        { id: '1', name: 'Station Cửa Sổ (T1)', tables: ['Bàn 1', 'Bàn 2', 'Bàn 5', 'Bàn 6'], staffIds: ['2'] },
-        { id: '2', name: 'Station Trung Tâm (T1)', tables: ['Bàn 3', 'Bàn 4', 'Bàn 7', 'Bàn 8'], staffIds: [] },
-        { id: '3', name: 'Phòng VIP 1', tables: ['VIP 1'], staffIds: ['1'] },
-    ]);
-    const [newStationName, setNewStationName] = useState('');
-    const [selectedTablesForStation, setSelectedTablesForStation] = useState<string[]>([]);
-    const [isAddStationModalOpen, setIsAddStationModalOpen] = useState(false);
-    const [editingStationId, setEditingStationId] = useState<string | null>(null);
-    const [isEditStationTablesModalOpen, setIsEditStationTablesModalOpen] = useState(false);
 
-    const handleEditStationTables = (stationId: string) => {
-        const station = stations.find(s => s.id === stationId);
-        if (station) {
-            setEditingStationId(stationId);
-            setSelectedTablesForStation(station.tables);
-            setIsEditStationTablesModalOpen(true);
-        }
-    };
+    // Config state
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [stations, setStations] = useState<Station[]>([]);
+    const [managedCourses, setManagedCourses] = useState<TrainingModule[]>([]);
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
-    const handleSaveStationTables = () => {
-        if (editingStationId) {
-            setStations(stations.map(s =>
-                s.id === editingStationId ? { ...s, tables: selectedTablesForStation } : s
-            ));
-            setIsEditStationTablesModalOpen(false);
-            setEditingStationId(null);
-            setSelectedTablesForStation([]);
-        }
-    };
-
-    const [areas, setAreas] = useState<Area[]>([
-        { id: '1', name: 'Sảnh Tầng 1', capacity: 80 },
-        { id: '2', name: 'Sảnh Tầng 2', capacity: 50 },
-        { id: '3', name: 'Phòng VIP', capacity: 20 },
-    ]);
+    // Setting fields
+    const [appSettings, setAppSettings] = useState<any>({});
     const [defaultDuration, setDefaultDuration] = useState(120);
     const [strictMode, setStrictMode] = useState(false);
     const [lunchStart, setLunchStart] = useState(11);
     const [lunchEnd, setLunchEnd] = useState(14);
     const [dinnerStart, setDinnerStart] = useState(17);
     const [dinnerEnd, setDinnerEnd] = useState(22);
+    const [areas, setAreas] = useState<Area[]>([
+        { id: '1', name: 'Sảnh Tầng 1', capacity: 80 },
+        { id: '2', name: 'Sảnh Tầng 2', capacity: 50 },
+        { id: '3', name: 'Phòng VIP', capacity: 20 },
+    ]);
+
+    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'reception' });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'reception' | 'kitchen' | 'server'>('all');
+    const [userDetailModalOpen, setUserDetailModalOpen] = useState(false);
+    const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
+
+    const [newStationName, setNewStationName] = useState('');
+    const [selectedTablesForStation, setSelectedTablesForStation] = useState<string[]>([]);
+    const [isAddStationModalOpen, setIsAddStationModalOpen] = useState(false);
+    const [editingStationId, setEditingStationId] = useState<string | null>(null);
+    const [isEditStationTablesModalOpen, setIsEditStationTablesModalOpen] = useState(false);
+
     const [trainingUrl, setTrainingUrl] = useState('');
     const [trainingTitle, setTrainingTitle] = useState('');
     const [trainingLevel, setTrainingLevel] = useState(1);
-    const [managedCourses, setManagedCourses] = useState([
-        { id: '1', title: 'Văn hóa Maison Vie', level: 1, youtubeId: 'M7lc1UVf-VE', active: true },
-        { id: '2', title: 'Quy trình phục vụ cơ bản', level: 1, youtubeId: 'tgbNymZ7vqY', active: true },
-        { id: '3', title: 'Kỹ năng giao tiếp khách hàng', level: 2, youtubeId: '8aGhZQkoFbQ', active: true },
-    ]);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
     useEffect(() => {
@@ -133,29 +63,106 @@ export default function Settings() {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    const loadData = async () => {
+        const [empData, stData, trData, cfgData] = await Promise.all([
+            settingsService.getEmployees(),
+            settingsService.getStations(),
+            trainingService.getModules(),
+            settingsService.getAppSettings()
+        ]);
+
+        setEmployees(empData);
+        setStations(stData);
+        setManagedCourses(trData);
+
+        if (cfgData) {
+            setAppSettings(cfgData);
+            if (cfgData.defaultDuration) setDefaultDuration(cfgData.defaultDuration);
+            if (cfgData.strictMode !== undefined) setStrictMode(cfgData.strictMode);
+            if (cfgData.lunchStart) setLunchStart(cfgData.lunchStart);
+            if (cfgData.lunchEnd) setLunchEnd(cfgData.lunchEnd);
+            if (cfgData.dinnerStart) setDinnerStart(cfgData.dinnerStart);
+            if (cfgData.dinnerEnd) setDinnerEnd(cfgData.dinnerEnd);
+            if (cfgData.areas) setAreas(cfgData.areas);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const saveSettings = async () => {
+        await settingsService.updateAppSetting('defaultDuration', defaultDuration);
+        await settingsService.updateAppSetting('strictMode', strictMode);
+        await settingsService.updateAppSetting('lunchStart', lunchStart);
+        await settingsService.updateAppSetting('lunchEnd', lunchEnd);
+        await settingsService.updateAppSetting('dinnerStart', dinnerStart);
+        await settingsService.updateAppSetting('dinnerEnd', dinnerEnd);
+        await settingsService.updateAppSetting('areas', areas);
+        alert('Đã lưu cấu hình thành công!');
+    };
+
+    const handleEditStationTables = (stationId: string) => {
+        const station = stations.find(s => s.id === stationId);
+        if (station) {
+            setEditingStationId(stationId);
+            setSelectedTablesForStation(station.tables || []);
+            setIsEditStationTablesModalOpen(true);
+        }
+    };
+
+    const handleSaveStationTables = async () => {
+        if (editingStationId) {
+            await settingsService.updateStation(editingStationId, { tables: selectedTablesForStation });
+            await loadData();
+            setIsEditStationTablesModalOpen(false);
+            setEditingStationId(null);
+            setSelectedTablesForStation([]);
+        }
+    };
+
     const getYoutubeId = (url: string) => {
         const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
         return match ? match[1] : null;
     };
     const previewId = getYoutubeId(trainingUrl);
 
+    // TODO: implement real addCourse using trainingService
     const handleAddCourse = () => {
         if (!previewId || !trainingTitle) return;
-        setManagedCourses([...managedCourses, { id: Date.now().toString(), title: trainingTitle, level: trainingLevel, youtubeId: previewId, active: true }]);
+        setManagedCourses([...managedCourses, { id: Date.now().toString(), title: trainingTitle, level: trainingLevel, youtubeId: previewId, active: true, thumbnail: '', duration: '', progress: 0 }]);
         setTrainingUrl(''); setTrainingTitle(''); setTrainingLevel(1);
     };
-    const toggleCourseActive = (id: string) => { setManagedCourses(managedCourses.map(c => c.id === id ? { ...c, active: !c.active } : c)); };
+
+    const toggleCourseActive = (id: string) => { setManagedCourses(managedCourses.map(c => c.id === id ? { ...c, is_active: !c.isActive } : c as any)); };
     const deleteCourse = (id: string) => { setManagedCourses(managedCourses.filter(c => c.id !== id)); };
 
-    const handleAddUser = () => {
+    const handleAddUser = async () => {
         if (!newUser.name || !newUser.email) return;
-        const newEmployee: Employee = { id: Date.now().toString(), name: newUser.name, email: newUser.email, active: true, roles: { reception: newUser.role === 'reception', kitchen: newUser.role === 'kitchen', server: newUser.role === 'server', manager: newUser.role === 'manager' } };
-        setEmployees([...employees, newEmployee]);
+
+        await settingsService.addEmployee({
+            name: newUser.name,
+            email: newUser.email,
+            roles: {
+                reception: newUser.role === 'reception',
+                kitchen: newUser.role === 'kitchen',
+                server: newUser.role === 'server',
+                manager: newUser.role === 'manager'
+            }
+        });
+
+        await loadData();
         setIsAddUserModalOpen(false);
         setNewUser({ name: '', email: '', role: 'reception' });
     };
 
-    const toggleUserStatus = (id: string) => { setEmployees(employees.map(emp => emp.id === id ? { ...emp, active: !emp.active } : emp)); };
+    const toggleUserStatus = async (id: string) => {
+        const emp = employees.find(e => e.id === id);
+        if (emp) {
+            await settingsService.updateEmployee(id, { active: !emp.active });
+            await loadData();
+        }
+    };
 
     const filteredEmployees = employees.filter(emp => {
         const query = searchQuery.toLowerCase();
@@ -638,7 +645,7 @@ export default function Settings() {
                                 <div className="w-full md:w-2/3">
                                     <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Activity className="w-5 h-5 text-teal-600" />Lịch sử hoạt động</h4>
                                     <div className="space-y-4">
-                                        {mockActivityLogs.map((log) => (
+                                        {activityLogs.map((log) => (
                                             <div key={log.id} className="flex gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                                                 <div className="flex-shrink-0 w-12 text-xs font-bold text-gray-400 text-center pt-1">{log.timestamp.split(' ')[0]}<div className="font-normal text-[10px]">{log.timestamp.split(' ')[1]}</div></div>
                                                 <div className="flex-1 border-l-2 border-gray-100 pl-4 relative"><div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-teal-50 border-2 border-teal-500"></div><h5 className="font-bold text-gray-800 text-sm">{log.action}</h5><p className="text-xs text-gray-500 mt-0.5">{log.details}</p></div>
