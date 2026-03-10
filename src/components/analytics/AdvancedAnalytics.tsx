@@ -1,4 +1,4 @@
-// 
+import React, { useState, useEffect } from 'react';
 import { reportingService, GoldenHourData, MenuItemStats, BookingSourceData, BookingStatusData } from '../../services/reportingService';
 import {
     BarChart,
@@ -28,7 +28,7 @@ const staffData = [
     { name: 'Hoàng Văn E', sales: 31000000, orders: 95, upsell: 10 },
 ];
 
-const COLORS = {
+const COLORS: Record<string, string> = {
     Star: '#10B981', // Green
     Plowhorse: '#F59E0B', // Yellow
     Puzzle: '#3B82F6', // Blue
@@ -36,11 +36,18 @@ const COLORS = {
 };
 
 export default function AdvancedAnalytics() {
-    const isMobile = useIsMobile();
+    const [isMobile, setIsMobile] = useState(false);
     const [goldenHourData, setGoldenHourData] = useState<GoldenHourData[]>([]);
     const [menuMatrixData, setMenuMatrixData] = useState<MenuItemStats[]>([]);
     const [sourceData, setSourceData] = useState<BookingSourceData[]>([]);
     const [statusData, setStatusData] = useState<BookingStatusData[]>([]);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         let mounted = true;
