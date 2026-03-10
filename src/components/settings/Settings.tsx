@@ -519,7 +519,7 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end"><button className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors"><Check className="w-4 h-4" />Lưu cấu hình thời gian</button></div>
+                            <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end"><button onClick={saveSettings} className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors"><Check className="w-4 h-4" />Lưu cấu hình thời gian</button></div>
                         </div>
                     )}
                     {activeTab === 'training' && (
@@ -583,7 +583,7 @@ export default function Settings() {
                                                 <button onClick={() => window.open('/dat-ban-online', '_blank')} className="px-3 py-2 bg-white text-teal-600 border border-gray-200 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 hover:border-teal-300 transition-all flex items-center gap-1"><Link className="w-3.5 h-3.5" /> Mở</button>
                                             </div>
                                         </div>
-                                        <button className="flex-shrink-0 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-bold shadow-md shadow-teal-100 transition-all h-[42px] mt-[1.3rem]"><Save className="w-4 h-4" />Lưu cấu hình</button>
+                                        <button onClick={saveSettings} className="flex-shrink-0 flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-bold shadow-md shadow-teal-100 transition-all h-[42px] mt-[1.3rem]"><Save className="w-4 h-4" />Lưu cấu hình</button>
                                     </div>
                                 </div>
                             </div>
