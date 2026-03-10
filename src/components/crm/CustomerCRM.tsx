@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { customerService, Customer } from '../../services/customerService';
 import {
   Search,
   Filter,
@@ -17,95 +18,33 @@ import {
   PhoneCall
 } from 'lucide-react';
 
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  group: 'VIP' | 'Regular' | 'New';
-  lastVisit: string;
-  totalSpent: string;
-  visitCount: number;
-  noShowRate: number; // Percentage
-  tags: string[];
-  history: {
-    date: string;
-    amount: string;
-    status: 'completed' | 'cancelled' | 'no-show';
-    pax: number;
-  }[];
-}
-
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: 'Nguyễn Trọng Hữu',
-    phone: '0901234567',
-    email: 'huu.nguyen@example.com',
-    group: 'VIP',
-    lastVisit: '20/10/2023',
-    totalSpent: '15.500.000đ',
-    visitCount: 12,
-    noShowRate: 0,
-    tags: ['Thích vang đỏ', 'Ngồi gần cửa sổ', 'Dị ứng tôm'],
-    history: [
-      { date: '20/10/2023', amount: '2.500.000đ', status: 'completed', pax: 4 },
-      { date: '15/09/2023', amount: '1.800.000đ', status: 'completed', pax: 2 },
-      { date: '02/08/2023', amount: '3.200.000đ', status: 'completed', pax: 6 },
-    ]
-  },
-  {
-    id: '2',
-    name: 'Trần Thị Bích',
-    phone: '0912345678',
-    email: 'bich.tran@example.com',
-    group: 'Regular',
-    lastVisit: '05/10/2023',
-    totalSpent: '4.200.000đ',
-    visitCount: 5,
-    noShowRate: 20,
-    tags: ['Ăn chay', 'Thích yên tĩnh'],
-    history: [
-      { date: '05/10/2023', amount: '800.000đ', status: 'completed', pax: 2 },
-      { date: '12/09/2023', amount: '0đ', status: 'no-show', pax: 2 },
-    ]
-  },
-  {
-    id: '3',
-    name: 'Lê Văn Cường',
-    phone: '0987654321',
-    email: 'cuong.le@example.com',
-    group: 'New',
-    lastVisit: '24/10/2023',
-    totalSpent: '1.200.000đ',
-    visitCount: 1,
-    noShowRate: 0,
-    tags: ['Khách mới'],
-    history: [
-      { date: '24/10/2023', amount: '1.200.000đ', status: 'completed', pax: 4 },
-    ]
-  },
-  {
-    id: '4',
-    name: 'Phạm Hoàng Anh',
-    phone: '0933445566',
-    email: 'anh.pham@example.com',
-    group: 'Regular',
-    lastVisit: '01/10/2023',
-    totalSpent: '8.500.000đ',
-    visitCount: 8,
-    noShowRate: 50, // High no-show rate
-    tags: ['Hay đổi giờ', 'Thích bàn tròn'],
-    history: [
-      { date: '01/10/2023', amount: '1.500.000đ', status: 'completed', pax: 4 },
-      { date: '20/09/2023', amount: '0đ', status: 'no-show', pax: 4 },
-      { date: '10/09/2023', amount: '0đ', status: 'cancelled', pax: 2 },
-    ]
-  },
-];
-
 export default function CustomerCRM() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadData = async () => {
+      try {
+        const data = await customerService.getCustomers();
+        if (mounted) setCustomers(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadData();
+
+    const unsubscribe = customerService.subscribeToCustomers(() => {
+      loadData();
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
   const isMobile = useIsMobile();
 
   const getGroupBadge = (group: string) => {
@@ -147,7 +86,7 @@ export default function CustomerCRM() {
 
       {/* Mobile List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {mockCustomers.map((customer) => (
+        {customers.map((customer) => (
           <div
             key={customer.id}
             onClick={() => setSelectedCustomer(customer)}
@@ -229,7 +168,7 @@ export default function CustomerCRM() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {mockCustomers.map((customer) => (
+                {customers.map((customer) => (
                   <tr
                     key={customer.id}
                     onClick={() => setSelectedCustomer(customer)}
