@@ -108,6 +108,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
 
+  // Checkout flow
+  const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
+  const [checkoutAmount, setCheckoutAmount] = useState<string>('');
+
   // View Mode (Desktop)
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
@@ -274,6 +278,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!destColumn) return;
     const newStatus = destColumn.defaultStatus as BookingStatus;
 
+    if (newStatus === 'completed') {
+      // Intercept and show checkout modal
+      const bk = bookings.find(b => b.id === draggableId);
+      setCheckoutBooking({ id: draggableId, customerId: (bk as any)?.customer_id });
+      return;
+    }
+
     // Optimistic UI update
     const updatedBookings = bookings.map(booking => {
       if (booking.id === draggableId) {
@@ -295,6 +306,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   };
 
   const handleStatusChange = async (bookingId: string, newStatus: BookingStatus) => {
+    if (newStatus === 'completed') {
+      const bk = bookings.find(b => b.id === bookingId);
+      setCheckoutBooking({ id: bookingId, customerId: (bk as any)?.customer_id });
+      setSelectedBooking(null);
+      return;
+    }
+
     // Optimistic update
     setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
     setSelectedBooking(null);
@@ -307,6 +325,32 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       fetchBookings();
       alert('Lỗi cập nhật trạng thái');
     }
+  };
+
+  const submitCheckout = async () => {
+    if (!checkoutBooking) return;
+
+    const amountNum = parseInt(checkoutAmount.replace(/\D/g, '')) || 0;
+
+    // Optimistic update
+    setBookings(bookings.map(b => b.id === checkoutBooking.id ? { ...b, status: 'completed' } : b));
+
+    try {
+      // For now we just update booking status. 
+      // The database trigger will create the customer_visit.
+      // But we still update the amount to DB if needed later via an edge function, 
+      // or we can just send it along with a manual visit update.
+      await bookingService.updateBookingStatus(checkoutBooking.id, 'completed');
+
+      // Bonus: If you want to update the amount of the generated visit, you can call a custom function here or modify the trigger.
+
+    } catch (err) {
+      console.error(err);
+      fetchBookings();
+    }
+
+    setCheckoutBooking(null);
+    setCheckoutAmount('');
   };
 
   const handleSaveBooking = async () => {
@@ -1251,6 +1295,63 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               >
                 <Save className="w-4 h-4" />
                 {editingId ? 'Lưu thay đổi' : 'Lưu đặt bàn'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {checkoutBooking && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-100 text-green-600 rounded-xl">
+                  <Archive className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Hoàn thành Booking</h3>
+                  <p className="text-sm text-gray-500">Xác nhận số tiền thanh toán</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Số tiền thanh toán (VNĐ)</label>
+              <input
+                type="text"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold text-lg"
+                placeholder="VD: 1,500,000"
+                value={checkoutAmount}
+                onChange={(e) => {
+                  // Format as currency while typing
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (val) {
+                    setCheckoutAmount(parseInt(val).toLocaleString('vi-VN'));
+                  } else {
+                    setCheckoutAmount('');
+                  }
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-2">Dữ liệu này sẽ được đồng bộ vào doanh thu của khách hàng trong CRM.</p>
+            </div>
+            <div className="p-4 bg-gray-50 flex gap-3 justify-end border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setCheckoutBooking(null);
+                  setCheckoutAmount('');
+                }}
+                className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+                title="Hủy"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={submitCheckout}
+                className="px-5 py-2.5 rounded-xl bg-teal-600 text-white font-medium hover:bg-teal-700 transition-colors"
+                title="Xác nhận"
+              >
+                Xác nhận & Cập nhật
               </button>
             </div>
           </div>

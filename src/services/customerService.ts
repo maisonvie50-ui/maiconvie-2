@@ -108,5 +108,49 @@ export const customerService = {
             customersSubscription.unsubscribe();
             visitsSubscription.unsubscribe();
         };
+    },
+
+    /**
+     * Find existing customer by phone or create a new one
+     */
+    findOrCreateCustomerByPhone: async (phone: string, name: string): Promise<string | null> => {
+        if (!phone) return null;
+
+        // 1. Try to find existing
+        const { data: existing, error: searchError } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('phone', phone)
+            .maybeSingle();
+
+        if (searchError) {
+            console.error('Error searching customer:', searchError);
+            return null;
+        }
+
+        if (existing) {
+            return existing.id;
+        }
+
+        // 2. Not found, create new
+        const { data: newCustomer, error: createError } = await supabase
+            .from('customers')
+            .insert({
+                name: name,
+                phone: phone,
+                customer_group: 'New',
+                total_spent: 0,
+                visit_count: 0,
+                no_show_rate: 0
+            })
+            .select('id')
+            .single();
+
+        if (createError) {
+            console.error('Error creating new customer:', createError);
+            return null;
+        }
+
+        return newCustomer?.id || null;
     }
 };

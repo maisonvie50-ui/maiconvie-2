@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Booking, BookingStatus } from '../types/booking';
+import { customerService } from './customerService';
 
 export const bookingService = {
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
@@ -30,6 +31,13 @@ export const bookingService = {
 
     // 2. Tạo Booking mới
     async createBooking(booking: Omit<Booking, 'id'>) {
+
+        // --- Tích hợp CRM: Thử tìm hoặc tạo mới khách hàng qua SĐT ---
+        let customerId = null;
+        if (booking.phone) {
+            customerId = await customerService.findOrCreateCustomerByPhone(booking.phone, booking.customerName);
+        }
+
         const { data, error } = await supabase
             .from('bookings')
             .insert({
@@ -40,7 +48,8 @@ export const bookingService = {
                 status: booking.status,
                 notes: booking.notes,
                 area: booking.area,
-                source: booking.source
+                source: booking.source,
+                customer_id: customerId // Liên kết với CRM
             })
             .select()
             .single();
