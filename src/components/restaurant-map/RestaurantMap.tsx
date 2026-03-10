@@ -258,56 +258,94 @@ export default function RestaurantMap() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteTable = (id: string, floor: 1 | 2 | 3) => {
+  const handleDeleteTable = async (id: string, floor: 1 | 2 | 3) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bàn này?')) {
+      // Optimistic
       if (floor === 1) setTablesL1(tablesL1.filter(t => t.id !== id));
       if (floor === 3) setTablesL3(tablesL3.filter(t => t.id !== id));
+      try {
+        await tableService.deleteTable(id);
+      } catch (error) {
+        console.error('Failed to delete table from DB', error);
+        fetchTables();
+      }
     }
   };
 
-  const handleDeleteVipRoom = (id: string) => {
+  const handleDeleteVipRoom = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa phòng VIP này?')) {
       setVipRoomsList(vipRoomsList.filter(r => r.id !== id));
+      try {
+        await tableService.deleteTable(id);
+      } catch (error) {
+        console.error('Failed to delete VIP room from DB', error);
+        fetchTables();
+      }
     }
   };
 
-  const handleSaveModal = () => {
+  const handleSaveModal = async () => {
     if (!editingItem.name) return;
 
     if (editingItem.category === 'table') {
-      const flr = editingItem.floor || 1;
-      const targetTables = flr === 1 ? tablesL1 : tablesL3;
-      const setTargetTables = flr === 1 ? setTablesL1 : setTablesL3;
+      const flr = editingItem.floor || (activeFloor === 2 ? 1 : activeFloor);
 
       if (editingItem.id) {
-        setTargetTables(targetTables.map(t => t.id === editingItem.id ? { ...t, ...editingItem } as Table : t));
+        // UPDATE existing table
+        try {
+          await tableService.updateTable(editingItem.id, {
+            name: editingItem.name,
+            type: editingItem.type || 'square',
+            pax: editingItem.pax || 4,
+            floor: flr
+          });
+        } catch (error) {
+          console.error('Failed to update table', error);
+        }
       } else {
-        const newTable: Table = {
-          ...editingItem,
-          id: `T${Date.now()}`,
-          status: 'empty',
-          type: editingItem.type || 'square',
-          pax: editingItem.pax || 4,
-          floor: flr as 1 | 2 | 3
-        } as Table;
-        setTargetTables([...targetTables, newTable]);
+        // CREATE new table
+        try {
+          await tableService.createTable({
+            name: editingItem.name,
+            type: editingItem.type || 'square',
+            pax: editingItem.pax || 4,
+            floor: flr,
+            status: 'empty'
+          });
+        } catch (error) {
+          console.error('Failed to create table', error);
+        }
       }
     } else if (editingItem.category === 'vip') {
       if (editingItem.id) {
-        setVipRoomsList(vipRoomsList.map(r => r.id === editingItem.id ? { ...r, ...editingItem } as VipRoom : r));
+        try {
+          await tableService.updateTable(editingItem.id, {
+            name: editingItem.name,
+            pax: editingItem.capacity || 6
+          });
+        } catch (error) {
+          console.error('Failed to update VIP room', error);
+        }
       } else {
-        const newRoom: VipRoom = {
-          ...editingItem,
-          id: `V${Date.now()}`,
-          status: 'empty',
-          capacity: editingItem.capacity || 6
-        } as VipRoom;
-        setVipRoomsList([...vipRoomsList, newRoom]);
+        try {
+          await tableService.createTable({
+            name: editingItem.name || 'VIP Room',
+            type: 'square',
+            pax: editingItem.capacity || 6,
+            floor: 2,
+            status: 'empty'
+          });
+        } catch (error) {
+          console.error('Failed to create VIP room', error);
+        }
       }
     } else if (editingItem.category === 'area') {
       setEventHall(eventHall.map(a => a.id === editingItem.id ? { ...a, name: editingItem.name!, capacity: editingItem.capacity! } : a));
     }
+
     setIsModalOpen(false);
+    // Re-fetch to get the latest from DB (the realtime subscription will also trigger this)
+    fetchTables();
   };
 
   return (

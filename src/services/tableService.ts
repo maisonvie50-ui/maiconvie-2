@@ -75,7 +75,67 @@ export const tableService = {
         }
     },
 
-    // 4. Listen to real-time changes
+    // 4. Create a new table
+    async createTable(table: { name: string; type: string; pax: number; floor: number; status?: string }) {
+        const { data, error } = await supabase
+            .from('tables')
+            .insert({
+                name: table.name,
+                type: table.type || 'square',
+                pax: table.pax || 4,
+                floor: table.floor || 1,
+                status: table.status || 'empty',
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating table:', error);
+            throw error;
+        }
+        return data;
+    },
+
+    // 5. Update table (name, type, pax, etc.)
+    async updateTable(id: string, updates: Record<string, any>) {
+        const dbUpdates: any = { updated_at: new Date().toISOString() };
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.type !== undefined) dbUpdates.type = updates.type;
+        if (updates.pax !== undefined) dbUpdates.pax = updates.pax;
+        if (updates.floor !== undefined) dbUpdates.floor = updates.floor;
+        if (updates.status !== undefined) dbUpdates.status = updates.status;
+        if (updates.customer_name !== undefined) dbUpdates.customer_name = updates.customer_name;
+        if (updates.customerName !== undefined) dbUpdates.customer_name = updates.customerName;
+        if (updates.time !== undefined) dbUpdates.time = updates.time;
+        if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
+        if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+        const { error } = await supabase
+            .from('tables')
+            .update(dbUpdates)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating table:', error);
+            throw error;
+        }
+    },
+
+    // 6. Delete a table
+    async deleteTable(id: string) {
+        const { error } = await supabase
+            .from('tables')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting table:', error);
+            throw error;
+        }
+    },
+
+    // 7. Listen to real-time changes
     subscribeToTables(callback: () => void) {
         return supabase
             .channel('public:tables')
