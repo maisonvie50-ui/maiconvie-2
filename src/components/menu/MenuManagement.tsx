@@ -15,13 +15,14 @@ import {
   Minus,
   PackageOpen
 } from 'lucide-react';
-import { mockSetMenus } from '../../data/mockMenu';
 import type { SetMenu } from '../../types';
+import { menuService } from '../../services/menuService';
+import { useEffect } from 'react';
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
-  count: number;
+  count?: number;
 }
 
 interface MenuItem {
@@ -36,76 +37,50 @@ interface MenuItem {
   variants?: string[];
 }
 
-const mockCategories: Category[] = [
-  { id: 'c1', name: 'Khai vị', count: 8 },
-  { id: 'c2', name: 'Món chính', count: 24 },
-  { id: 'c3', name: 'Tráng miệng', count: 12 },
-  { id: 'c4', name: 'Đồ uống', count: 18 },
-  { id: 'c5', name: 'Rượu vang', count: 35 },
-];
-
-const mockItems: MenuItem[] = [
-  {
-    id: 'm1',
-    categoryId: 'c2',
-    name: 'Bò Wagyu A5 áp chảo',
-    description: 'Thăn bò Wagyu thượng hạng mềm tan trong miệng, quyện cùng sốt tiêu đen nồng nàn và măng tây nướng.',
-    price: 1250000,
-    image: 'https://picsum.photos/seed/wagyu/400/300',
-    inStock: true,
-    tags: ["Chef's Choice", 'Best Seller'],
-    variants: ['Rare', 'Medium Rare', 'Well Done']
-  },
-  {
-    id: 'm2',
-    categoryId: 'c2',
-    name: 'Cá hồi Na Uy sốt chanh dây',
-    description: 'Cá hồi tươi nướng da giòn, dùng kèm sốt chanh dây chua ngọt và khoai tây nghiền.',
-    price: 450000,
-    image: 'https://picsum.photos/seed/salmon/400/300',
-    inStock: false,
-    tags: ['New'],
-    variants: ['Sốt chanh dây', 'Sốt bơ tỏi']
-  },
-  {
-    id: 'm3',
-    categoryId: 'c1',
-    name: 'Súp bí đỏ nấm truffle',
-    description: 'Súp bí đỏ kem tươi mịn màng, điểm xuyết hương nấm truffle đặc trưng.',
-    price: 180000,
-    image: 'https://picsum.photos/seed/soup/400/300',
-    inStock: true,
-    tags: ['Vegetarian'],
-  },
-  {
-    id: 'm4',
-    categoryId: 'c5',
-    name: 'Château Margaux 2015',
-    description: 'Vang đỏ Pháp thượng hạng với hương thơm phức hợp của trái cây đen, gỗ sồi và vanilla.',
-    price: 8500000,
-    image: 'https://picsum.photos/seed/wine/400/300',
-    inStock: true,
-    tags: ['Premium'],
-    variants: ['Ly (150ml)', 'Chai (750ml)']
-  },
-  {
-    id: 'm5',
-    categoryId: 'c2',
-    name: 'Mỳ Ý Hải Sản (Seafood Pasta)',
-    description: 'Mỳ Ý sợi dẹt xào cùng tôm sú, mực ống, vẹm xanh và sốt cà chua cay nhẹ.',
-    price: 320000,
-    image: 'https://picsum.photos/seed/pasta/400/300',
-    inStock: true,
-    tags: ['Spicy', 'Best Seller'],
-  }
-];
-
 export default function MenuManagement() {
   const [menuType, setMenuType] = useState<'alacarte' | 'set'>('alacarte');
-  const [activeCategory, setActiveCategory] = useState<string>('c2');
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [items, setItems] = useState<MenuItem[]>(mockItems);
-  const [setMenus, setSetMenus] = useState<SetMenu[]>(mockSetMenus);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [setMenus, setSetMenus] = useState<SetMenu[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [fetchedCategories, fetchedItems, fetchedSets] = await Promise.all([
+          menuService.getCategories(),
+          menuService.getMenuItems(),
+          menuService.getSetMenus()
+        ]);
+        if (mounted) {
+          setCategories(fetchedCategories);
+          setItems(fetchedItems);
+          setSetMenus(fetchedSets);
+          if (fetchedCategories.length > 0 && !activeCategory) {
+            setActiveCategory(fetchedCategories[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi tải dữ liệu menu', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    loadData();
+    const unsubscribe = menuService.subscribeToMenuChanges(() => {
+      loadData();
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [activeCategory]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,54 +110,84 @@ export default function MenuManagement() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  const toggleStock = (id: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, inStock: !item.inStock } : item));
+  const toggleStock = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    setItems(items.map(i => i.id === id ? { ...i, inStock: !i.inStock } : i));
+    try {
+      await menuService.updateItemStock(id, !item.inStock);
+    } catch (err) {
+      setItems(items.map(i => i.id === id ? item : i));
+    }
   };
 
 
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!newItem.name || !newItem.price) return;
+    const prev = [...items];
 
-    if (editingId) {
-      // Update existing item
-      setItems(items.map(item => item.id === editingId ? {
-        ...item,
-        categoryId: newItem.categoryId || item.categoryId,
-        name: newItem.name!,
-        description: newItem.description || '',
-        price: newItem.price!,
-        image: newItem.image || item.image,
-        tags: newItem.tags || item.tags,
-        variants: newItem.variants || item.variants
-      } : item));
-    } else {
-      // Add new item
-      const item: MenuItem = {
-        id: `m${Date.now()}`,
-        categoryId: newItem.categoryId || activeCategory,
-        name: newItem.name!,
-        description: newItem.description || '',
-        price: newItem.price!,
-        image: newItem.image || `https://picsum.photos/seed/${Date.now()}/400/300`,
+    try {
+      if (editingId) {
+        setItems(items.map(item => item.id === editingId ? {
+          ...item,
+          categoryId: newItem.categoryId || item.categoryId,
+          name: newItem.name!,
+          description: newItem.description || '',
+          price: newItem.price!,
+          image: newItem.image || item.image,
+          tags: newItem.tags || item.tags,
+          variants: newItem.variants || item.variants
+        } : item));
+
+        await menuService.updateMenuItem(editingId, newItem);
+      } else {
+        const itemObj: MenuItem = {
+          id: `m${Date.now()}`,
+          categoryId: newItem.categoryId || activeCategory,
+          name: newItem.name!,
+          description: newItem.description || '',
+          price: newItem.price!,
+          image: newItem.image || `https://picsum.photos/seed/${Date.now()}/400/300`,
+          inStock: newItem.inStock ?? true,
+          tags: newItem.tags || [],
+          variants: newItem.variants || []
+        };
+        setItems([itemObj, ...items]);
+
+        const toSave = { ...itemObj };
+        delete (toSave as any).id;
+        await menuService.createMenuItem(toSave);
+      }
+
+      setIsModalOpen(false);
+      setEditingId(null);
+      setNewItem({
+        name: '',
+        price: 0,
+        description: '',
+        categoryId: activeCategory,
+        tags: [],
         inStock: true,
-        tags: newItem.tags || [],
-        variants: newItem.variants || []
-      };
-      setItems([item, ...items]);
+        image: ''
+      });
+    } catch (err) {
+      console.error(err);
+      setItems(prev);
     }
+  };
 
-    setIsModalOpen(false);
-    setEditingId(null);
-    setNewItem({
-      name: '',
-      price: 0,
-      description: '',
-      categoryId: activeCategory,
-      tags: [],
-      inStock: true,
-      image: ''
-    });
+  const handleDeleteItem = async (id: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa món này?')) {
+      const prev = [...items];
+      setItems(items.filter(i => i.id !== id));
+      try {
+        await menuService.deleteMenuItem(id);
+      } catch (err) {
+        console.error(err);
+        setItems(prev);
+      }
+    }
   };
 
   const handleEditItem = (item: MenuItem) => {
@@ -233,34 +238,54 @@ export default function MenuManagement() {
     setNewSetMenu({ name: '', price: 0, status: 'available', courses: [], includedDrink: '' });
   };
 
-  const handleSaveSetMenu = () => {
+  const handleSaveSetMenu = async () => {
     if (!newSetMenu.name || !newSetMenu.price) return;
+    const prev = [...setMenus];
 
-    if (editingSetMenuId) {
-      setSetMenus(setMenus.map(set => set.id === editingSetMenuId ? {
-        ...set,
-        name: newSetMenu.name!,
-        price: newSetMenu.price!,
-        status: newSetMenu.status as any,
-        courses: newSetMenu.courses || [],
-        includedDrink: newSetMenu.includedDrink
-      } : set));
-    } else {
-      setSetMenus([{
-        id: `set${Date.now()}`,
-        name: newSetMenu.name!,
-        price: newSetMenu.price!,
-        status: newSetMenu.status as any || 'available',
-        courses: newSetMenu.courses || [],
-        includedDrink: newSetMenu.includedDrink
-      }, ...setMenus]);
+    try {
+      if (editingSetMenuId) {
+        setSetMenus(setMenus.map(set => set.id === editingSetMenuId ? {
+          ...set,
+          name: newSetMenu.name!,
+          price: newSetMenu.price!,
+          status: newSetMenu.status as any,
+          courses: newSetMenu.courses || [],
+          includedDrink: newSetMenu.includedDrink
+        } : set));
+
+        await menuService.updateSetMenu(editingSetMenuId, newSetMenu);
+      } else {
+        const itemObj: SetMenu = {
+          id: `set${Date.now()}`,
+          name: newSetMenu.name!,
+          price: newSetMenu.price!,
+          status: newSetMenu.status as any || 'available',
+          courses: newSetMenu.courses || [],
+          includedDrink: newSetMenu.includedDrink
+        };
+        setSetMenus([itemObj, ...setMenus]);
+
+        const toSave = { ...itemObj };
+        delete (toSave as any).id;
+        await menuService.createSetMenu(toSave);
+      }
+      handleCloseSetMenuModal();
+    } catch (err) {
+      console.error(err);
+      setSetMenus(prev);
     }
-    handleCloseSetMenuModal();
   };
 
-  const handleDeleteSetMenu = (id: string) => {
+  const handleDeleteSetMenu = async (id: string) => {
     if (confirm('Bạn có chắc chắn muốn xóa Set Menu này?')) {
+      const prev = [...setMenus];
       setSetMenus(setMenus.filter(set => set.id !== id));
+      try {
+        await menuService.deleteSetMenu(id);
+      } catch (err) {
+        console.error(err);
+        setSetMenus(prev);
+      }
     }
   };
 
@@ -354,7 +379,7 @@ export default function MenuManagement() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {mockCategories.map(cat => {
+              {categories.map(cat => {
                 const count = items.filter(i => i.categoryId === cat.id).length;
                 return (
                   <div
@@ -383,7 +408,7 @@ export default function MenuManagement() {
               <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-800">
-                    {mockCategories.find(c => c.id === activeCategory)?.name}
+                    {categories.find(c => c.id === activeCategory)?.name}
                   </h2>
                   {/* Mobile Add Button (visible only on mobile next to title) */}
                   <button
@@ -409,7 +434,7 @@ export default function MenuManagement() {
 
               {/* Mobile Categories (Horizontal Scroll) */}
               <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                {mockCategories.map(cat => {
+                {categories.map(cat => {
                   const count = items.filter(i => i.categoryId === cat.id).length;
                   return (
                     <button
@@ -539,6 +564,13 @@ export default function MenuManagement() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -606,7 +638,11 @@ export default function MenuManagement() {
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa">
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Xóa"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
@@ -731,7 +767,8 @@ export default function MenuManagement() {
                       onChange={(e) => setNewItem({ ...newItem, categoryId: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     >
-                      {mockCategories.map(cat => (
+                      <option value="">Chọn danh mục</option>
+                      {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>

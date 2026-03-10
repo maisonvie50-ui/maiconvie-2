@@ -1,30 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Search, ShoppingBag, Send, SplitSquareHorizontal, CheckCircle, ArrowRightLeft, Users, ChevronRight } from 'lucide-react';
-import { mockSetMenus } from '../../data/mockMenu';
 import { orderService } from '../../services/orderService';
+import { menuService } from '../../services/menuService';
+import { tableService } from '../../services/tableService';
 
 interface OrderPadProps {
   table: any;
   onClose: () => void;
 }
-
-const mockMenu = [
-  { id: 'm1', name: 'Bò bít tết (Medium Rare)', price: 250000, category: 'Món chính' },
-  { id: 'm2', name: 'Súp bí đỏ', price: 65000, category: 'Khai vị' },
-  { id: 'm3', name: 'Salad Caesar', price: 85000, category: 'Khai vị' },
-  { id: 'm4', name: 'Cá hồi áp chảo', price: 220000, category: 'Món chính' },
-  { id: 'm5', name: 'Rượu vang đỏ', price: 850000, category: 'Đồ uống' },
-  { id: 'm6', name: 'Mỳ Ý Carbonara', price: 180000, category: 'Món chính' },
-  { id: 'm7', name: 'Pizza Hải sản', price: 210000, category: 'Món chính' },
-  { id: 'm8', name: 'Khoai tây chiên', price: 45000, category: 'Khai vị' },
-];
-
-const mockTables = [
-  { id: 'T1', name: 'Bàn 1' },
-  { id: 'T2', name: 'Bàn 2' },
-  { id: 'T3', name: 'Bàn 3' },
-  { id: 'V1', name: 'VIP 1' },
-];
 
 export default function OrderPad({ table, onClose }: OrderPadProps) {
   const [orderItems, setOrderItems] = useState<any[]>([]);
@@ -36,6 +19,35 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
   const [activeTab, setActiveTab] = useState<'alacarte' | 'set'>('alacarte');
   const [selectedSet, setSelectedSet] = useState<any>(null);
   const [setSelections, setSetSelections] = useState<Record<string, any>>({});
+
+  const [menuItems, setMenuItems] = useState<any[]>([]);
+  const [setMenus, setSetMenus] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tables, setTables] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadData() {
+      try {
+        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTables] = await Promise.all([
+          menuService.getCategories(),
+          menuService.getMenuItems(),
+          menuService.getSetMenus(),
+          tableService.getTables()
+        ]);
+        if (mounted) {
+          setCategories(fetchedCategories);
+          setMenuItems(fetchedItems.filter(i => i.inStock));
+          setSetMenus(fetchedSets.filter(s => s.status === 'available'));
+          setTables(fetchedTables);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadData();
+    return () => { mounted = false; };
+  }, []);
 
   const handleOpenSetMenu = (setMenu: any) => {
     setSelectedSet(setMenu);
@@ -75,9 +87,12 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     setSelectedSet(null);
   };
 
-  const filteredMenu = mockMenu.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMenu = menuItems
+    .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .map(item => ({
+      ...item,
+      category: categories.find(c => c.id === item.categoryId)?.name || 'Khác'
+    }));
 
   const addItem = (item: any) => {
     const existing = orderItems.find(i => i.id === item.id);
@@ -173,7 +188,7 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     >
                       <option value="">-- Chọn bàn --</option>
-                      {mockTables.filter(t => t.name !== table.name).map(t => (
+                      {tables.filter(t => t.name !== table.name).map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
@@ -328,7 +343,7 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
               </div>
             ) : (
               <div className="space-y-3">
-                {mockSetMenus
+                {setMenus
                   .filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map(set => (
                     <button
@@ -352,7 +367,7 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
                       </div>
                     </button>
                   ))}
-                {mockSetMenus.filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                {setMenus.filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
                   <div className="text-center p-8 text-gray-400">Không tìm thấy Set Menu phù hợp.</div>
                 )}
               </div>
