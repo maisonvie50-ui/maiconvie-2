@@ -23,11 +23,19 @@ import { useAuth } from './hooks/useAuth';
 import PublicBookingForm from './components/booking/PublicBookingForm';
 
 function MainApp() {
-  const { isAuthenticated, userRole, handleLogin, handleLogout } = useAuth();
+  const { isAuthenticated, userRole, isLoading, handleLogin, handleLogout } = useAuth();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const isMobile = useIsMobile();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="w-10 h-10 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <Routes>

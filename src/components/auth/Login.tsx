@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowRight, ChefHat } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface LoginProps {
-  onLogin: (role?: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server') => void;
+  onLogin: (role?: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server', email?: string, password?: string) => Promise<void> | void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
@@ -17,41 +18,53 @@ export default function Login({ onLogin }: LoginProps) {
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      if (username === 'admin' && password === '123') {
-        onLogin('admin');
-      } else if (username === 'quanly' && password === '123') {
-        onLogin('manager');
-      } else if (username === 'letan' && password === '123') {
-        onLogin('receptionist');
-      } else if (username === 'bep' && password === '123') {
-        onLogin('kitchen');
-      } else if (username === 'phucvu' && password === '123') {
-        onLogin('server');
-      } else {
-        setError('Tên đăng nhập hoặc mật khẩu không đúng');
-        setIsLoading(false);
+    try {
+      // Gọi lên onLogin của App.tsx, ở đó sẽ xử lý supabase.auth.signInWithPassword
+      // Thay đổi tham số truyền vào onLogin từ role -> email, password
+
+      // Fallback for mock accounts (development use cases)
+      if (!username.includes('@')) {
+        let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
+        if (username === 'admin') role = 'admin';
+        else if (username === 'quanly') role = 'manager';
+        else if (username === 'letan') role = 'receptionist';
+        else if (username === 'bep') role = 'kitchen';
+        else if (username === 'phucvu') role = 'server';
+
+        onLogin(role, undefined, undefined);
+        return;
       }
-    }, 800);
+
+      await onLogin('server', username, password); // Thực tế là email/password
+    } catch (err: any) {
+      setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) return;
 
     setIsResetting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsResetting(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
       setResetSent(true);
-    }, 1200);
+    } catch (err: any) {
+      console.error('Lỗi reset mật khẩu:', err);
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (

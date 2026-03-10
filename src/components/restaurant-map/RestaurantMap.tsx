@@ -36,18 +36,61 @@ interface EditingItem {
   category: 'table' | 'vip' | 'area';
 }
 
-import { level1Tables, vipRooms, level3Tables, floorZones, eventHall as initialEventHall } from '../../data/mockTables';
+import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3, floorZones as mockZones, eventHall as initialEventHall } from '../../data/mockTables';
+import { tableService } from '../../services/tableService';
 
 export default function RestaurantMap() {
   const [activeFloor, setActiveFloor] = useState<1 | 2 | 3>(1);
   const [partitionConfig, setPartitionConfig] = useState<'full' | '70-70' | '60-80' | '40-100'>('full');
-  const [tablesL1, setTablesL1] = useState<Table[]>(level1Tables);
-  const [tablesL3, setTablesL3] = useState<Table[]>(level3Tables);
-  const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>(vipRooms);
-  const [zones, setZones] = useState(floorZones);
+
+  const [tablesL1, setTablesL1] = useState<Table[]>([]);
+  const [tablesL3, setTablesL3] = useState<Table[]>([]);
+  const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
+  const [zones, setZones] = useState(mockZones); // keeping zones static for now or can fetch
   const [eventHall, setEventHall] = useState(initialEventHall);
+
   const [isEditing, setIsEditing] = useState(false);
   const [isPartitionMenuOpen, setIsPartitionMenuOpen] = useState(false);
+
+  const fetchTables = async () => {
+    try {
+      const allTables = await tableService.getTables();
+      setTablesL1(allTables.filter(t => t.floor === 1));
+
+      // Map floor 2 to vipRooms
+      const vip = allTables.filter(t => t.floor === 2).map(t => ({
+        id: t.id,
+        name: t.name,
+        capacity: t.pax,
+        status: (t.status === 'occupied' || t.status === 'reserved') ? 'in-use' : 'empty', // mock mapper for now
+        customerName: t.customerName,
+        time: t.time || undefined,
+        notes: t.notes || undefined
+      } as VipRoom));
+      setVipRoomsList(vip);
+
+      setTablesL3(allTables.filter(t => t.floor === 3));
+
+    } catch (e) {
+      console.error('Failed to load tables, falling back to mock data', e);
+      setTablesL1(mockL1);
+      setVipRoomsList(mockVip);
+      setTablesL3(mockL3);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchTables();
+
+    // Subscribe to realtime updates
+    const subscription = tableService.subscribeToTables(() => {
+      fetchTables();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,7 +139,7 @@ export default function RestaurantMap() {
   };
 
   // Move Table Handler
-  const handleMoveTable = (sourceId: string, targetId: string) => {
+  const handleMoveTable = async (sourceId: string, targetId: string) => {
     let sourceTable = tablesL1.find(t => t.id === sourceId) || tablesL3.find(t => t.id === sourceId);
     let targetTable = tablesL1.find(t => t.id === targetId) || tablesL3.find(t => t.id === targetId);
 
@@ -107,15 +150,39 @@ export default function RestaurantMap() {
     }
 
     if (window.confirm(`Xác nhận chuyển khách từ ${sourceTable.name} sang ${targetTable.name}?`)) {
-      const updateTables = (tables: Table[]) => tables.map(t => {
+      // Optimistic updatre
+      const updateTablesLocally = (tables: Table[]) => tables.map(t => {
         if (t.id === targetId) return { ...t, status: sourceTable.status, customerName: sourceTable.customerName, pax: sourceTable.pax, time: sourceTable.time, duration: sourceTable.duration, notes: sourceTable.notes };
         if (t.id === sourceId) return { ...t, status: 'empty', customerName: undefined, time: undefined, duration: undefined, notes: undefined };
         return t;
       });
 
-      if (sourceTable.floor === 1) setTablesL1(updateTables(tablesL1));
-      if (sourceTable.floor === 3) setTablesL3(updateTables(tablesL3));
+      if (sourceTable.floor === 1) setTablesL1(updateTablesLocally(tablesL1));
+      if (sourceTable.floor === 3) setTablesL3(updateTablesLocally(tablesL3));
       setMovingTableId(null);
+
+      try {
+        // Clear source table
+        await tableService.updateTableStatus(sourceId, {
+          status: 'empty',
+          customerName: null as any,
+          time: null as any,
+          duration: null as any,
+          notes: null as any
+        });
+
+        // Set target table
+        await tableService.updateTableStatus(targetId, {
+          status: sourceTable.status,
+          customerName: sourceTable.customerName,
+          time: sourceTable.time,
+          duration: sourceTable.duration,
+          notes: sourceTable.notes
+        });
+      } catch (error) {
+        console.error('Failed to move table in DB', error);
+        fetchTables(); // Re-sync if failed
+      }
     }
   };
 
@@ -155,6 +222,9 @@ export default function RestaurantMap() {
         newRooms.splice(dragOverItem.current, 0, draggedItemContent);
         setVipRoomsList(newRooms);
       }
+
+      // Note: Full position persistence to DB would require updating X, Y or Order index on all affected tables.
+      // For Phase 2, we just maintain local reordering until a broader layout save is triggered.
     }
 
     dragItem.current = null;

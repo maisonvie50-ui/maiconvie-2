@@ -30,7 +30,7 @@ import {
   Filter
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
-import { initialBookings } from '../../data/mockData';
+import { bookingService } from '../../services/bookingService';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
@@ -74,9 +74,34 @@ interface BookingKanbanProps {
 }
 
 export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKanbanProps) {
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [filterShift, setFilterShift] = useState<'lunch' | 'dinner'>('dinner');
   const [isMobile, setIsMobile] = useState(false);
+
+  // Load bookings from Supabase
+  const fetchBookings = async () => {
+    try {
+      const data = await bookingService.getBookings();
+      setBookings(data);
+    } catch (error) {
+      console.error('Failed to load bookings', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+
+    // Subscribe to realtime updates
+    const subscription = bookingService.subscribeToBookings(() => {
+      // Refresh data when a change occurs
+      fetchBookings();
+    });
+
+    return () => {
+      // Clean up subscription when component unmounts
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Advanced Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,37 +177,36 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       const query = searchQuery.toLowerCase();
       return (
         b.customerName.toLowerCase().includes(query) ||
-        b.phone?.includes(query) ||
-        b.id.includes(query)
+        b.phone?.includes(query) // Note: ID in supabase is UUID, won't search by it normally, but kept for compatibility if needed.
       );
     }
 
     return true;
   });
 
-  // Sync from localStorage for Web Bookings
+  // Sync from localStorage for Web Bookings (Keep for local compatibility or migrate public form)
   useEffect(() => {
     const webBookingsStr = localStorage.getItem('maison_vie_web_bookings');
     if (webBookingsStr) {
       try {
         const webBookings = JSON.parse(webBookingsStr);
         if (webBookings && webBookings.length > 0) {
-          // Merge logic: prepend new bookings and clear localStorage to avoid duplicates
-          setBookings(prev => {
-            // Deduplicate by ID just in case
-            const newBookings = webBookings.filter((wb: Booking) => !prev.some(pb => pb.id === wb.id));
-            if (newBookings.length > 0) {
-              return [...newBookings, ...prev];
+          // Send to supabase
+          webBookings.forEach(async (wb: any) => {
+            try {
+              await bookingService.createBooking(wb);
+            } catch (e) {
+              console.error('Failed to migrate web booking to supabase', e);
             }
-            return prev;
           });
           localStorage.removeItem('maison_vie_web_bookings');
+          // No need to setBookings here, realtime subscription will pick it up
         }
       } catch (e) {
         console.error('Failed to parse web bookings', e);
       }
     }
-  }, [bookings.length]); // Re-run if length changes (simple pooling)
+  }, []);
 
   // New Booking Form State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -237,10 +261,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     }
   }, [showModal]);
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
-    const { source, destination } = result;
+    const { source, destination, draggableId } = result;
     const sourceDroppable = source.droppableId;
     const destDroppable = destination.droppableId;
 
@@ -250,53 +274,92 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!destColumn) return;
     const newStatus = destColumn.defaultStatus as BookingStatus;
 
+    // Optimistic UI update
     const updatedBookings = bookings.map(booking => {
-      if (booking.id === result.draggableId) {
+      if (booking.id === draggableId) {
         return { ...booking, status: newStatus };
       }
       return booking;
     });
 
     setBookings(updatedBookings);
+
+    // Update in Supabase
+    try {
+      await bookingService.updateBookingStatus(draggableId, newStatus);
+    } catch (error) {
+      // Revert if failed
+      fetchBookings();
+      alert('Lỗi cập nhật trạng thái');
+    }
   };
 
-  const handleStatusChange = (bookingId: string, newStatus: BookingStatus) => {
+  const handleStatusChange = async (bookingId: string, newStatus: BookingStatus) => {
+    // Optimistic update
     setBookings(bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
     setSelectedBooking(null);
+
+    // Update in Supabase
+    try {
+      await bookingService.updateBookingStatus(bookingId, newStatus);
+    } catch (error) {
+      // Revert if failed
+      fetchBookings();
+      alert('Lỗi cập nhật trạng thái');
+    }
   };
 
-  const handleSaveBooking = () => {
+  const handleSaveBooking = async () => {
     if (!newBooking.customerName || !newBooking.time) return;
 
-    if (editingId) {
-      // Update existing booking
-      setBookings(bookings.map(b => b.id === editingId ? {
-        ...b,
-        customerName: newBooking.customerName!,
-        phone: newBooking.phone,
-        time: newBooking.time!,
-        pax: newBooking.pax || 2,
-        notes: newBooking.notes,
-        area: newBooking.area,
-        source: newBooking.source
-      } : b));
-    } else {
-      // Create new booking
-      const booking: Booking = {
-        id: Date.now().toString(),
-        customerName: newBooking.customerName!,
-        phone: newBooking.phone,
-        time: newBooking.time!,
-        pax: newBooking.pax || 2,
-        status: 'new',
-        notes: newBooking.notes,
-        area: newBooking.area,
-        source: newBooking.source
-      };
-      setBookings([booking, ...bookings]);
-    }
+    try {
+      if (editingId) {
+        // Update existing booking
 
-    setShowModal(false);
+        // Optimistic UI Update for faster response
+        setBookings(bookings.map(b => b.id === editingId ? {
+          ...b,
+          customerName: newBooking.customerName!,
+          phone: newBooking.phone,
+          time: newBooking.time!,
+          pax: newBooking.pax || 2,
+          notes: newBooking.notes,
+          area: newBooking.area,
+          source: newBooking.source
+        } : b));
+
+        await bookingService.updateBooking(editingId, {
+          customerName: newBooking.customerName!,
+          phone: newBooking.phone,
+          time: newBooking.time!,
+          pax: newBooking.pax || 2,
+          notes: newBooking.notes,
+          area: newBooking.area,
+          source: newBooking.source
+        });
+      } else {
+        // Create new booking
+        const bookingData = {
+          customerName: newBooking.customerName!,
+          phone: newBooking.phone,
+          time: newBooking.time!,
+          pax: newBooking.pax || 2,
+          status: 'new' as BookingStatus,
+          notes: newBooking.notes,
+          area: newBooking.area,
+          source: newBooking.source
+        };
+
+        const created = await bookingService.createBooking(bookingData);
+        // Optimistically put the created booking to view it instantly
+        setBookings(prev => [created, ...prev]);
+      }
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error saving booking', error);
+      alert('Đã xảy ra lỗi khi lưu đặt bàn');
+      fetchBookings(); // Refetch if anything breaks optimism
+    }
   };
 
   const handleEditBooking = (booking: Booking) => {
