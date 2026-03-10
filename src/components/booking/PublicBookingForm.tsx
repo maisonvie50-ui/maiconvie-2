@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed } from 'lucide-react';
+import { bookingService } from '../../services/bookingService';
+import { BookingStatus } from '../../types';
 
 export default function PublicBookingForm() {
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         customerName: '',
         phone: '',
@@ -13,28 +16,31 @@ export default function PublicBookingForm() {
         notes: ''
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Create a new booking object
-        const newBooking = {
-            id: `web-${Date.now().toString()}`,
-            customerName: formData.customerName,
-            phone: formData.phone,
-            time: formData.time, // Simplification: ignoring date for the mock kanban
-            pax: Number(formData.pax),
-            status: 'new',
-            area: formData.area,
-            notes: formData.notes ? [formData.notes] : [],
-            source: 'website'
-        };
+        setIsSubmitting(true);
+        try {
+            // Create a new booking object
+            const newBooking = {
+                customerName: formData.customerName,
+                phone: formData.phone,
+                time: formData.time, // Simplification: ignoring date for the mock kanban
+                pax: Number(formData.pax),
+                status: 'new' as BookingStatus,
+                area: formData.area as any, // casting to valid area types later
+                notes: formData.notes ? [formData.notes] : [],
+                source: 'website' as const
+            };
 
-        // Save to localStorage so Kanban can pick it up
-        const existingBookingsStr = localStorage.getItem('maison_vie_web_bookings');
-        const existingBookings = existingBookingsStr ? JSON.parse(existingBookingsStr) : [];
-        localStorage.setItem('maison_vie_web_bookings', JSON.stringify([...existingBookings, newBooking]));
-
-        setIsSubmitted(true);
+            await bookingService.createBooking(newBooking);
+            setIsSubmitted(true);
+        } catch (error) {
+            console.error('Error submitting booking:', error);
+            alert('Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -222,8 +228,8 @@ export default function PublicBookingForm() {
                                             key={area.id}
                                             onClick={() => setFormData(prev => ({ ...prev, area: area.id }))}
                                             className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${formData.area === area.id
-                                                    ? 'bg-teal-50 border-2 border-teal-500 text-teal-700'
-                                                    : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                ? 'bg-teal-50 border-2 border-teal-500 text-teal-700'
+                                                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                                                 }`}
                                         >
                                             {area.label}
@@ -247,10 +253,11 @@ export default function PublicBookingForm() {
 
                         <button
                             type="submit"
-                            className="w-full py-4 mt-6 bg-teal-600 text-white rounded-xl font-black text-lg hover:bg-teal-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30"
+                            disabled={isSubmitting}
+                            className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 transition-all ${isSubmitting ? 'bg-teal-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.98]'}`}
                         >
-                            Xác Nhận Đặt Bàn
-                            <ArrowRight className="w-5 h-5" />
+                            {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Đặt Bàn'}
+                            {!isSubmitting && <ArrowRight className="w-5 h-5" />}
                         </button>
                     </form>
                 </div>

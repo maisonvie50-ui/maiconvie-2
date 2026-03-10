@@ -188,30 +188,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     return true;
   });
 
-  // Sync from localStorage for Web Bookings (Keep for local compatibility or migrate public form)
-  useEffect(() => {
-    const webBookingsStr = localStorage.getItem('maison_vie_web_bookings');
-    if (webBookingsStr) {
-      try {
-        const webBookings = JSON.parse(webBookingsStr);
-        if (webBookings && webBookings.length > 0) {
-          // Send to supabase
-          webBookings.forEach(async (wb: any) => {
-            try {
-              await bookingService.createBooking(wb);
-            } catch (e) {
-              console.error('Failed to migrate web booking to supabase', e);
-            }
-          });
-          localStorage.removeItem('maison_vie_web_bookings');
-          // No need to setBookings here, realtime subscription will pick it up
-        }
-      } catch (e) {
-        console.error('Failed to parse web bookings', e);
-      }
-    }
-  }, []);
-
   // New Booking Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newBooking, setNewBooking] = useState<Partial<Booking>>({
