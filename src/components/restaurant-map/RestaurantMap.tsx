@@ -38,6 +38,7 @@ interface EditingItem {
 
 import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3, floorZones as mockZones, eventHall as initialEventHall } from '../../data/mockTables';
 import { tableService } from '../../services/tableService';
+import { orderService } from '../../services/orderService';
 
 export default function RestaurantMap() {
   const [activeFloor, setActiveFloor] = useState<1 | 2 | 3>(1);
@@ -299,6 +300,10 @@ export default function RestaurantMap() {
             pax: editingItem.pax || 4,
             floor: flr
           });
+          // Sync table name to pending orders on the kitchen page
+          if (editingItem.name) {
+            await orderService.updateTableNameInOrders(editingItem.id, editingItem.name);
+          }
         } catch (error) {
           console.error('Failed to update table', error);
         }
@@ -323,6 +328,10 @@ export default function RestaurantMap() {
             name: editingItem.name,
             pax: editingItem.capacity || 6
           });
+          // Sync VIP room name to pending orders on the kitchen page
+          if (editingItem.name) {
+            await orderService.updateTableNameInOrders(editingItem.id, editingItem.name);
+          }
         } catch (error) {
           console.error('Failed to update VIP room', error);
         }

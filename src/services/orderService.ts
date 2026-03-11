@@ -155,7 +155,21 @@ export const orderService = {
         return order;
     },
 
-    // 6. Subscribe to realtime changes on orders
+    // 6. Update table name in all pending orders (when table is renamed)
+    async updateTableNameInOrders(tableId: string, newTableName: string) {
+        const { error } = await supabase
+            .from('orders')
+            .update({ table_name: newTableName, updated_at: new Date().toISOString() })
+            .eq('table_id', tableId)
+            .eq('status', 'pending');
+
+        if (error) {
+            console.error('Error updating table name in orders:', error);
+            throw error;
+        }
+    },
+
+    // 7. Subscribe to realtime changes on orders
     subscribeToOrders(callback: () => void) {
         return supabase
             .channel('kitchen-orders')
