@@ -677,13 +677,13 @@ export default function Settings() {
                                             <h4 className="font-bold text-lg text-gray-900 text-center">{viewingEmployee.name}</h4>
 
                                             <div className="w-full bg-white p-3 rounded-lg border border-gray-200 mt-3 mb-3 text-sm">
-                                                <div className="flex justify-between mb-1">
-                                                    <span className="text-gray-500">Tài khoản:</span>
-                                                    <span className="font-bold text-gray-900">{viewingEmployee.email}</span>
+                                                <div className="flex flex-col gap-1 mb-2">
+                                                    <span className="text-gray-500 text-xs uppercase tracking-wider">Tài khoản:</span>
+                                                    <span className="font-bold text-gray-900 break-all">{viewingEmployee.email}</span>
                                                 </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-500">Mật khẩu:</span>
-                                                    <span className="font-mono text-gray-900 bg-gray-100 px-1 rounded">{viewingEmployee.password || '(Đã mã hóa)'}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-500 text-xs uppercase tracking-wider">Mật khẩu:</span>
+                                                    <span className="font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded self-start break-all">{viewingEmployee.password || '(Đã mã hóa)'}</span>
                                                 </div>
                                             </div>
 
