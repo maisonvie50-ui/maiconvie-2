@@ -39,7 +39,7 @@ export default function Settings() {
     ]);
 
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-    const [newUser, setNewUser] = useState({ name: '', email: '', role: 'reception' });
+    const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'reception' });
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'reception' | 'kitchen' | 'server'>('all');
     const [userDetailModalOpen, setUserDetailModalOpen] = useState(false);
@@ -140,22 +140,28 @@ export default function Settings() {
     const deleteCourse = (id: string) => { setManagedCourses(managedCourses.filter(c => c.id !== id)); };
 
     const handleAddUser = async () => {
-        if (!newUser.name || !newUser.email) return;
+        if (!newUser.name || !newUser.email || !newUser.password) return;
 
-        await settingsService.addEmployee({
-            name: newUser.name,
-            email: newUser.email,
-            roles: {
-                reception: newUser.role === 'reception',
-                kitchen: newUser.role === 'kitchen',
-                server: newUser.role === 'server',
-                manager: newUser.role === 'manager'
-            }
-        });
+        try {
+            await settingsService.addEmployee({
+                name: newUser.name,
+                email: newUser.email,
+                password: newUser.password,
+                roles: {
+                    reception: newUser.role === 'reception',
+                    kitchen: newUser.role === 'kitchen',
+                    server: newUser.role === 'server',
+                    manager: newUser.role === 'manager'
+                }
+            });
 
-        await loadData();
-        setIsAddUserModalOpen(false);
-        setNewUser({ name: '', email: '', role: 'reception' });
+            await loadData();
+            setIsAddUserModalOpen(false);
+            setNewUser({ name: '', email: '', password: '', role: 'reception' });
+            alert('Tạo tài khoản thành công!');
+        } catch (error: any) {
+            alert(error.message || 'Có lỗi xảy ra khi tạo tài khoản');
+        }
     };
 
     const toggleUserStatus = async (id: string) => {
@@ -605,11 +611,12 @@ export default function Settings() {
                             <h3 className="text-xl font-bold text-gray-900">Thêm nhân viên mới</h3>
                             <button onClick={() => setIsAddUserModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-                        <div className="space-y-5">
+                        <div className="space-y-4">
                             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên</label><input type="text" value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} placeholder="Nhập tên nhân viên" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" /></div>
-                            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Email (Tên đăng nhập)</label><input type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="example@maisonvie.com" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" /></div>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Tên đăng nhập</label><input type="text" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} placeholder="VD: letan1 (Hệ thống sẽ dùng letan1@maison-vie.local)" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" /></div>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu</label><input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} placeholder="Tối thiểu 6 ký tự" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" /></div>
                             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Vai trò mặc định</label><select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"><option value="reception">Lễ tân</option><option value="kitchen">Bếp</option><option value="server">Phục vụ</option><option value="manager">Quản lý</option></select></div>
-                            <div className="pt-2"><button onClick={handleAddUser} disabled={!newUser.name || !newUser.email} className="w-full bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Tạo tài khoản</button></div>
+                            <div className="pt-2"><button onClick={handleAddUser} disabled={!newUser.name || !newUser.email || !newUser.password || newUser.password.length < 6} className="w-full bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Tạo tài khoản</button></div>
                         </div>
                     </div>
                 </div>

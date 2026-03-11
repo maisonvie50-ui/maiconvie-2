@@ -24,23 +24,29 @@ export default function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
 
     try {
-      // Gọi lên onLogin của App.tsx, ở đó sẽ xử lý supabase.auth.signInWithPassword
-      // Thay đổi tham số truyền vào onLogin từ role -> email, password
+      // Automatic conversion: if username doesn't have an @, assume it's a generated local account.
+      let loginEmail = username.trim().toLowerCase();
+      if (!loginEmail.includes('@')) {
+        loginEmail = `${loginEmail}@maison-vie.local`;
 
-      // Fallback for mock accounts (development use cases)
-      if (!username.includes('@')) {
-        let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
-        if (username === 'admin') role = 'admin';
-        else if (username === 'quanly') role = 'manager';
-        else if (username === 'letan') role = 'receptionist';
-        else if (username === 'bep') role = 'kitchen';
-        else if (username === 'phucvu') role = 'server';
+        // Temporary fallback for the mock accounts for smooth transition during dev
+        // This can be removed later once fully migrated to real DB accounts.
+        if (username === 'admin' || username === 'quanly' || username === 'letan' || username === 'bep' || username === 'phucvu') {
+          let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
+          if (username === 'admin') role = 'admin';
+          else if (username === 'quanly') role = 'manager';
+          else if (username === 'letan') role = 'receptionist';
+          else if (username === 'bep') role = 'kitchen';
 
-        onLogin(role, undefined, undefined);
-        return;
+          // If they use mock accounts without a strong password or we aren't found in DB, just mock login for them
+          if (password === '123') {
+            onLogin(role, undefined, undefined);
+            return;
+          }
+        }
       }
 
-      await onLogin('server', username, password); // Thực tế là email/password
+      await onLogin('server', loginEmail, password);
     } catch (err: any) {
       setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
     } finally {
