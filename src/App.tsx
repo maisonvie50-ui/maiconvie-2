@@ -40,12 +40,13 @@ function MainApp() {
 
   return (
     <Routes>
-      {/* Public Routes */}
       <Route path="/dat-ban-online" element={<PublicBookingForm />} />
 
-      {/* Protected Routes */}
       {!isAuthenticated ? (
-        <Route path="*" element={<Login onLogin={handleLogin} />} />
+        <>
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </>
       ) : isMobile ? (
         <Route path="*" element={<MobileCaptainApp onLogout={handleLogout} />} />
       ) : (
@@ -86,6 +87,8 @@ function MainApp() {
           <Route path="/khach-hang" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></ProtectedRoute>} />
           <Route path="/cau-hinh" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
           <Route path="/ho-so" element={<UserProfile />} />
+          {/* Catch-all cho các route không tồn tại khi đã login */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       )}
     </Routes>
