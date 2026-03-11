@@ -8,6 +8,8 @@ export interface TrainingModule {
     level: number;
     youtubeId: string;
     progress: number; // For the current user
+    active: boolean;
+    isActive?: boolean; // alias
 }
 
 export interface EmployeeTrainingProgress {
@@ -56,6 +58,8 @@ export const trainingService = {
             level: mod.level,
             youtubeId: mod.youtube_id,
             progress: progressMap[mod.id] || 0,
+            active: mod.is_active,
+            isActive: mod.is_active,
         }));
     },
 
@@ -67,6 +71,79 @@ export const trainingService = {
                 { onConflict: 'employee_id, module_id' }
             );
         if (error) console.error('Error updating progress:', error);
+    },
+
+    // === ADMIN: Get ALL modules (including inactive) ===
+    getModulesForAdmin: async (): Promise<TrainingModule[]> => {
+        const { data: modulesData, error } = await supabase
+            .from('training_modules')
+            .select('*')
+            .order('level', { ascending: true })
+            .order('created_at', { ascending: true });
+
+        if (error || !modulesData) return [];
+
+        return modulesData.map(mod => ({
+            id: mod.id,
+            title: mod.title,
+            thumbnail: mod.thumbnail_url || `https://img.youtube.com/vi/${mod.youtube_id}/maxresdefault.jpg`,
+            duration: mod.duration || '',
+            level: mod.level,
+            youtubeId: mod.youtube_id,
+            progress: 0,
+            active: mod.is_active,
+            isActive: mod.is_active,
+        }));
+    },
+
+    // === ADMIN: Add a new training module ===
+    addModule: async (module: { title: string; level: number; youtubeId: string }): Promise<TrainingModule | null> => {
+        const { data, error } = await supabase
+            .from('training_modules')
+            .insert([{
+                title: module.title,
+                level: module.level,
+                youtube_id: module.youtubeId,
+                thumbnail_url: `https://img.youtube.com/vi/${module.youtubeId}/maxresdefault.jpg`,
+                is_active: true,
+            }])
+            .select()
+            .single();
+
+        if (error || !data) {
+            console.error('Error adding module:', error);
+            return null;
+        }
+
+        return {
+            id: data.id,
+            title: data.title,
+            thumbnail: data.thumbnail_url || `https://img.youtube.com/vi/${data.youtube_id}/maxresdefault.jpg`,
+            duration: data.duration || '',
+            level: data.level,
+            youtubeId: data.youtube_id,
+            progress: 0,
+            active: data.is_active,
+            isActive: data.is_active,
+        };
+    },
+
+    // === ADMIN: Update module (e.g. toggle active) ===
+    updateModule: async (id: string, updates: { is_active?: boolean; title?: string; level?: number }) => {
+        const { error } = await supabase
+            .from('training_modules')
+            .update(updates)
+            .eq('id', id);
+        if (error) console.error('Error updating module:', error);
+    },
+
+    // === ADMIN: Delete module ===
+    deleteModule: async (id: string) => {
+        const { error } = await supabase
+            .from('training_modules')
+            .delete()
+            .eq('id', id);
+        if (error) console.error('Error deleting module:', error);
     },
 
     getEmployeeProgressReports: async (): Promise<EmployeeTrainingProgress[]> => {

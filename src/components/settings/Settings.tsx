@@ -72,7 +72,7 @@ export default function Settings() {
         const [empData, stData, trData, cfgData, logData] = await Promise.all([
             settingsService.getEmployees(),
             settingsService.getStations(),
-            trainingService.getModules(),
+            trainingService.getModulesForAdmin(),
             settingsService.getAppSettings(),
             settingsService.getActivityLogs()
         ]);
@@ -163,15 +163,26 @@ export default function Settings() {
     };
     const previewId = getYoutubeId(trainingUrl);
 
-    // TODO: implement real addCourse using trainingService
-    const handleAddCourse = () => {
+    // === TRAINING MODULE HANDLERS ===
+    const handleAddCourse = async () => {
         if (!previewId || !trainingTitle) return;
-        setManagedCourses([...managedCourses, { id: Date.now().toString(), title: trainingTitle, level: trainingLevel, youtubeId: previewId, active: true, thumbnail: '', duration: '', progress: 0 }]);
+        await trainingService.addModule({ title: trainingTitle, level: trainingLevel, youtubeId: previewId });
+        await loadData();
         setTrainingUrl(''); setTrainingTitle(''); setTrainingLevel(1);
     };
 
-    const toggleCourseActive = (id: string) => { setManagedCourses(managedCourses.map(c => c.id === id ? { ...c, is_active: !c.isActive } : c as any)); };
-    const deleteCourse = (id: string) => { setManagedCourses(managedCourses.filter(c => c.id !== id)); };
+    const toggleCourseActive = async (id: string) => {
+        const course = managedCourses.find(c => c.id === id);
+        if (course) {
+            await trainingService.updateModule(id, { is_active: !course.active });
+            await loadData();
+        }
+    };
+
+    const deleteCourse = async (id: string) => {
+        await trainingService.deleteModule(id);
+        await loadData();
+    };
 
     const handleAddUser = async () => {
         if (!newUser.name || !newUser.email || !newUser.password) return;
