@@ -128,6 +128,35 @@ export default function Settings() {
         }
     };
 
+    const handleAddStation = async (name: string, tables: string[]) => {
+        await settingsService.addStation({ name, tables, staffIds: [] });
+        await loadData();
+        setIsAddStationModalOpen(false);
+        setNewStationName('');
+        setSelectedTablesForStation([]);
+    };
+
+    const handleDeleteStation = async (stationId: string) => {
+        await settingsService.deleteStation(stationId);
+        await loadData();
+    };
+
+    const handleAddStaffToStation = async (stationId: string, staffId: string) => {
+        const station = stations.find(s => s.id === stationId);
+        if (station && !station.staffIds.includes(staffId)) {
+            await settingsService.updateStation(stationId, { staffIds: [...station.staffIds, staffId] });
+            await loadData();
+        }
+    };
+
+    const handleRemoveStaffFromStation = async (stationId: string, staffId: string) => {
+        const station = stations.find(s => s.id === stationId);
+        if (station) {
+            await settingsService.updateStation(stationId, { staffIds: station.staffIds.filter(sid => sid !== staffId) });
+            await loadData();
+        }
+    };
+
     const getYoutubeId = (url: string) => {
         const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
         return match ? match[1] : null;
@@ -359,7 +388,7 @@ export default function Settings() {
                                     <div key={station.id} className="border border-gray-200 rounded-lg overflow-hidden">
                                         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                                             <span className="font-bold text-gray-800">{station.name}</span>
-                                            <button onClick={() => setStations(stations.filter(s => s.id !== station.id))} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDeleteStation(station.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                         <div className="p-4 space-y-3">
                                             <div>
@@ -372,8 +401,8 @@ export default function Settings() {
                                             <div>
                                                 <div className="text-xs text-gray-500 mb-1 font-medium uppercase">Nhân sự</div>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {station.staffIds.map(id => { const emp = employees.find(e => e.id === id); return emp ? (<div key={id} className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2 py-1 rounded-full text-xs border border-teal-100"><User className="w-3 h-3" />{emp.name}<button onClick={() => setStations(stations.map(s => s.id === station.id ? { ...s, staffIds: s.staffIds.filter(sid => sid !== id) } : s))} className="ml-1 hover:text-red-500"><X className="w-3 h-3" /></button></div>) : null; })}
-                                                    <select className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded border-none focus:ring-0 cursor-pointer" onChange={(e) => { if (e.target.value) { setStations(stations.map(s => s.id === station.id ? { ...s, staffIds: [...s.staffIds, e.target.value] } : s)); e.target.value = ''; } }}>
+                                                    {station.staffIds.map(id => { const emp = employees.find(e => e.id === id); return emp ? (<div key={id} className="flex items-center gap-1 bg-teal-50 text-teal-700 px-2 py-1 rounded-full text-xs border border-teal-100"><User className="w-3 h-3" />{emp.name}<button onClick={() => handleRemoveStaffFromStation(station.id, id)} className="ml-1 hover:text-red-500"><X className="w-3 h-3" /></button></div>) : null; })}
+                                                    <select className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded border-none focus:ring-0 cursor-pointer" onChange={(e) => { if (e.target.value) { handleAddStaffToStation(station.id, e.target.value); e.target.value = ''; } }}>
                                                         <option value="">+ Thêm</option>
                                                         {employees.filter(e => !station.staffIds.includes(e.id)).map(e => (<option key={e.id} value={e.id}>{e.name}</option>))}
                                                     </select>
@@ -448,7 +477,7 @@ export default function Settings() {
                                             <h4 className="font-bold text-gray-800">{station.name}</h4>
                                             <div className="flex gap-2">
                                                 <button onClick={() => handleEditStationTables(station.id)} className="text-gray-400 hover:text-teal-600"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => setStations(stations.filter(s => s.id !== station.id))} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteStation(station.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                         <div className="p-5 flex-1 flex flex-col gap-4">
@@ -463,9 +492,9 @@ export default function Settings() {
                                             <div className="flex-1">
                                                 <div className="text-xs font-bold text-gray-400 uppercase mb-2 flex items-center gap-1"><User className="w-3 h-3" />Nhân sự phụ trách</div>
                                                 <div className="space-y-2">
-                                                    {station.staffIds.map(id => { const emp = employees.find(e => e.id === id); if (!emp) return null; return (<div key={id} className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 group"><div className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-teal-200 flex items-center justify-center text-teal-700 text-xs font-bold">{emp.name.charAt(0)}</div><span className="text-sm font-medium text-teal-900">{emp.name}</span></div><button onClick={() => setStations(stations.map(s => s.id === station.id ? { ...s, staffIds: s.staffIds.filter(sid => sid !== id) } : s))} className="text-teal-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4" /></button></div>); })}
+                                                    {station.staffIds.map(id => { const emp = employees.find(e => e.id === id); if (!emp) return null; return (<div key={id} className="flex items-center justify-between p-2 bg-teal-50 rounded-lg border border-teal-100 group"><div className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-teal-200 flex items-center justify-center text-teal-700 text-xs font-bold">{emp.name.charAt(0)}</div><span className="text-sm font-medium text-teal-900">{emp.name}</span></div><button onClick={() => handleRemoveStaffFromStation(station.id, id)} className="text-teal-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4" /></button></div>); })}
                                                     <div className="relative group">
-                                                        <select className="w-full p-2 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-teal-400 hover:text-teal-600 cursor-pointer appearance-none focus:ring-0 focus:outline-none transition-colors" onChange={(e) => { if (e.target.value) { setStations(stations.map(s => s.id === station.id ? { ...s, staffIds: [...s.staffIds, e.target.value] } : s)); e.target.value = ''; } }}>
+                                                        <select className="w-full p-2 bg-gray-50 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-teal-400 hover:text-teal-600 cursor-pointer appearance-none focus:ring-0 focus:outline-none transition-colors" onChange={(e) => { if (e.target.value) { handleAddStaffToStation(station.id, e.target.value); e.target.value = ''; } }}>
                                                             <option value="">+ Gán thêm nhân viên</option>
                                                             {employees.filter(e => !station.staffIds.includes(e.id)).map(e => (<option key={e.id} value={e.id}>{e.name}</option>))}
                                                         </select>
@@ -770,7 +799,7 @@ export default function Settings() {
                                     ))}
                                 </div>
                             </div>
-                            <div className="pt-2"><button onClick={() => { if (newStationName) { setStations([...stations, { id: Date.now().toString(), name: newStationName, tables: selectedTablesForStation, staffIds: [] }]); setIsAddStationModalOpen(false); setNewStationName(''); setSelectedTablesForStation([]); } }} disabled={!newStationName} className="w-full bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Tạo Station</button></div>
+                            <div className="pt-2"><button onClick={() => { if (newStationName) { handleAddStation(newStationName, selectedTablesForStation); } }} disabled={!newStationName} className="w-full bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Tạo Station</button></div>
                         </div>
                     </div>
                 </div>
