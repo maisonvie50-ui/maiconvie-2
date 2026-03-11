@@ -1,17 +1,28 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server';
 
-export function useAuth() {
+interface AuthContextType {
+    isAuthenticated: boolean;
+    userRole: UserRole;
+    isLoading: boolean;
+    session: Session | null;
+    setUserRole: (role: UserRole) => void;
+    handleLogin: (role?: UserRole, email?: string, password?: string) => Promise<void>;
+    handleLogout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [userRole, setUserRole] = useState<UserRole>('server');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [session, setSession] = useState<Session | null>(null);
 
     useEffect(() => {
-        // Lấy session hiện tại
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setIsAuthenticated(!!session);
@@ -22,7 +33,6 @@ export function useAuth() {
             }
         });
 
-        // Lắng nghe sự kiện thay đổi đăng nhập/đăng xuất
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setIsAuthenticated(!!session);
@@ -36,7 +46,6 @@ export function useAuth() {
         return () => subscription.unsubscribe();
     }, []);
 
-    // Giữ lại hàm handleLogin để tích hợp với component Login (sẽ update sau)
     const handleLogin = useCallback(async (role: UserRole = 'admin', email?: string, password?: string) => {
         setIsLoading(true);
         try {
@@ -55,8 +64,6 @@ export function useAuth() {
                     setUserRole(data.user.user_metadata?.role || role);
                 }
             } else {
-                // Tạm thời nếu ko truyền email/pass thì vờ như mock login thành công
-                // (sẽ gỡ bỏ sau khi hoàn tất Update Login component)
                 setIsAuthenticated(true);
                 setUserRole(role);
             }
@@ -81,5 +88,18 @@ export function useAuth() {
         }
     }, []);
 
-    return { isAuthenticated, userRole, isLoading, session, setUserRole, handleLogin, handleLogout };
+    return (
+        <AuthContext.Provider value= {{ isAuthenticated, userRole, isLoading, session, setUserRole, handleLogin, handleLogout }
+}>
+    { children }
+    </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 }

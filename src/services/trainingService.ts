@@ -122,8 +122,11 @@ export const trainingService = {
             empProgress.forEach(p => {
                 if (p.progress === 100) {
                     completedModules++;
-                    if (p.training_modules && levelProgressMap[p.training_modules.level]) {
-                        levelProgressMap[p.training_modules.level].completed++;
+                    if (p.training_modules) {
+                        const level = (p as any).training_modules.level || (p as any).training_modules[0]?.level;
+                        if (levelProgressMap[level]) {
+                            levelProgressMap[level].completed++;
+                        }
                     }
                 }
                 totalProgressSum += (p.progress || 0);

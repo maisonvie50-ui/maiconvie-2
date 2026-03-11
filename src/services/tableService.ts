@@ -60,7 +60,7 @@ export const tableService = {
         if (updates.time !== undefined) dbUpdates.time = updates.time;
         if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
         if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
-        if (updates.bookingId !== undefined) dbUpdates.booking_id = updates.bookingId;
+        if ((updates as any).bookingId !== undefined) dbUpdates.booking_id = (updates as any).bookingId;
 
         dbUpdates.updated_at = new Date().toISOString();
 
