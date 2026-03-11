@@ -346,15 +346,15 @@ export default function KitchenDisplay() {
                       }`}
                   >
                     {/* Header */}
-                    <div className={`px-3 py-2.5 md:px-4 md:py-2.5 flex justify-between items-center rounded-t-xl ${styles.header}`}>
-                      <h3 className="text-lg md:text-xl font-black flex items-center gap-1.5 tracking-tight">
-                        {order.table}
-                        {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 animate-pulse text-white" />}
+                    <div className={`px-2 py-2 md:px-3 md:py-2.5 flex justify-between items-center rounded-t-xl gap-2 ${styles.header}`}>
+                      <h3 className="text-base md:text-lg font-black flex items-center gap-1.5 tracking-tight min-w-0" title={order.table}>
+                        <span className="truncate">{order.table}</span>
+                        {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 shrink-0 animate-pulse text-white" />}
                       </h3>
 
-                      <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1 font-mono text-sm md:text-sm font-bold ${styles.timer}`}>
-                          <Clock className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className={`flex items-center gap-1 font-mono text-[11px] md:text-xs font-bold whitespace-nowrap ${styles.timer}`}>
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
                           {elapsed}'
                         </div>
 
@@ -362,10 +362,10 @@ export default function KitchenDisplay() {
                         {!allItemsDone && !isMobile && (
                           <button
                             onClick={() => markAllDone(order.id)}
-                            className="py-0.5 px-2 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[10px]"
+                            className="py-0.5 px-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1 active:scale-95 transition-all text-[10px] whitespace-nowrap shrink-0"
                             title="Xong tất cả"
                           >
-                            <CheckSquare className="w-3 h-3" /> Xong tất cả
+                            <CheckSquare className="w-3 h-3 shrink-0" /> Xong
                           </button>
                         )}
                       </div>
