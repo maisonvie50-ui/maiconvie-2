@@ -24,29 +24,24 @@ export default function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
 
     try {
-      // Automatic conversion: if username doesn't have an @, assume it's a generated local account.
-      let loginEmail = username.trim().toLowerCase();
-      if (!loginEmail.includes('@')) {
-        loginEmail = `${loginEmail}@maison-vie.local`;
+      let loginUsername = username.trim().toLowerCase();
 
-        // Temporary fallback for the mock accounts for smooth transition during dev
-        // This can be removed later once fully migrated to real DB accounts.
-        if (username === 'admin' || username === 'quanly' || username === 'letan' || username === 'bep' || username === 'phucvu') {
-          let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
-          if (username === 'admin') role = 'admin';
-          else if (username === 'quanly') role = 'manager';
-          else if (username === 'letan') role = 'receptionist';
-          else if (username === 'bep') role = 'kitchen';
+      // Temporary fallback for the mock accounts for smooth transition during dev
+      if (username === 'admin' || username === 'quanly' || username === 'letan' || username === 'bep' || username === 'phucvu') {
+        let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
+        if (username === 'admin') role = 'admin';
+        else if (username === 'quanly') role = 'manager';
+        else if (username === 'letan') role = 'receptionist';
+        else if (username === 'bep') role = 'kitchen';
 
-          // If they use mock accounts without a strong password or we aren't found in DB, just mock login for them
-          if (password === '123') {
-            onLogin(role, undefined, undefined);
-            return;
-          }
+        // If they use mock accounts without a strong password or we aren't found in DB, just mock login for them
+        if (password === '123') {
+          onLogin(role, undefined, undefined);
+          return;
         }
       }
 
-      await onLogin('server', loginEmail, password);
+      await onLogin('server', loginUsername, password);
     } catch (err: any) {
       setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
     } finally {
@@ -61,10 +56,9 @@ export default function Login({ onLogin }: LoginProps) {
     setIsResetting(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: window.location.origin,
-      });
-      if (error) throw error;
+      // Vì đã bỏ Supabase Auth nên tính năng gửi link qua email cần làm qua Backend hoặc Mailer riêng.
+      // Hiện tại sẽ chuyển thành popup thông báo liên hệ quản lý.
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
       setResetSent(true);
     } catch (err: any) {
       console.error('Lỗi reset mật khẩu:', err);
@@ -201,12 +195,10 @@ export default function Login({ onLogin }: LoginProps) {
               {resetSent ? (
                 <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-4 text-center">
                   <div className="w-12 h-12 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Lock className="w-6 h-6" />
                   </div>
-                  <h4 className="text-teal-400 font-bold mb-1">Đã gửi email khôi phục!</h4>
-                  <p className="text-teal-200/70 text-sm">Vui lòng kiểm tra hộp thư đến của bạn.</p>
+                  <h4 className="text-teal-400 font-bold mb-1">Liên hệ Quản lý</h4>
+                  <p className="text-teal-200/70 text-sm">Do hệ thống sử dụng đăng nhập nội bộ, vui lòng liên hệ Quản lý để được cấp lại mật khẩu.</p>
                   <button
                     onClick={() => { setShowForgotPassword(false); setResetSent(false); }}
                     className="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -217,9 +209,9 @@ export default function Login({ onLogin }: LoginProps) {
               ) : (
                 <form onSubmit={handleResetPassword}>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Địa chỉ Email</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Tên đăng nhập</label>
                     <input
-                      type="email"
+                      type="text"
                       required
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}

@@ -1,6 +1,4 @@
 import { supabase } from '../lib/supabase';
-
-import { supabaseAdmin } from '../lib/supabase-admin';
 export interface Employee {
     id: string;
     name: string;
@@ -72,45 +70,10 @@ export const settingsService = {
     },
 
     addEmployee: async (employee: Partial<Employee>): Promise<Employee | null> => {
-        let authUserId = null;
-
-        // 1. Create Auth Account if password is provided
-        if (employee.password && employee.email) {
-            // Generate a fake local email for Supabase Auth based on the provided username (email field)
-            const authEmail = `${employee.email.trim().toLowerCase()}@maison-vie.local`;
-
-            // Determine primary role for metadata
-            let primaryRole = 'server';
-            if (employee.roles?.manager) primaryRole = 'manager';
-            else if (employee.roles?.reception) primaryRole = 'receptionist';
-            else if (employee.roles?.kitchen) primaryRole = 'kitchen';
-
-            const { data: authData, error: authError } = await supabaseAdmin.auth.signUp({
-                email: authEmail,
-                password: employee.password,
-                options: {
-                    data: {
-                        name: employee.name,
-                        role: primaryRole,
-                        username: employee.email
-                    }
-                }
-            });
-
-            if (authError) {
-                console.error('Error creating auth account:', authError);
-                throw new Error(`Lỗi tạo tài khoản đăng nhập: ${authError.message}`);
-            }
-
-            authUserId = authData.user?.id;
-        }
-
-        // 2. Insert into employees table
+        // Insert into employees table directly without using Supabase Auth
         const { data, error } = await supabase
             .from('employees')
             .insert([{
-                id: authUserId, // Use the auth user ID if created, otherwise Supabase UUID will be generated (if omitted and default is set, or we can just let it generate if authUserId is null but since it's a uuid column we might need to omit if null. Let's just pass it if it exists. Actually, better to spread it.)
-                ...(authUserId ? { id: authUserId } : {}),
                 name: employee.name,
                 email: employee.email,
                 password: employee.password || null, // Store password in table as requested
@@ -125,7 +88,7 @@ export const settingsService = {
 
         if (error || !data) {
             console.error('Error adding employee:', error);
-            return null;
+            throw new Error(error.message || 'Lỗi tạo tài khoản');
         }
 
         return {

@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const { data: employee, error } = await supabase
                     .from('employees')
                     .select('*')
-                    .eq('email', email.replace('@maison-vie.local', ''))
+                    .eq('email', email)
                     .eq('password', password)
                     .eq('active', true)
                     .single();
