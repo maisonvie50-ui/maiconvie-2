@@ -663,7 +663,7 @@ export default function Settings() {
             )}
             {userDetailModalOpen && viewingEmployee && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setUserDetailModalOpen(false)}>
-                    <div className="w-full max-w-2xl bg-white rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                             <h3 className="text-xl font-bold text-gray-900">Chi tiết nhân viên</h3>
                             <button onClick={() => setUserDetailModalOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-sm"><X className="w-5 h-5 text-gray-500" /></button>
@@ -672,20 +672,13 @@ export default function Settings() {
                             {!editMode ? (
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="w-full md:w-1/3 space-y-4">
-                                        <div className="flex flex-col items-center p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                            <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center text-gray-400 mb-3 relative"><User className="w-12 h-12" /><div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white ${viewingEmployee.active ? 'bg-green-500' : 'bg-gray-400'}`}></div></div>
-                                            <h4 className="font-bold text-lg text-gray-900 text-center">{viewingEmployee.name}</h4>
-
-                                            <div className="w-full bg-white p-3 rounded-lg border border-gray-200 mt-3 mb-3 text-sm">
-                                                <div className="flex flex-col gap-1 mb-2">
-                                                    <span className="text-gray-500 text-xs uppercase tracking-wider">Tài khoản:</span>
-                                                    <span className="font-bold text-gray-900 break-all">{viewingEmployee.email}</span>
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-gray-500 text-xs uppercase tracking-wider">Mật khẩu:</span>
-                                                    <span className="font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded self-start break-all">{viewingEmployee.password || '(Đã mã hóa)'}</span>
-                                                </div>
+                                        <div className="flex flex-col items-center p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+                                            <div className="w-24 h-24 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-4 relative">
+                                                <User className="w-12 h-12" />
+                                                <div className={`absolute bottom-2 right-2 w-4 h-4 rounded-full border-2 border-white ${viewingEmployee.active ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                                             </div>
+                                            <h4 className="font-bold text-lg text-gray-900 text-center mb-1">{viewingEmployee.name}</h4>
+                                            <p className="text-sm text-gray-500 text-center mb-4 break-all">{viewingEmployee.email}</p>
 
                                             <div className="flex flex-wrap gap-1 justify-center">
                                                 {viewingEmployee.roles.manager && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">Quản lý</span>}
