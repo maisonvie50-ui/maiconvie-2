@@ -41,16 +41,16 @@ function MainApp() {
   return (
     <Routes>
       <Route path="/dat-ban-online" element={<PublicBookingForm />} />
+      <Route path="/login" element={
+        !isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />
+      } />
 
-      {!isAuthenticated ? (
-        <>
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </>
-      ) : isMobile ? (
-        <Route path="*" element={<MobileCaptainApp onLogout={handleLogout} />} />
-      ) : (
-        <Route element={
+      <Route path="*" element={
+        !isAuthenticated ? (
+          <Navigate to="/login" replace />
+        ) : isMobile ? (
+          <MobileCaptainApp onLogout={handleLogout} />
+        ) : (
           <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
             <Sidebar
               isOpen={isSidebarOpen}
@@ -62,35 +62,34 @@ function MainApp() {
             <div className="flex-1 flex flex-col min-w-0">
               <Header
                 onAddBooking={() => setIsBookingModalOpen(true)}
-                onMenuClick={() => isMobile ? setIsSidebarOpen(true) : setIsSidebarCollapsed(!isSidebarCollapsed)}
+                onMenuClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
               />
               <main className="flex-1 relative overflow-hidden">
-                <Outlet context={{ isSidebarCollapsed }} />
+                <Routes>
+                  <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
+                  <Route path="/so-do-nha-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist', 'server']}><RestaurantMap /></ProtectedRoute>} />
+                  <Route path="/bao-cao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><AdvancedAnalytics /></ProtectedRoute>} />
+                  <Route path="/dat-ban" element={
+                    <ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}>
+                      <BookingKanban
+                        isModalOpen={isBookingModalOpen}
+                        onToggleModal={setIsBookingModalOpen}
+                      />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/thuc-don" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><MenuManagement /></ProtectedRoute>} />
+                  <Route path="/bep" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></ProtectedRoute>} />
+                  <Route path="/dao-tao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><TrainingPortal /></ProtectedRoute>} />
+                  <Route path="/khach-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></ProtectedRoute>} />
+                  <Route path="/cau-hinh" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
+                  <Route path="/ho-so" element={<UserProfile />} />
+                  <Route path="*" element={<Navigate to="/so-do-nha-hang" replace />} />
+                </Routes>
               </main>
             </div>
           </div>
-        }>
-          <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
-          <Route path="/so-do-nha-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist', 'server']}><RestaurantMap /></ProtectedRoute>} />
-          <Route path="/bao-cao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><AdvancedAnalytics /></ProtectedRoute>} />
-          <Route path="/dat-ban" element={
-            <ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}>
-              <BookingKanban
-                isModalOpen={isBookingModalOpen}
-                onToggleModal={setIsBookingModalOpen}
-              />
-            </ProtectedRoute>
-          } />
-          <Route path="/thuc-don" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><MenuManagement /></ProtectedRoute>} />
-          <Route path="/bep" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></ProtectedRoute>} />
-          <Route path="/dao-tao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><TrainingPortal /></ProtectedRoute>} />
-          <Route path="/khach-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></ProtectedRoute>} />
-          <Route path="/cau-hinh" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
-          <Route path="/ho-so" element={<UserProfile />} />
-          {/* Catch-all cho các route không tồn tại khi đã login */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      )}
+        )
+      } />
     </Routes>
   );
 }
