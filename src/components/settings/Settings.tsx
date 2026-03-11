@@ -64,16 +64,18 @@ export default function Settings() {
     }, []);
 
     const loadData = async () => {
-        const [empData, stData, trData, cfgData] = await Promise.all([
+        const [empData, stData, trData, cfgData, logData] = await Promise.all([
             settingsService.getEmployees(),
             settingsService.getStations(),
             trainingService.getModules(),
-            settingsService.getAppSettings()
+            settingsService.getAppSettings(),
+            settingsService.getActivityLogs()
         ]);
 
         setEmployees(empData);
         setStations(stData);
         setManagedCourses(trData);
+        setActivityLogs(logData);
 
         if (cfgData) {
             setAppSettings(cfgData);
