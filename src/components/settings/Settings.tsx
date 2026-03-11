@@ -63,6 +63,7 @@ export default function Settings() {
     const [editingCourse, setEditingCourse] = useState<TrainingModule | null>(null);
     const [editCourseTitle, setEditCourseTitle] = useState('');
     const [editCourseLevel, setEditCourseLevel] = useState(1);
+    const [editCourseUrl, setEditCourseUrl] = useState('');
     const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
 
     useEffect(() => {
@@ -193,12 +194,19 @@ export default function Settings() {
         setEditingCourse(course);
         setEditCourseTitle(course.title);
         setEditCourseLevel(course.level);
+        setEditCourseUrl(course.youtubeId ? `https://youtube.com/watch?v=${course.youtubeId}` : '');
         setIsEditCourseModalOpen(true);
     };
 
     const handleSaveCourseEdit = async () => {
         if (!editingCourse || !editCourseTitle) return;
-        await trainingService.updateModule(editingCourse.id, { title: editCourseTitle, level: editCourseLevel });
+        const editYoutubeId = getYoutubeId(editCourseUrl);
+        const updates: any = { title: editCourseTitle, level: editCourseLevel };
+        if (editYoutubeId && editYoutubeId !== editingCourse.youtubeId) {
+            updates.youtube_id = editYoutubeId;
+            updates.thumbnail_url = `https://img.youtube.com/vi/${editYoutubeId}/maxresdefault.jpg`;
+        }
+        await trainingService.updateModule(editingCourse.id, updates);
         await loadData();
         setIsEditCourseModalOpen(false);
         setEditingCourse(null);
@@ -878,10 +886,15 @@ export default function Settings() {
                             </div>
                             {editingCourse.youtubeId && (
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Video hiện tại</label>
-                                    <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                        <img src={`https://img.youtube.com/vi/${editingCourse.youtubeId}/hqdefault.jpg`} alt={editingCourse.title} className="w-full h-full object-cover" />
-                                    </div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1"><Link className="w-3.5 h-3.5" /> Link YouTube</label>
+                                    <input type="text" value={editCourseUrl} onChange={(e) => setEditCourseUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm" />
+                                    {(() => {
+                                        const id = getYoutubeId(editCourseUrl); return id ? (
+                                            <div className="mt-2 w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                                <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt="Preview" className="w-full h-full object-cover" />
+                                            </div>
+                                        ) : null;
+                                    })()}
                                 </div>
                             )}
                             <div className="flex gap-3 pt-2">

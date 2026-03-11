@@ -129,7 +129,7 @@ export const trainingService = {
     },
 
     // === ADMIN: Update module (e.g. toggle active) ===
-    updateModule: async (id: string, updates: { is_active?: boolean; title?: string; level?: number }) => {
+    updateModule: async (id: string, updates: { is_active?: boolean; title?: string; level?: number; youtube_id?: string; thumbnail_url?: string }) => {
         const { error } = await supabase
             .from('training_modules')
             .update(updates)
