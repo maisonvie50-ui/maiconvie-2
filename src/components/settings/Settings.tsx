@@ -60,6 +60,10 @@ export default function Settings() {
     const [trainingTitle, setTrainingTitle] = useState('');
     const [trainingLevel, setTrainingLevel] = useState(1);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [editingCourse, setEditingCourse] = useState<TrainingModule | null>(null);
+    const [editCourseTitle, setEditCourseTitle] = useState('');
+    const [editCourseLevel, setEditCourseLevel] = useState(1);
+    const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -180,8 +184,24 @@ export default function Settings() {
     };
 
     const deleteCourse = async (id: string) => {
+        if (!confirm('Bạn chắc chắn muốn xóa khóa học này?')) return;
         await trainingService.deleteModule(id);
         await loadData();
+    };
+
+    const handleEditCourse = (course: TrainingModule) => {
+        setEditingCourse(course);
+        setEditCourseTitle(course.title);
+        setEditCourseLevel(course.level);
+        setIsEditCourseModalOpen(true);
+    };
+
+    const handleSaveCourseEdit = async () => {
+        if (!editingCourse || !editCourseTitle) return;
+        await trainingService.updateModule(editingCourse.id, { title: editCourseTitle, level: editCourseLevel });
+        await loadData();
+        setIsEditCourseModalOpen(false);
+        setEditingCourse(null);
     };
 
     const handleAddUser = async () => {
@@ -633,7 +653,7 @@ export default function Settings() {
                                                     <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="relative w-16 aspect-video bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200"><img src={`https://img.youtube.com/vi/${course.youtubeId}/hqdefault.jpg`} alt={course.title} className="w-full h-full object-cover" /><div className="absolute inset-0 bg-black/20 flex items-center justify-center"><PlaySquare className="w-4 h-4 text-white opacity-80" /></div></div><div className="font-medium text-gray-900 line-clamp-2">{course.title}</div></div></td>
                                                     <td className="px-6 py-4 text-center"><span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">Lvl {course.level}</span></td>
                                                     <td className="px-6 py-4 text-center"><div onClick={() => toggleCourseActive(course.id)} className={`w-10 h-5 mx-auto flex items-center rounded-full p-1 cursor-pointer transition-colors ${course.active ? 'bg-teal-500' : 'bg-gray-300'}`}><div className={`bg-white w-3.5 h-3.5 rounded-full shadow-sm transform duration-300 ease-in-out ${course.active ? 'translate-x-4.5' : ''}`} /></div></td>
-                                                    <td className="px-6 py-4 text-right"><div className="flex items-center justify-end gap-1"><button className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa"><Edit className="w-4 h-4" /></button><button onClick={() => deleteCourse(course.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa"><Trash2 className="w-4 h-4" /></button></div></td>
+                                                    <td className="px-6 py-4 text-right"><div className="flex items-center justify-end gap-1"><button onClick={() => handleEditCourse(course)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Sửa"><Edit className="w-4 h-4" /></button><button onClick={() => deleteCourse(course.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa"><Trash2 className="w-4 h-4" /></button></div></td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -830,6 +850,44 @@ export default function Settings() {
                                 </div>
                             </div>
                             <div className="pt-2"><button onClick={handleSaveStationTables} className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Lưu thay đổi</button></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {isEditCourseModalOpen && editingCourse && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setIsEditCourseModalOpen(false)}>
+                    <div className="w-full max-w-md bg-white rounded-2xl p-6 m-4 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">Chỉnh sửa khóa học</h3>
+                            <button onClick={() => setIsEditCourseModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><X className="w-5 h-5" /></button>
+                        </div>
+                        <div className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên khóa học</label>
+                                <input type="text" value={editCourseTitle} onChange={(e) => setEditCourseTitle(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">Cấp độ (Level)</label>
+                                <select value={editCourseLevel} onChange={(e) => setEditCourseLevel(Number(e.target.value))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    <option value={1}>Level 1: Nhập môn</option>
+                                    <option value={2}>Level 2: Cơ bản</option>
+                                    <option value={3}>Level 3: Nâng cao</option>
+                                    <option value={4}>Level 4: Chuyên sâu</option>
+                                    <option value={5}>Level 5: Quản lý</option>
+                                </select>
+                            </div>
+                            {editingCourse.youtubeId && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Video hiện tại</label>
+                                    <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                        <img src={`https://img.youtube.com/vi/${editingCourse.youtubeId}/hqdefault.jpg`} alt={editingCourse.title} className="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex gap-3 pt-2">
+                                <button onClick={() => setIsEditCourseModalOpen(false)} className="flex-1 px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors">Hủy</button>
+                                <button onClick={handleSaveCourseEdit} disabled={!editCourseTitle} className="flex-1 bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-100 hover:bg-teal-700 transition-all">Lưu thay đổi</button>
+                            </div>
                         </div>
                     </div>
                 </div>
