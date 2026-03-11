@@ -71,21 +71,21 @@ function MainApp() {
           </div>
         }>
           <Route path="/" element={<Navigate to="/so-do-nha-hang" replace />} />
-          <Route path="/so-do-nha-hang" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'receptionist', 'server']}><RestaurantMap /></ProtectedRoute>} />
-          <Route path="/bao-cao" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><AdvancedAnalytics /></ProtectedRoute>} />
+          <Route path="/so-do-nha-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist', 'server']}><RestaurantMap /></ProtectedRoute>} />
+          <Route path="/bao-cao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><AdvancedAnalytics /></ProtectedRoute>} />
           <Route path="/dat-ban" element={
-            <ProtectedRoute allowedRoles={['admin', 'manager', 'receptionist']}>
+            <ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}>
               <BookingKanban
                 isModalOpen={isBookingModalOpen}
                 onToggleModal={setIsBookingModalOpen}
               />
             </ProtectedRoute>
           } />
-          <Route path="/thuc-don" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><MenuManagement /></ProtectedRoute>} />
-          <Route path="/bep" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></ProtectedRoute>} />
-          <Route path="/dao-tao" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><TrainingPortal /></ProtectedRoute>} />
-          <Route path="/khach-hang" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></ProtectedRoute>} />
-          <Route path="/cau-hinh" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
+          <Route path="/thuc-don" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><MenuManagement /></ProtectedRoute>} />
+          <Route path="/bep" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></ProtectedRoute>} />
+          <Route path="/dao-tao" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><TrainingPortal /></ProtectedRoute>} />
+          <Route path="/khach-hang" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></ProtectedRoute>} />
+          <Route path="/cau-hinh" element={<ProtectedRoute userRole={userRole} allowedRoles={['admin', 'manager']}><Settings /></ProtectedRoute>} />
           <Route path="/ho-so" element={<UserProfile />} />
           {/* Catch-all cho các route không tồn tại khi đã login */}
           <Route path="*" element={<Navigate to="/" replace />} />

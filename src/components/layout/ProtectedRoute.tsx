@@ -1,37 +1,20 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth, UserRole } from '../../hooks/useAuth';
+import { Navigate } from 'react-router-dom';
+import { UserRole } from '../../hooks/useAuth';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
     allowedRoles?: UserRole[];
+    userRole: UserRole;
 }
 
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-    const { isAuthenticated, userRole, isLoading } = useAuth();
-    const location = useLocation();
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900">
-                <div className="w-10 h-10 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-
+export default function ProtectedRoute({ children, allowedRoles, userRole }: ProtectedRouteProps) {
+    // App.tsx already handles isAuthenticated check, so we only check role here
     if (allowedRoles && !allowedRoles.includes(userRole)) {
-        // Determine the best fallback route based on role
-        let fallbackPath = '/';
+        let fallbackPath = '/so-do-nha-hang';
         if (userRole === 'kitchen') {
             fallbackPath = '/bep';
-        } else if (userRole === 'receptionist' || userRole === 'server') {
-            fallbackPath = '/so-do-nha-hang';
         }
-
         return <Navigate to={fallbackPath} replace />;
     }
 
