@@ -262,59 +262,35 @@ export const settingsService = {
 
     // === UPDATE EMPLOYEE CREDENTIALS ===
     updateEmployeeCredentials: async (employeeId: string, updates: { newPassword?: string; newRole?: string; name?: string }) => {
-        // 1. Update password in Supabase Auth (if provided)
-        if (updates.newPassword) {
-            const { error: pwError } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
-                password: updates.newPassword
-            });
-            if (pwError) {
-                console.error('Error updating password:', pwError);
-                throw new Error(`Lỗi đổi mật khẩu: ${pwError.message}`);
-            }
-        }
-
-        // 2. Update role in Supabase Auth user_metadata (if provided)
-        if (updates.newRole) {
-            const { error: roleError } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
-                user_metadata: { role: updates.newRole }
-            });
-            if (roleError) {
-                console.error('Error updating role metadata:', roleError);
-                throw new Error(`Lỗi cập nhật vai trò: ${roleError.message}`);
-            }
-
-            // 3. Sync role to employees table
-            const rolePayload: any = {
-                role_reception: updates.newRole === 'receptionist',
-                role_kitchen: updates.newRole === 'kitchen',
-                role_server: updates.newRole === 'server',
-                role_manager: updates.newRole === 'manager',
-            };
-            const { error: dbError } = await supabase
-                .from('employees')
-                .update(rolePayload)
-                .eq('id', employeeId);
-            if (dbError) console.error('Error syncing role to employees table:', dbError);
-        }
-
-        // 4. Sync password or name to employees table if needed
         const dbUpdates: any = {};
-        if (updates.name) dbUpdates.name = updates.name;
-        if (updates.newPassword) dbUpdates.password = updates.newPassword;
+
+        // 1. Update password (direct in employees table)
+        if (updates.newPassword) {
+            dbUpdates.password = updates.newPassword;
+        }
+
+        // 2. Update name
+        if (updates.name) {
+            dbUpdates.name = updates.name;
+        }
+
+        // 3. Update role flags
+        if (updates.newRole) {
+            dbUpdates.role_reception = updates.newRole === 'receptionist';
+            dbUpdates.role_kitchen = updates.newRole === 'kitchen';
+            dbUpdates.role_server = updates.newRole === 'server';
+            dbUpdates.role_manager = updates.newRole === 'manager';
+        }
 
         if (Object.keys(dbUpdates).length > 0) {
-            const { error: dbUpdateError } = await supabase
+            const { error } = await supabase
                 .from('employees')
                 .update(dbUpdates)
                 .eq('id', employeeId);
-            if (dbUpdateError) console.error('Error updating employee table fields:', dbUpdateError);
-        }
-
-        if (updates.name) {
-            // Also update name in auth metadata
-            await supabaseAdmin.auth.admin.updateUserById(employeeId, {
-                user_metadata: { name: updates.name }
-            });
+            if (error) {
+                console.error('Error updating employee:', error);
+                throw new Error(`Lỗi cập nhật thông tin nhân viên: ${error.message}`);
+            }
         }
     }
 };
