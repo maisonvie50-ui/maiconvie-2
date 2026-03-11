@@ -1,7 +1,6 @@
 import { supabase } from '../lib/supabase';
-import { supabaseAdmin } from '../lib/supabase-admin';
 
-// Reusing existing models
+import { supabaseAdmin } from '../lib/supabase-admin';
 export interface Employee {
     id: string;
     name: string;

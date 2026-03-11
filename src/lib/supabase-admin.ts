@@ -10,7 +10,8 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 // Client chuyên dùng cho server-side / admin. Tuyệt đối không để lộ key này ra client side trong môi trường thật (đang dùng VITE_ để test tạm)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || '', {
+// Lưu ý: Nếu key undefined, dùng key ảo để tránh crash web phía Frontend.
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || 'dummy_key_to_prevent_client_crash', {
     auth: {
         autoRefreshToken: false,
         persistSession: false,
