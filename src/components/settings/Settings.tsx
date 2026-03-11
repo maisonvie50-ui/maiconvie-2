@@ -261,6 +261,7 @@ export default function Settings() {
                                     </div>
                                     <div>
                                         <div className="font-bold text-gray-900">{emp.name}</div>
+                                        <div className="text-xs text-gray-500 mt-0.5">TK: {emp.email} | MK: {emp.password || '***'}</div>
                                         <div className="text-xs text-gray-500 flex gap-1 mt-1">
                                             {emp.roles.manager && <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Quản lý</span>}
                                             {emp.roles.reception && <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">Lễ tân</span>}
@@ -674,7 +675,18 @@ export default function Settings() {
                                         <div className="flex flex-col items-center p-6 bg-gray-50 rounded-xl border border-gray-200">
                                             <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center text-gray-400 mb-3 relative"><User className="w-12 h-12" /><div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white ${viewingEmployee.active ? 'bg-green-500' : 'bg-gray-400'}`}></div></div>
                                             <h4 className="font-bold text-lg text-gray-900 text-center">{viewingEmployee.name}</h4>
-                                            <p className="text-sm text-gray-500 text-center mb-3">{viewingEmployee.email}</p>
+
+                                            <div className="w-full bg-white p-3 rounded-lg border border-gray-200 mt-3 mb-3 text-sm">
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-gray-500">Tài khoản:</span>
+                                                    <span className="font-bold text-gray-900">{viewingEmployee.email}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500">Mật khẩu:</span>
+                                                    <span className="font-mono text-gray-900 bg-gray-100 px-1 rounded">{viewingEmployee.password || '(Đã mã hóa)'}</span>
+                                                </div>
+                                            </div>
+
                                             <div className="flex flex-wrap gap-1 justify-center">
                                                 {viewingEmployee.roles.manager && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">Quản lý</span>}
                                                 {viewingEmployee.roles.reception && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">Lễ tân</span>}

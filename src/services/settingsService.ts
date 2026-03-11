@@ -60,6 +60,7 @@ export const settingsService = {
             id: emp.id,
             name: emp.name,
             email: emp.email,
+            password: emp.password,
             active: emp.active,
             roles: {
                 reception: emp.role_reception,
@@ -113,6 +114,7 @@ export const settingsService = {
                 ...(authUserId ? { id: authUserId } : {}),
                 name: employee.name,
                 email: employee.email,
+                password: employee.password || null, // Store password in table as requested
                 active: employee.active ?? true,
                 role_reception: employee.roles?.reception ?? false,
                 role_kitchen: employee.roles?.kitchen ?? false,
@@ -131,6 +133,7 @@ export const settingsService = {
             id: data.id,
             name: data.name,
             email: data.email,
+            password: data.password || undefined,
             active: data.active,
             roles: {
                 reception: data.role_reception,
@@ -295,14 +298,20 @@ export const settingsService = {
             if (dbError) console.error('Error syncing role to employees table:', dbError);
         }
 
-        // 4. Update name if provided
-        if (updates.name) {
-            const { error: nameError } = await supabase
-                .from('employees')
-                .update({ name: updates.name })
-                .eq('id', employeeId);
-            if (nameError) console.error('Error updating name:', nameError);
+        // 4. Sync password or name to employees table if needed
+        const dbUpdates: any = {};
+        if (updates.name) dbUpdates.name = updates.name;
+        if (updates.newPassword) dbUpdates.password = updates.newPassword;
 
+        if (Object.keys(dbUpdates).length > 0) {
+            const { error: dbUpdateError } = await supabase
+                .from('employees')
+                .update(dbUpdates)
+                .eq('id', employeeId);
+            if (dbUpdateError) console.error('Error updating employee table fields:', dbUpdateError);
+        }
+
+        if (updates.name) {
             // Also update name in auth metadata
             await supabaseAdmin.auth.admin.updateUserById(employeeId, {
                 user_metadata: { name: updates.name }
