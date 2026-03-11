@@ -256,5 +256,57 @@ export const settingsService = {
             details: log.details || '',
             timestamp: new Date(log.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
         }));
+    },
+
+    // === UPDATE EMPLOYEE CREDENTIALS ===
+    updateEmployeeCredentials: async (employeeId: string, updates: { newPassword?: string; newRole?: string; name?: string }) => {
+        // 1. Update password in Supabase Auth (if provided)
+        if (updates.newPassword) {
+            const { error: pwError } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
+                password: updates.newPassword
+            });
+            if (pwError) {
+                console.error('Error updating password:', pwError);
+                throw new Error(`Lỗi đổi mật khẩu: ${pwError.message}`);
+            }
+        }
+
+        // 2. Update role in Supabase Auth user_metadata (if provided)
+        if (updates.newRole) {
+            const { error: roleError } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
+                user_metadata: { role: updates.newRole }
+            });
+            if (roleError) {
+                console.error('Error updating role metadata:', roleError);
+                throw new Error(`Lỗi cập nhật vai trò: ${roleError.message}`);
+            }
+
+            // 3. Sync role to employees table
+            const rolePayload: any = {
+                role_reception: updates.newRole === 'receptionist',
+                role_kitchen: updates.newRole === 'kitchen',
+                role_server: updates.newRole === 'server',
+                role_manager: updates.newRole === 'manager',
+            };
+            const { error: dbError } = await supabase
+                .from('employees')
+                .update(rolePayload)
+                .eq('id', employeeId);
+            if (dbError) console.error('Error syncing role to employees table:', dbError);
+        }
+
+        // 4. Update name if provided
+        if (updates.name) {
+            const { error: nameError } = await supabase
+                .from('employees')
+                .update({ name: updates.name })
+                .eq('id', employeeId);
+            if (nameError) console.error('Error updating name:', nameError);
+
+            // Also update name in auth metadata
+            await supabaseAdmin.auth.admin.updateUserById(employeeId, {
+                user_metadata: { name: updates.name }
+            });
+        }
     }
 };

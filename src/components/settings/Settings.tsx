@@ -44,6 +44,11 @@ export default function Settings() {
     const [roleFilter, setRoleFilter] = useState<'all' | 'manager' | 'reception' | 'kitchen' | 'server'>('all');
     const [userDetailModalOpen, setUserDetailModalOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
+    const [editMode, setEditMode] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [editPassword, setEditPassword] = useState('');
+    const [editRole, setEditRole] = useState('server');
+    const [isSaving, setIsSaving] = useState(false);
 
     const [newStationName, setNewStationName] = useState('');
     const [selectedTablesForStation, setSelectedTablesForStation] = useState<string[]>([]);
@@ -183,7 +188,41 @@ export default function Settings() {
         return matchesSearch && matchesRole;
     });
 
-    const handleViewEmployee = (emp: Employee) => { setViewingEmployee(emp); setUserDetailModalOpen(true); };
+    const handleViewEmployee = (emp: Employee) => {
+        setViewingEmployee(emp);
+        setEditMode(false);
+        setEditName(emp.name);
+        setEditPassword('');
+        // Determine primary role
+        let role = 'server';
+        if (emp.roles.manager) role = 'manager';
+        else if (emp.roles.reception) role = 'receptionist';
+        else if (emp.roles.kitchen) role = 'kitchen';
+        setEditRole(role);
+        setUserDetailModalOpen(true);
+    };
+
+    const handleSaveEmployeeEdit = async () => {
+        if (!viewingEmployee) return;
+        setIsSaving(true);
+        try {
+            const updates: { newPassword?: string; newRole?: string; name?: string } = {};
+            if (editPassword.length >= 6) updates.newPassword = editPassword;
+            if (editRole) updates.newRole = editRole;
+            if (editName && editName !== viewingEmployee.name) updates.name = editName;
+
+            await settingsService.updateEmployeeCredentials(viewingEmployee.id, updates);
+            await loadData();
+            setEditMode(false);
+            setEditPassword('');
+            alert('Cập nhật thành công!');
+            setUserDetailModalOpen(false);
+        } catch (error: any) {
+            alert(error.message || 'Có lỗi xảy ra khi cập nhật');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const renderMobileView = () => (
         <div className="h-full bg-gray-50 flex flex-col">
@@ -629,45 +668,84 @@ export default function Settings() {
                             <button onClick={() => setUserDetailModalOpen(false)} className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-sm"><X className="w-5 h-5 text-gray-500" /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6">
-                            <div className="flex flex-col md:flex-row gap-6">
-                                <div className="w-full md:w-1/3 space-y-4">
-                                    <div className="flex flex-col items-center p-6 bg-gray-50 rounded-xl border border-gray-200">
-                                        <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center text-gray-400 mb-3 relative"><User className="w-12 h-12" /><div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white ${viewingEmployee.active ? 'bg-green-500' : 'bg-gray-400'}`}></div></div>
-                                        <h4 className="font-bold text-lg text-gray-900 text-center">{viewingEmployee.name}</h4>
-                                        <p className="text-sm text-gray-500 text-center mb-3">{viewingEmployee.email}</p>
-                                        <div className="flex flex-wrap gap-1 justify-center">
-                                            {viewingEmployee.roles.manager && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">Quản lý</span>}
-                                            {viewingEmployee.roles.reception && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">Lễ tân</span>}
-                                            {viewingEmployee.roles.kitchen && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">Bếp</span>}
-                                            {viewingEmployee.roles.server && <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-xs font-bold">Phục vụ</span>}
-                                        </div>
-                                    </div>
-                                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                                        <h5 className="font-bold text-gray-800 text-sm mb-3">Thông tin trạng thái</h5>
-                                        <div className="space-y-3 text-sm">
-                                            <div className="flex justify-between"><span className="text-gray-500">Trạng thái</span><span className={`font-bold ${viewingEmployee.active ? 'text-green-600' : 'text-gray-500'}`}>{viewingEmployee.active ? 'Đang hoạt động' : 'Vô hiệu hóa'}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Hoạt động cuối</span><span className="font-medium text-gray-900">{viewingEmployee.lastActive || 'Chưa có'}</span></div>
-                                            <div className="flex justify-between"><span className="text-gray-500">Ngày tham gia</span><span className="font-medium text-gray-900">20/02/2026</span></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="w-full md:w-2/3">
-                                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Activity className="w-5 h-5 text-teal-600" />Lịch sử hoạt động</h4>
-                                    <div className="space-y-4">
-                                        {activityLogs.map((log) => (
-                                            <div key={log.id} className="flex gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex-shrink-0 w-12 text-xs font-bold text-gray-400 text-center pt-1">{log.timestamp.split(' ')[0]}<div className="font-normal text-[10px]">{log.timestamp.split(' ')[1]}</div></div>
-                                                <div className="flex-1 border-l-2 border-gray-100 pl-4 relative"><div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-teal-50 border-2 border-teal-500"></div><h5 className="font-bold text-gray-800 text-sm">{log.action}</h5><p className="text-xs text-gray-500 mt-0.5">{log.details}</p></div>
+                            {!editMode ? (
+                                <div className="flex flex-col md:flex-row gap-6">
+                                    <div className="w-full md:w-1/3 space-y-4">
+                                        <div className="flex flex-col items-center p-6 bg-gray-50 rounded-xl border border-gray-200">
+                                            <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-sm flex items-center justify-center text-gray-400 mb-3 relative"><User className="w-12 h-12" /><div className={`absolute bottom-1 right-1 w-5 h-5 rounded-full border-2 border-white ${viewingEmployee.active ? 'bg-green-500' : 'bg-gray-400'}`}></div></div>
+                                            <h4 className="font-bold text-lg text-gray-900 text-center">{viewingEmployee.name}</h4>
+                                            <p className="text-sm text-gray-500 text-center mb-3">{viewingEmployee.email}</p>
+                                            <div className="flex flex-wrap gap-1 justify-center">
+                                                {viewingEmployee.roles.manager && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-bold">Quản lý</span>}
+                                                {viewingEmployee.roles.reception && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">Lễ tân</span>}
+                                                {viewingEmployee.roles.kitchen && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">Bếp</span>}
+                                                {viewingEmployee.roles.server && <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-xs font-bold">Phục vụ</span>}
                                             </div>
-                                        ))}
-                                        <div className="text-center pt-2"><button className="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline">Xem thêm lịch sử cũ hơn</button></div>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                            <h5 className="font-bold text-gray-800 text-sm mb-3">Thông tin trạng thái</h5>
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex justify-between"><span className="text-gray-500">Trạng thái</span><span className={`font-bold ${viewingEmployee.active ? 'text-green-600' : 'text-gray-500'}`}>{viewingEmployee.active ? 'Đang hoạt động' : 'Vô hiệu hóa'}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Hoạt động cuối</span><span className="font-medium text-gray-900">{viewingEmployee.lastActive || 'Chưa có'}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Ngày tham gia</span><span className="font-medium text-gray-900">20/02/2026</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="w-full md:w-2/3">
+                                        <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Activity className="w-5 h-5 text-teal-600" />Lịch sử hoạt động</h4>
+                                        <div className="space-y-4">
+                                            {activityLogs.map((log) => (
+                                                <div key={log.id} className="flex gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className="flex-shrink-0 w-12 text-xs font-bold text-gray-400 text-center pt-1">{log.timestamp.split(' ')[0]}<div className="font-normal text-[10px]">{log.timestamp.split(' ')[1]}</div></div>
+                                                    <div className="flex-1 border-l-2 border-gray-100 pl-4 relative"><div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-teal-50 border-2 border-teal-500"></div><h5 className="font-bold text-gray-800 text-sm">{log.action}</h5><p className="text-xs text-gray-500 mt-0.5">{log.details}</p></div>
+                                                </div>
+                                            ))}
+                                            <div className="text-center pt-2"><button className="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline">Xem thêm lịch sử cũ hơn</button></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="max-w-md mx-auto space-y-5">
+                                    <div className="text-center mb-2">
+                                        <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-2"><Edit className="w-8 h-8 text-teal-600" /></div>
+                                        <h4 className="font-bold text-lg text-gray-900">Chỉnh sửa thông tin đăng nhập</h4>
+                                        <p className="text-sm text-gray-500">Tên đăng nhập: <strong>{viewingEmployee.email}</strong></p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên</label>
+                                        <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu mới <span className="text-gray-400 font-normal">(để trống nếu không đổi)</span></label>
+                                        <input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)" className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Vai trò</label>
+                                        <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                            <option value="receptionist">Lễ tân</option>
+                                            <option value="kitchen">Bếp</option>
+                                            <option value="server">Phục vụ</option>
+                                            <option value="manager">Quản lý</option>
+                                        </select>
+                                    </div>
+                                    {editPassword.length > 0 && editPassword.length < 6 && (
+                                        <p className="text-red-500 text-xs flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Mật khẩu phải có tối thiểu 6 ký tự</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-                            <button onClick={() => setUserDetailModalOpen(false)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Đóng</button>
-                            <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 shadow-sm">Chỉnh sửa thông tin</button>
+                            {!editMode ? (
+                                <>
+                                    <button onClick={() => setUserDetailModalOpen(false)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Đóng</button>
+                                    <button onClick={() => setEditMode(true)} className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 shadow-sm">Chỉnh sửa thông tin</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => setEditMode(false)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50">Hủy</button>
+                                    <button onClick={handleSaveEmployeeEdit} disabled={isSaving || (editPassword.length > 0 && editPassword.length < 6)} className="px-5 py-2 bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold hover:bg-teal-700 shadow-sm">{isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}</button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
