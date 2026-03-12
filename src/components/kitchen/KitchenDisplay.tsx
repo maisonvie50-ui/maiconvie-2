@@ -221,7 +221,10 @@ export default function KitchenDisplay() {
       .sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]);
   }, [filteredOrders]);
 
-  const handleCompleteAggregatedItem = (originalItems: { orderId: string, itemId: string }[], isDone: boolean) => {
+  const handleCompleteAggregatedItem = async (originalItems: { orderId: string, itemId: string }[], isDone: boolean) => {
+    const targetStatus = isDone ? 'pending' : 'done';
+
+    // Optimistic UI Update
     setOrders(orders.map(order => {
       let newOrder = { ...order };
       const itemsToUpdate = originalItems.filter(oi => oi.orderId === order.id).map(oi => oi.itemId);
@@ -229,13 +232,23 @@ export default function KitchenDisplay() {
       if (itemsToUpdate.length > 0) {
         newOrder.items = newOrder.items.map(item => {
           if (itemsToUpdate.includes(item.id)) {
-            return { ...item, status: isDone ? 'pending' : 'done' }; // Toggle status
+            return { ...item, status: targetStatus };
           }
           return item;
         });
       }
       return newOrder;
     }));
+
+    // Perform the backend updates using Promise.all to ensure speed
+    try {
+      await Promise.all(
+        originalItems.map((item) => orderService.updateItemStatus(item.itemId, targetStatus))
+      );
+    } catch (error) {
+      console.error('Failed to update aggregated item status', error);
+      loadOrders(); // fallback
+    }
   };
 
   return (
