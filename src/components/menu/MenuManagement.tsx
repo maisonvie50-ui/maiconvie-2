@@ -898,7 +898,7 @@ export default function MenuManagement() {
                       <div className="text-xs font-bold text-teal-600 mb-1 tracking-wider uppercase">{set.name}</div>
                       <h3 className="text-2xl font-bold text-gray-900">{formatPrice(set.price)}<span className="text-sm font-normal text-gray-500">/pax</span></h3>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-medium shrink-0 whitespace-nowrap ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {set.status === 'available' ? 'Đang bán' : 'Ngưng bán'}
                     </span>
                   </div>
@@ -978,7 +978,7 @@ export default function MenuManagement() {
                       <h3 className="text-2xl font-bold text-gray-900">{formatPrice(set.price)}<span className="text-sm font-normal text-gray-500">/pax</span></h3>
                       <div className="text-sm font-semibold text-red-600 mt-1">Net: {formatPrice(set.netPrice)}</div>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium shrink-0 ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-medium shrink-0 whitespace-nowrap ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {set.status === 'available' ? 'Đang bán' : 'Ngưng bán'}
                     </span>
                   </div>
