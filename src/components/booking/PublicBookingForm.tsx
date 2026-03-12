@@ -442,29 +442,6 @@ export default function PublicBookingForm() {
                         <div className="space-y-4 pt-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Yêu cầu khác (Tùy chọn)</h3>
 
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-gray-700">Khu vực ưa thích</label>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    {[
-                                        { id: 'indoor', label: 'Trong nhà' },
-                                        { id: 'outdoor', label: 'Ngoài trời' },
-                                        { id: 'vip', label: 'Phòng VIP' },
-                                        { id: 'rooftop', label: 'Rooftop' },
-                                    ].map(area => (
-                                        <button
-                                            type="button"
-                                            key={area.id}
-                                            onClick={() => setFormData(prev => ({ ...prev, area: area.id }))}
-                                            className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${formData.area === area.id
-                                                ? 'bg-teal-50 border-2 border-teal-500 text-teal-700'
-                                                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {area.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
 
                             <div className="space-y-1.5 pt-2">
                                 <label className="text-sm font-semibold text-gray-700">Ghi chú (Dị ứng, kỷ niệm, v.v.)</label>
