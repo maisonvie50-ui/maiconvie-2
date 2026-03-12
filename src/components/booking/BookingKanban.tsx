@@ -112,6 +112,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState<string>('');
 
+  // History Drop prompt state
+  const [historyDropBooking, setHistoryDropBooking] = useState<Booking | null>(null);
+
   // View Mode (Desktop)
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
@@ -254,8 +257,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!destColumn) return;
     const newStatus = destColumn.defaultStatus as BookingStatus;
 
+    // INTERCEPT: Drop onto the "History" column
+    if (destDroppable === 'col_history') {
+      const bk = bookings.find(b => b.id === draggableId);
+      if (bk) {
+        setHistoryDropBooking(bk);
+      }
+      return;
+    }
+
     if (newStatus === 'completed') {
-      // Intercept and show checkout modal
+      // Intercept and show checkout modal (fallback if manually changed to completed without going through history)
       const bk = bookings.find(b => b.id === draggableId);
       setCheckoutBooking({ id: draggableId, customerId: (bk as any)?.customer_id });
       return;
@@ -1328,6 +1340,75 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 title="Xác nhận"
               >
                 Xác nhận & Cập nhật
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Drop Modal */}
+      {historyDropBooking && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-800 text-center">Chuyển vào Lịch Sử</h3>
+              <p className="text-sm text-gray-500 text-center mt-2">Vui lòng chọn trạng thái chính xác cho đơn đặt bàn này</p>
+            </div>
+            <div className="p-6 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setHistoryDropBooking(null);
+                  handleStatusChange(historyDropBooking.id, 'completed');
+                }}
+                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all text-left group"
+              >
+                <div className="p-2.5 bg-gray-100 group-hover:bg-gray-200 rounded-lg shrink-0">
+                  <Archive className="w-5 h-5 text-gray-700" />
+                </div>
+                <div>
+                  <div className="font-bold text-gray-800">Hoàn thành</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Khách đã dùng bữa và thanh toán</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setHistoryDropBooking(null);
+                  handleStatusChange(historyDropBooking.id, 'no_show');
+                }}
+                className="flex items-center gap-3 p-4 rounded-xl border border-red-100 hover:border-red-300 hover:bg-red-50 transition-all text-left group"
+              >
+                <div className="p-2.5 bg-red-100 group-hover:bg-red-200 rounded-lg shrink-0">
+                  <UserX className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="font-bold text-red-700">Không đến (No-show)</div>
+                  <div className="text-xs text-red-500/70 mt-0.5">Khách đã đặt nhưng không tới</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setHistoryDropBooking(null);
+                  handleStatusChange(historyDropBooking.id, 'cancelled');
+                }}
+                className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-gray-400 hover:bg-gray-100 transition-all text-left group"
+              >
+                <div className="p-2.5 bg-gray-200 group-hover:bg-gray-300 rounded-lg shrink-0">
+                  <Ban className="w-5 h-5 text-gray-600" />
+                </div>
+                <div>
+                  <div className="font-bold text-gray-600">Hủy đơn</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Khách hoặc nhà hàng chủ động hủy</div>
+                </div>
+              </button>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <button
+                onClick={() => setHistoryDropBooking(null)}
+                className="w-full py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-200 transition-colors"
+              >
+                Đóng
               </button>
             </div>
           </div>
