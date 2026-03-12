@@ -12,4 +12,6 @@ export interface Booking {
   source?: 'website' | 'facebook' | 'hotline' | 'walk_in' | 'ota';
   customerType?: 'retail' | 'tour';
   selectedMenus?: any[];
+  tableId?: string;
+  tableName?: string;
 }

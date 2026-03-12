@@ -28,7 +28,9 @@ export const bookingService = {
             area: b.area,
             source: b.source,
             customerType: b.customer_type,
-            selectedMenus: b.selected_menus || []
+            selectedMenus: b.selected_menus || [],
+            tableId: b.table_id,
+            tableName: b.table_name
         })) as Booking[];
     },
 
@@ -149,6 +151,8 @@ export const bookingService = {
         if (updates.source) dbUpdates.source = updates.source;
         if (updates.customerType) dbUpdates.customer_type = updates.customerType;
         if (updates.selectedMenus) dbUpdates.selected_menus = updates.selectedMenus;
+        if (updates.tableId !== undefined) dbUpdates.table_id = updates.tableId;
+        if (updates.tableName !== undefined) dbUpdates.table_name = updates.tableName;
 
         dbUpdates.updated_at = new Date().toISOString();
 

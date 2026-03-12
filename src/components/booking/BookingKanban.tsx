@@ -33,6 +33,8 @@ import {
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
 import { settingsService } from '../../services/settingsService';
+import { tableService } from '../../services/tableService';
+import { Table } from '../../types';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
@@ -77,6 +79,7 @@ interface BookingKanbanProps {
 
 export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKanbanProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<any>({});
   const [filterShift, setFilterShift] = useState<'lunch' | 'dinner'>('dinner');
   const [isMobile, setIsMobile] = useState(false);
@@ -106,6 +109,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     }
   };
 
+  const fetchTables = async () => {
+    try {
+      const data = await tableService.getTables();
+      setTables(data);
+    } catch (error) {
+      console.error('Failed to load tables', error);
+    }
+  };
+
   const fetchSettings = async () => {
     try {
       const cfg = await settingsService.getAppSettings();
@@ -117,6 +129,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
   useEffect(() => {
     fetchBookings();
+    fetchTables();
     fetchSettings();
 
     // Subscribe to realtime updates
@@ -244,7 +257,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     pax: 2,
     notes: [],
     source: 'hotline',
-    selectedMenus: []
+    selectedMenus: [],
+    tableId: '',
+    tableName: ''
   });
   const [noteInput, setNoteInput] = useState('');
 
@@ -390,6 +405,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!newBooking.customerName || !newBooking.time) return;
 
     try {
+      let assignedTableName = '';
+      if (newBooking.tableId) {
+        const matchedTable = tables.find(t => t.id === newBooking.tableId);
+        assignedTableName = matchedTable ? matchedTable.name : '';
+      }
+
       if (editingId) {
         // Update existing booking
 
@@ -402,7 +423,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
           area: newBooking.area,
-          source: newBooking.source
+          source: newBooking.source,
+          tableId: newBooking.tableId,
+          tableName: assignedTableName
         } : b));
 
         await bookingService.updateBooking(editingId, {
@@ -412,7 +435,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
           area: newBooking.area,
-          source: newBooking.source
+          source: newBooking.source,
+          tableId: newBooking.tableId,
+          tableName: assignedTableName
         });
       } else {
         // Create new booking
@@ -1371,6 +1396,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Xếp bàn</label>
+                <select
+                  title="Chọn bàn"
+                  value={newBooking.tableId || ''}
+                  onChange={(e) => setNewBooking({ ...newBooking, tableId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                >
+                  <option value="">-- Chưa xếp bàn --</option>
+                  {tables.map(table => (
+                    <option key={table.id} value={table.id}>
+                      {table.name} ({table.pax} chỗ) - {table.status === 'empty' ? 'Trống' : 'Có khách/Đặt trước'}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
