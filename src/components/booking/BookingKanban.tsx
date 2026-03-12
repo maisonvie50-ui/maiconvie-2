@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
+import { settingsService } from '../../services/settingsService';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
@@ -75,6 +76,7 @@ interface BookingKanbanProps {
 
 export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKanbanProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [appSettings, setAppSettings] = useState<any>({});
   const [filterShift, setFilterShift] = useState<'lunch' | 'dinner'>('dinner');
   const [isMobile, setIsMobile] = useState(false);
 
@@ -88,8 +90,18 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const cfg = await settingsService.getAppSettings();
+      setAppSettings(cfg);
+    } catch (error) {
+      console.error('Failed to parse settings', error);
+    }
+  };
+
   useEffect(() => {
     fetchBookings();
+    fetchSettings();
 
     // Subscribe to realtime updates
     const subscription = bookingService.subscribeToBookings(() => {
@@ -191,8 +203,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     // 4. Filter by Shift (Ca trưa / Ca tối)
     if (filterShift) {
       const hour = parseInt(b.time.split(':')[0] || '0', 10);
-      if (filterShift === 'lunch' && (hour < 10 || hour >= 16)) return false;
-      if (filterShift === 'dinner' && (hour < 16)) return false;
+
+      const lunchStart = appSettings?.lunchStart || 11;
+      const lunchEnd = appSettings?.lunchEnd || 14;
+      const dinnerStart = appSettings?.dinnerStart || 17;
+      const dinnerEnd = appSettings?.dinnerEnd || 22;
+
+      // Logic check matching the user's settings window ranges
+      if (filterShift === 'lunch' && (hour < lunchStart || hour > lunchEnd)) return false;
+      if (filterShift === 'dinner' && (hour < dinnerStart || hour > dinnerEnd)) return false;
     }
 
     return true;
@@ -876,7 +895,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
         <div className="flex gap-4 h-full overflow-x-auto no-scrollbar pb-4" ref={scrollRef}>
           {boardColumns.map((col) => {
-            const colBookings = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status));
+            const colBookings = filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status));
 
             return (
               <Droppable key={col.id} droppableId={col.id}>
