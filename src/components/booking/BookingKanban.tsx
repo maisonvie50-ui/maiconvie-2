@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Plus,
@@ -115,29 +116,31 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     };
   }, []);
 
-  // Advanced Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
-
-  // Checkout flow
-  const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
-  const [checkoutAmount, setCheckoutAmount] = useState<string>('');
-
-  // History Drop prompt state
-  const [historyDropBooking, setHistoryDropBooking] = useState<Booking | null>(null);
-
-  // View Mode (Desktop)
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
-
-  // Desktop Status Filter
-  const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
-  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
-
   // Internal modal state for when component is used without controlling props
   const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
   const showModal = isModalOpen !== undefined ? isModalOpen : internalIsModalOpen;
   const setShowModal = onToggleModal || setInternalIsModalOpen;
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      const pName = searchParams.get('name') || '';
+      const pPhone = searchParams.get('phone') || '';
+
+      setNewBooking(prev => ({
+        ...prev,
+        customerName: pName,
+        phone: pPhone
+      }));
+      setShowModal(true);
+
+      // Clean up the URL to not pop modal again on reload
+      navigate(location.pathname, { replace: true });
+    }
+  }, [searchParams, navigate, location.pathname, setShowModal]);
 
   // Mobile Action Sheet State
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -445,6 +448,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     }
   };
 
+  // Helper to check missing info
+  const isMissingInfo = (b: Booking) => {
+    return !b.customerName || !b.phone || !b.time || !b.pax;
+  };
+
   // --- Mobile View Components ---
 
   const renderMobileList = () => (
@@ -556,21 +564,26 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform relative overflow-hidden"
+                  className={`bg-white p-4 rounded-xl shadow-sm border ${isMissingInfo(booking) ? 'border-red-300 ring-1 ring-red-400/50' : 'border-gray-100'} active:scale-[0.98] transition-transform relative overflow-hidden`}
                 >
                   {/* Status Indicator Bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${statusConfig?.color.replace('bg-', 'bg-').replace('-50', '-500')}`}></div>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isMissingInfo(booking) ? 'bg-red-500' : statusConfig?.color.replace('bg-', 'bg-').replace('-50', '-500')}`}></div>
 
                   <div className="flex justify-between items-start mb-2 pl-2">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${statusConfig?.color}`}>
-                        {statusConfig?.icon && <statusConfig.icon className={`w-5 h-5 ${statusConfig.borderColor.replace('border-', 'text-')}`} />}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMissingInfo(booking) ? 'bg-red-50 text-red-500' : statusConfig?.color}`}>
+                        {isMissingInfo(booking) ? <AlertCircle className="w-5 h-5 text-red-500" /> : (statusConfig?.icon && <statusConfig.icon className={`w-5 h-5 ${statusConfig.borderColor.replace('border-', 'text-')}`} />)}
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-900">{booking.customerName}</h4>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.time}</span>
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {booking.pax}</span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-gray-900">{booking.customerName || 'Không có tên'}</h4>
+                          {isMissingInfo(booking) && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Thiếu TT</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.time || '--:--'}</span>
+                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {booking.pax || 0}</span>
                           {booking.source && (
                             <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
                               {sourceLabels[booking.source] || booking.source}
@@ -615,9 +628,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           >
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-xl font-bold text-gray-900">{selectedBooking.customerName}</h3>
+                <h3 className="text-xl font-bold text-gray-900">{selectedBooking.customerName || 'Khách hàng'}</h3>
+                {isMissingInfo(selectedBooking) && (
+                  <div className="flex items-center gap-1.5 mt-1.5 mb-2 text-xs font-medium text-red-700 bg-red-50 px-2 py-1 rounded inline-flex border border-red-100">
+                    <AlertCircle className="w-4 h-4" /> Đơn hàng bị thiếu thông tin (SĐT, Giờ, Pax...)
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span>{selectedBooking.time} • {selectedBooking.pax} Khách</span>
+                  <span>{selectedBooking.time || '--:--'} • {selectedBooking.pax || 0} Khách</span>
                   {selectedBooking.source && (
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[selectedBooking.source]}`}>
                       {sourceLabels[selectedBooking.source]}
@@ -740,20 +758,27 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                   return (
                     <tr
                       key={booking.id}
-                      className={`hover:bg-gray-50/80 transition-colors cursor-pointer group border-l-4 ${statusConfig?.borderColor || 'border-transparent'}`}
+                      className={`hover:bg-gray-50/80 transition-colors cursor-pointer group border-l-4 ${isMissingInfo(booking) ? 'border-red-400 bg-red-50/30' : (statusConfig?.borderColor || 'border-transparent')}`}
                       onClick={() => handleEditBooking(booking)}
                     >
                       {/* Giờ */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 font-semibold text-gray-900">
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          {booking.time}
+                          {booking.time || '--:--'}
                         </div>
                       </td>
 
                       {/* Khách hàng */}
                       <td className="px-4 py-3">
-                        <span className="font-semibold text-gray-900">{booking.customerName}</span>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
+                          {isMissingInfo(booking) && (
+                            <span className="text-[10px] font-bold text-red-500 mt-0.5 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Thiếu thông tin
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* SĐT */}
@@ -765,7 +790,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1 text-gray-700 font-medium">
                           <Users className="w-3.5 h-3.5 text-gray-400" />
-                          {booking.pax}
+                          {booking.pax || 0}
                         </div>
                       </td>
 
@@ -929,13 +954,20 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                               {...provided.dragHandleProps}
                               className={`
                                 bg-white p-3 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative
-                                ${col.borderColor}
+                                ${isMissingInfo(booking) ? 'border-red-400 ring-1 ring-red-400/50 bg-red-50/20' : col.borderColor}
                                 ${snapshot.isDragging ? 'shadow-xl rotate-2 scale-105 z-50' : ''}
                               `}
                               style={provided.draggableProps.style}
                             >
                               <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName}</h4>
+                                <div className="flex flex-col">
+                                  <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName || 'Không có tên'}</h4>
+                                  {isMissingInfo(booking) && (
+                                    <span className="text-[10px] font-bold text-red-500 mt-0.5 flex items-center gap-1 bg-red-50 px-1 py-0.5 rounded border border-red-100 max-w-max">
+                                      <AlertCircle className="w-3 h-3" /> Thiếu TT
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                   {col.statuses.length > 1 && (
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${columns.find(c => c.id === booking.status)?.color} ${columns.find(c => c.id === booking.status)?.borderColor.replace('border-', 'text-')}`}>
@@ -958,11 +990,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                               <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                  {booking.time}
+                                  {booking.time || '--:--'}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Users className="w-3.5 h-3.5 text-gray-400" />
-                                  {booking.pax}
+                                  {booking.pax || 0}
                                 </div>
                                 {booking.source && (
                                   <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source]}`}>
