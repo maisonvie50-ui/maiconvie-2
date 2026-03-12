@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Booking, BookingStatus } from '../types/booking';
 import { customerService } from './customerService';
+import { orderService } from './orderService';
 
 export const bookingService = {
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
@@ -88,6 +89,50 @@ export const bookingService = {
         if (error) {
             console.error('Error updating booking status:', error);
             throw error;
+        }
+
+        // --- Tự động đồng bộ sang KDS Bếp khi khách đến ---
+        if (status === 'arrived') {
+            try {
+                // Fetch the booking details to get the menus
+                const { data: booking, error: fetchError } = await supabase
+                    .from('bookings')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                if (booking && booking.selected_menus && booking.selected_menus.length > 0) {
+                    // Check if an order already exists for this booking to avoid duplicates
+                    const { data: existingOrders } = await supabase
+                        .from('orders')
+                        .select('id')
+                        .eq('booking_id', id);
+
+                    if (!existingOrders || existingOrders.length === 0) {
+                        const items = booking.selected_menus.map((menu: any) => {
+                            let category = 'Món chính'; // Default fallback
+                            if (menu.type === 'set' || menu.type === 'tour') {
+                                category = 'Món chính'; // We route Sets to principal cook
+                            }
+                            return {
+                                name: menu.name,
+                                quantity: menu.quantity,
+                                notes: ['Khách đặt trước (Web)'],
+                                category: category
+                            };
+                        });
+
+                        const tableName = booking.table_name || `Bàn đặt (${booking.customer_name})`;
+                        await orderService.createOrder(tableName, items, booking.table_id || undefined, id);
+                        console.log('Automatically synced menus to Kitchen for booking:', id);
+                    }
+                }
+            } catch (err) {
+                console.error('Error auto-syncing to kitchen:', err);
+                // We don't throw here so it doesn't break the status update if the sync fails
+            }
         }
     },
 
