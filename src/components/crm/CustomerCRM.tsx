@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { customerService, Customer } from '../../services/customerService';
 import {
@@ -21,6 +22,12 @@ import {
 export default function CustomerCRM() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const navigate = useNavigate();
+
+  const handleCreateBooking = () => {
+    if (!selectedCustomer) return;
+    navigate(`/dat-ban?action=new&name=${encodeURIComponent(selectedCustomer.name)}&phone=${encodeURIComponent(selectedCustomer.phone)}`);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -335,7 +342,10 @@ export default function CustomerCRM() {
 
           {/* Drawer Footer */}
           <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-            <button className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm">
+            <button
+              onClick={handleCreateBooking}
+              className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm"
+            >
               Tạo đặt bàn mới
             </button>
           </div>
@@ -416,7 +426,10 @@ export default function CustomerCRM() {
               </div>
             </div>
             <div className="p-4 border-t border-gray-100">
-              <button className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200">
+              <button
+                onClick={handleCreateBooking}
+                className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200"
+              >
                 Đặt bàn mới
               </button>
             </div>

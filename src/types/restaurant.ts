@@ -55,3 +55,9 @@ export interface SetMenu {
     includedDrink?: string;
     status: 'available' | 'out_of_stock';
 }
+
+export interface TourMenu extends SetMenu {
+    netPrice: number;
+    focPolicy?: string;
+    companyTags?: string[];
+}

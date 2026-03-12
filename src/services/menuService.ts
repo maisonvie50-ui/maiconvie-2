@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { SetMenu } from '../types';
+import type { SetMenu, TourMenu } from '../types';
 import type { Category, MenuItem } from '../types/menu';
 
 export const menuService = {
@@ -189,6 +189,91 @@ export const menuService = {
         if (error) throw error;
     },
 
+    // Tour Menus
+    async getTourMenus() {
+        const { data, error } = await supabase
+            .from('tour_menus')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching tour menus:', error);
+            return [];
+        }
+
+        return data.map(set => ({
+            id: set.id,
+            name: set.name,
+            price: set.price,
+            netPrice: set.net_price,
+            focPolicy: set.foc_policy,
+            companyTags: set.company_tags || [],
+            status: set.status,
+            includedDrink: set.included_drink,
+            courses: set.courses || []
+        }));
+    },
+
+    async createTourMenu(tourMenu: Omit<TourMenu, 'id'>) {
+        const payload = {
+            name: tourMenu.name,
+            price: tourMenu.price,
+            net_price: tourMenu.netPrice,
+            foc_policy: tourMenu.focPolicy,
+            company_tags: tourMenu.companyTags,
+            status: tourMenu.status,
+            included_drink: tourMenu.includedDrink,
+            courses: tourMenu.courses
+        };
+
+        const { data, error } = await supabase
+            .from('tour_menus')
+            .insert([payload])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return {
+            id: data.id,
+            name: data.name,
+            price: data.price,
+            netPrice: data.net_price,
+            focPolicy: data.foc_policy,
+            companyTags: data.company_tags || [],
+            status: data.status,
+            includedDrink: data.included_drink,
+            courses: data.courses || []
+        };
+    },
+
+    async updateTourMenu(id: string, updates: Partial<TourMenu>) {
+        const payload: any = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.price !== undefined) payload.price = updates.price;
+        if (updates.netPrice !== undefined) payload.net_price = updates.netPrice;
+        if (updates.focPolicy !== undefined) payload.foc_policy = updates.focPolicy;
+        if (updates.companyTags !== undefined) payload.company_tags = updates.companyTags;
+        if (updates.status !== undefined) payload.status = updates.status;
+        if (updates.includedDrink !== undefined) payload.included_drink = updates.includedDrink;
+        if (updates.courses !== undefined) payload.courses = updates.courses;
+
+        const { error } = await supabase
+            .from('tour_menus')
+            .update(payload)
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async deleteTourMenu(id: string) {
+        const { error } = await supabase
+            .from('tour_menus')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
     // Subscriptions
     subscribeToMenuChanges(callback: () => void) {
         const categoriesSub = supabase
@@ -206,10 +291,16 @@ export const menuService = {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'set_menus' }, callback)
             .subscribe();
 
+        const tourMenusSub = supabase
+            .channel('tour_menus_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_menus' }, callback)
+            .subscribe();
+
         return () => {
             supabase.removeChannel(categoriesSub);
             supabase.removeChannel(itemsSub);
             supabase.removeChannel(setMenusSub);
+            supabase.removeChannel(tourMenusSub);
         };
     }
 };
