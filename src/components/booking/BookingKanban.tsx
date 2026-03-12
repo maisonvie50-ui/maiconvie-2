@@ -81,6 +81,21 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [filterShift, setFilterShift] = useState<'lunch' | 'dinner'>('dinner');
   const [isMobile, setIsMobile] = useState(false);
 
+  // View & Filter States
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
+  const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
+
+  // UI Interactive States
+  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
+  const [historyDropBooking, setHistoryDropBooking] = useState<Booking | null>(null);
+
+  // Checkout States
+  const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
+  const [checkoutAmount, setCheckoutAmount] = useState('');
+
   // Load bookings from Supabase
   const fetchBookings = async () => {
     try {
