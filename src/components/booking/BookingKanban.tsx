@@ -1205,10 +1205,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg text-gray-800">
                 {editingId ? 'Cập nhật thông tin' : 'Thêm đặt bàn mới'}
               </h3>
@@ -1217,7 +1217,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên khách hàng</label>
                 <input
@@ -1407,7 +1407,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors"
