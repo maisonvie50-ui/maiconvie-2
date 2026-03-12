@@ -365,9 +365,9 @@ export default function PublicBookingForm() {
                                                             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Chi tiết Set Menu</p>
                                                             {set.courses.map((course, idx) => (
                                                                 <div key={idx} className="flex gap-2">
-                                                                    <span className="font-medium text-gray-600 min-w-16">{course.name}:</span>
+                                                                    <span className="font-medium text-gray-600 min-w-16">{course.title}:</span>
                                                                     <span className="text-gray-800 flex-1">
-                                                                        {course.options.map(opt => `${opt.name}${opt.extraPrice ? ` (+${opt.extraPrice.toLocaleString()}₫)` : ''}`).join(' HOẶC ')}
+                                                                        {course.options.map(opt => `${opt.nameVn || opt.nameEn}`).join(' HOẶC ')}
                                                                     </span>
                                                                 </div>
                                                             ))}
@@ -403,18 +403,17 @@ export default function PublicBookingForm() {
                                                             <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700" title="Tăng"><Plus className="w-4 h-4" /></button>
                                                         </div>
                                                     </div>
-                                                    {isExpanded && tour.items && tour.items.length > 0 && (
-                                                        <div className="mt-3 pt-3 border-t border-orange-50 text-sm">
-                                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Các món trong thực đơn</p>
-                                                            <ul className="space-y-1.5 list-disc list-inside px-2 text-gray-700">
-                                                                {tour.items.map((item, idx) => (
-                                                                    <li key={idx}>
-                                                                        {item.qty && <span className="font-bold mr-1">{item.qty}x</span>}
-                                                                        <span>{item.name}</span>
-                                                                        {item.note && <span className="text-gray-400 italic text-xs ml-1">({item.note})</span>}
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
+                                                    {isExpanded && tour.courses && tour.courses.length > 0 && (
+                                                        <div className="mt-3 pt-3 border-t border-orange-50 text-sm space-y-2">
+                                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Chi tiết Tour Menu</p>
+                                                            {tour.courses.map((course: any, idx: number) => (
+                                                                <div key={idx} className="flex gap-2">
+                                                                    <span className="font-medium text-gray-600 min-w-16">{course.title}:</span>
+                                                                    <span className="text-gray-800 flex-1">
+                                                                        {course.options.map((opt: any) => `${opt.nameVn || opt.nameEn}`).join(' HOẶC ')}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </div>
