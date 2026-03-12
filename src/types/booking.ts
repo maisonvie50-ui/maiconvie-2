@@ -10,4 +10,6 @@ export interface Booking {
   phone?: string;
   area?: 'indoor' | 'outdoor' | 'vip' | 'rooftop';
   source?: 'website' | 'facebook' | 'hotline' | 'walk_in' | 'ota';
+  customerType?: 'retail' | 'tour';
+  selectedMenus?: any[];
 }

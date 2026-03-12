@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
-import { BookingStatus } from '../../types';
+import { menuService } from '../../services/menuService';
+import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
 
 export default function PublicBookingForm() {
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        customerType: 'retail' | 'tour';
+        customerName: string;
+        phone: string;
+        date: string;
+        time: string;
+        pax: number;
+        area: string;
+        notes: string;
+    }>({
+        customerType: 'retail',
         customerName: '',
         phone: '',
         date: new Date().toISOString().split('T')[0],
@@ -15,6 +26,66 @@ export default function PublicBookingForm() {
         area: 'indoor',
         notes: ''
     });
+
+    const [selectedMenus, setSelectedMenus] = useState<any[]>([]);
+
+    // State for menus
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [setMenus, setSetMenus] = useState<SetMenu[]>([]);
+    const [tourMenus, setTourMenus] = useState<TourMenu[]>([]);
+    const [isLoadingMenus, setIsLoadingMenus] = useState(false);
+
+    // Tab state
+    const [activeRetailTab, setActiveRetailTab] = useState<'alacarte' | 'set'>('alacarte');
+
+    useEffect(() => {
+        const fetchMenus = async () => {
+            setIsLoadingMenus(true);
+            try {
+                const [alacarteRes, setRes, tourRes] = await Promise.all([
+                    menuService.getMenuItems(),
+                    menuService.getSetMenus(),
+                    menuService.getTourMenus()
+                ]);
+                setMenuItems(alacarteRes.filter(item => item.inStock));
+                setSetMenus(setRes.filter(s => s.status === 'available'));
+                setTourMenus(tourRes.filter(t => t.status === 'available'));
+            } catch (err) {
+                console.error("Error fetching menus:", err);
+            } finally {
+                setIsLoadingMenus(false);
+            }
+        };
+        fetchMenus();
+    }, []);
+
+    const handleQuantityChange = (item: any, type: 'alacarte' | 'set' | 'tour', delta: number) => {
+        setSelectedMenus(prev => {
+            const existing = prev.find(p => p.id === item.id);
+            if (existing) {
+                const newQuantity = existing.quantity + delta;
+                if (newQuantity <= 0) {
+                    return prev.filter(p => p.id !== item.id);
+                }
+                return prev.map(p => p.id === item.id ? { ...p, quantity: newQuantity } : p);
+            } else if (delta > 0) {
+                const price = type === 'tour' ? item.netPrice : item.price;
+                return [...prev, {
+                    id: item.id,
+                    name: item.name,
+                    price,
+                    type,
+                    quantity: delta
+                }];
+            }
+            return prev;
+        });
+    };
+
+    const getQuantity = (id: string) => {
+        const found = selectedMenus.find(p => p.id === id);
+        return found ? found.quantity : 0;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,12 +96,14 @@ export default function PublicBookingForm() {
             const newBooking = {
                 customerName: formData.customerName,
                 phone: formData.phone,
-                time: formData.time, // Simplification: ignoring date for the mock kanban
+                time: formData.time,
                 pax: Number(formData.pax),
                 status: 'new' as BookingStatus,
-                area: formData.area as any, // casting to valid area types later
+                area: formData.area as any,
                 notes: formData.notes ? [formData.notes] : [],
-                source: 'website' as const
+                source: 'website' as const,
+                customerType: formData.customerType,
+                selectedMenus: selectedMenus
             };
 
             await bookingService.createBooking(newBooking);
@@ -114,6 +187,21 @@ export default function PublicBookingForm() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="px-6 py-8 md:px-10 md:py-10 space-y-6">
+
+                        {/* LOẠI KHÁCH HÀNG */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Đối tượng Khách hàng</h3>
+                            <div className="flex gap-4">
+                                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border cursor-pointer transition-all ${formData.customerType === 'retail' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                    <input type="radio" className="hidden" name="customerType" value="retail" checked={formData.customerType === 'retail'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
+                                    <span className={`font-semibold ${formData.customerType === 'retail' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Lẻ</span>
+                                </label>
+                                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border cursor-pointer transition-all ${formData.customerType === 'tour' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                    <input type="radio" className="hidden" name="customerType" value="tour" checked={formData.customerType === 'tour'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
+                                    <span className={`font-semibold ${formData.customerType === 'tour' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Lữ Hành / Tour</span>
+                                </label>
+                            </div>
+                        </div>
 
                         {/* THÔNG TIN CÁ NHÂN */}
                         <div className="space-y-4">
@@ -207,6 +295,77 @@ export default function PublicBookingForm() {
                                         ))}
                                     </select>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* CHỌN THỰC ĐƠN TRƯỚC */}
+                        <div className="space-y-4 pt-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">
+                                Chọn Thực đơn (Không bắt buộc)
+                            </h3>
+
+                            {formData.customerType === 'retail' && (
+                                <div className="flex border-b border-gray-200 mb-4">
+                                    <button type="button" onClick={() => setActiveRetailTab('alacarte')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'alacarte' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>Gọi Món Lẻ</button>
+                                    <button type="button" onClick={() => setActiveRetailTab('set')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'set' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>Set Menu</button>
+                                </div>
+                            )}
+
+                            <div className="max-h-80 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                                {isLoadingMenus ? (
+                                    <div className="text-center py-4 text-gray-500 text-sm">Đang tải thực đơn...</div>
+                                ) : (
+                                    <>
+                                        {/* Render ALACARTE */}
+                                        {formData.customerType === 'retail' && activeRetailTab === 'alacarte' && menuItems.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-800">{item.name}</h4>
+                                                    <p className="text-teal-600 font-medium text-sm">{item.price.toLocaleString()} ₫</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
+                                                    <span className="w-4 text-center font-bold">{getQuantity(item.id)}</span>
+                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700"><Plus className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Render SET MENU */}
+                                        {formData.customerType === 'retail' && activeRetailTab === 'set' && setMenus.map(set => (
+                                            <div key={set.id} className="flex justify-between items-center bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
+                                                <div>
+                                                    <h4 className="font-semibold text-gray-800">{set.name}</h4>
+                                                    <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
+                                                    <span className="w-4 text-center font-bold">{getQuantity(set.id)}</span>
+                                                    <button type="button" onClick={() => handleQuantityChange(set, 'set', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700"><Plus className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Render TOUR MENU */}
+                                        {formData.customerType === 'tour' && tourMenus.map(tour => (
+                                            <div key={tour.id} className="flex justify-between items-center bg-white border border-orange-100 p-3 rounded-xl shadow-sm">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-semibold text-gray-800">{tour.name}</h4>
+                                                        <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
+                                                    </div>
+                                                    <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
+                                                    {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
+                                                    <span className="w-4 text-center font-bold">{getQuantity(tour.id)}</span>
+                                                    <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700"><Plus className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
                             </div>
                         </div>
 

@@ -25,7 +25,9 @@ export const bookingService = {
             status: b.status,
             notes: b.notes || [],
             area: b.area,
-            source: b.source
+            source: b.source,
+            customerType: b.customer_type,
+            selectedMenus: b.selected_menus || []
         })) as Booking[];
     },
 
@@ -49,6 +51,8 @@ export const bookingService = {
                 notes: booking.notes,
                 area: booking.area,
                 source: booking.source,
+                customer_type: booking.customerType || 'retail',
+                selected_menus: booking.selectedMenus || [],
                 customer_id: customerId // Liên kết với CRM
             })
             .select()
@@ -68,7 +72,9 @@ export const bookingService = {
             status: data.status,
             notes: data.notes || [],
             area: data.area,
-            source: data.source
+            source: data.source,
+            customerType: data.customer_type,
+            selectedMenus: data.selected_menus || []
         } as Booking;
     },
 
@@ -96,6 +102,8 @@ export const bookingService = {
         if (updates.notes) dbUpdates.notes = updates.notes;
         if (updates.area) dbUpdates.area = updates.area;
         if (updates.source) dbUpdates.source = updates.source;
+        if (updates.customerType) dbUpdates.customer_type = updates.customerType;
+        if (updates.selectedMenus) dbUpdates.selected_menus = updates.selectedMenus;
 
         dbUpdates.updated_at = new Date().toISOString();
 

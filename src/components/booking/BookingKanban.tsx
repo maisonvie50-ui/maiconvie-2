@@ -243,7 +243,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     time: '',
     pax: 2,
     notes: [],
-    source: 'hotline'
+    source: 'hotline',
+    selectedMenus: []
   });
   const [noteInput, setNoteInput] = useState('');
 
@@ -447,7 +448,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       pax: booking.pax,
       notes: booking.notes,
       area: booking.area,
-      source: booking.source
+      source: booking.source,
+      customerType: booking.customerType,
+      selectedMenus: booking.selectedMenus
     });
     setSelectedBooking(null); // Close mobile sheet if open
     setShowModal(true);
@@ -592,6 +595,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-gray-900">{booking.customerName || 'Không có tên'}</h4>
+                          {booking.customerType === 'tour' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Tour</span>
+                          ) : booking.customerType === 'retail' ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">Lẻ</span>
+                          ) : null}
                           {isMissingInfo(booking) && (
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Thiếu TT</span>
                           )}
@@ -787,7 +795,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                       {/* Khách hàng */}
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
+                            {booking.customerType === 'tour' ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Tour</span>
+                            ) : booking.customerType === 'retail' ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">Lẻ</span>
+                            ) : null}
+                          </div>
                           {isMissingInfo(booking) && (
                             <span className="text-[10px] font-bold text-red-500 mt-0.5 flex items-center gap-1">
                               <AlertCircle className="w-3 h-3" /> Thiếu thông tin
@@ -880,20 +895,34 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                         </div>
                       </td>
 
-                      {/* Ghi chú */}
+                      {/* Ghi chú & Menu */}
                       <td className="px-4 py-3">
-                        {booking.notes && booking.notes.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {booking.notes.map((note, idx) => (
-                              <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">
-                                <AlertCircle className="w-3 h-3" />
-                                {note}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-300">—</span>
-                        )}
+                        <div className="flex flex-col gap-1.5">
+                          {booking.selectedMenus && booking.selectedMenus.length > 0 && (
+                            <div className="flex flex-col gap-1">
+                              {booking.selectedMenus.map((menu: any, mIdx: number) => (
+                                <span key={`m-${mIdx}`} className="inline-flex max-w-max items-center px-1.5 py-0.5 bg-teal-50 text-teal-700 text-[10px] font-medium rounded border border-teal-100">
+                                  <span className="font-bold mr-1">{menu.quantity}x</span> {menu.name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {booking.notes && booking.notes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {booking.notes.map((note, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {note}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+
+                          {(!booking.notes || booking.notes.length === 0) && (!booking.selectedMenus || booking.selectedMenus.length === 0) && (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Hành động */}
@@ -976,7 +1005,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div className="flex flex-col">
-                                  <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName || 'Không có tên'}</h4>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName || 'Không có tên'}</h4>
+                                    {booking.customerType === 'tour' ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Tour</span>
+                                    ) : booking.customerType === 'retail' ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">Lẻ</span>
+                                    ) : null}
+                                  </div>
                                   {isMissingInfo(booking) && (
                                     <span className="text-[10px] font-bold text-red-500 mt-0.5 flex items-center gap-1 bg-red-50 px-1 py-0.5 rounded border border-red-100 max-w-max">
                                       <AlertCircle className="w-3 h-3" /> Thiếu TT
@@ -1192,6 +1228,34 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
+
+              {newBooking.selectedMenus && newBooking.selectedMenus.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                    <span>Thực đơn khách đã chọn</span>
+                    {newBooking.customerType ? (
+                      <span className={`${newBooking.customerType === 'tour' ? 'text-purple-700 bg-purple-100 border-purple-200' : 'text-blue-700 bg-blue-100 border-blue-200'} text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase`}>{newBooking.customerType === 'tour' ? 'KHÁCH TOUR' : 'KHÁCH LẺ'}</span>
+                    ) : null}
+                  </label>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                    {newBooking.selectedMenus.map((menu: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm border-b border-gray-200/60 pb-2 last:border-0 last:pb-0">
+                        <div className="font-medium text-gray-700"><span className="text-teal-600 font-bold mr-2 bg-white px-1.5 py-0.5 rounded shadow-sm">{menu.quantity}x</span>{menu.name}</div>
+                        <div className="text-gray-600 flex flex-col items-end">
+                          <span className="font-semibold text-gray-800">{(menu.price * menu.quantity).toLocaleString()} ₫</span>
+                          {menu.price > 0 && <span className="text-[10px] text-gray-400">{menu.price.toLocaleString()} ₫/pax</span>}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-gray-300 flex justify-between items-center font-bold">
+                      <span>Tổng cộng:</span>
+                      <span className="text-teal-700 text-lg">
+                        {newBooking.selectedMenus.reduce((sum: number, menu: any) => sum + (menu.price * menu.quantity), 0).toLocaleString()} ₫
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
