@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import { menuService } from '../../services/menuService';
 import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
@@ -37,6 +37,11 @@ export default function PublicBookingForm() {
 
     // Tab state
     const [activeRetailTab, setActiveRetailTab] = useState<'alacarte' | 'set'>('alacarte');
+    const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+    const toggleMenuExpand = (id: string) => {
+        setExpandedMenus(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
 
     useEffect(() => {
         const fetchMenus = async () => {
@@ -324,46 +329,97 @@ export default function PublicBookingForm() {
                                                     <p className="text-teal-600 font-medium text-sm">{item.price.toLocaleString()} ₫</p>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
+                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm số lượng"><Minus className="w-4 h-4" /></button>
                                                     <span className="w-4 text-center font-bold">{getQuantity(item.id)}</span>
-                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700"><Plus className="w-4 h-4" /></button>
+                                                    <button type="button" onClick={() => handleQuantityChange(item, 'alacarte', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700" title="Tăng số lượng"><Plus className="w-4 h-4" /></button>
                                                 </div>
                                             </div>
                                         ))}
 
                                         {/* Render SET MENU */}
-                                        {formData.customerType === 'retail' && activeRetailTab === 'set' && setMenus.map(set => (
-                                            <div key={set.id} className="flex justify-between items-center bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
-                                                <div>
-                                                    <h4 className="font-semibold text-gray-800">{set.name}</h4>
-                                                    <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
+                                        {formData.customerType === 'retail' && activeRetailTab === 'set' && setMenus.map(set => {
+                                            const isExpanded = expandedMenus.includes(set.id);
+                                            return (
+                                                <div key={set.id} className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
+                                                    <div className="flex justify-between items-center">
+                                                        <div
+                                                            className="flex-1 cursor-pointer flex items-center gap-2"
+                                                            onClick={() => toggleMenuExpand(set.id)}
+                                                        >
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h4 className="font-semibold text-gray-800">{set.name}</h4>
+                                                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                                                </div>
+                                                                <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
+                                                            <span className="w-4 text-center font-bold">{getQuantity(set.id)}</span>
+                                                            <button type="button" onClick={() => handleQuantityChange(set, 'set', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700" title="Tăng"><Plus className="w-4 h-4" /></button>
+                                                        </div>
+                                                    </div>
+                                                    {isExpanded && set.courses && set.courses.length > 0 && (
+                                                        <div className="mt-3 pt-3 border-t border-gray-100 text-sm space-y-2">
+                                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Chi tiết Set Menu</p>
+                                                            {set.courses.map((course, idx) => (
+                                                                <div key={idx} className="flex gap-2">
+                                                                    <span className="font-medium text-gray-600 min-w-16">{course.name}:</span>
+                                                                    <span className="text-gray-800 flex-1">
+                                                                        {course.options.map(opt => `${opt.name}${opt.extraPrice ? ` (+${opt.extraPrice.toLocaleString()}₫)` : ''}`).join(' HOẶC ')}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
-                                                    <span className="w-4 text-center font-bold">{getQuantity(set.id)}</span>
-                                                    <button type="button" onClick={() => handleQuantityChange(set, 'set', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700"><Plus className="w-4 h-4" /></button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
 
                                         {/* Render TOUR MENU */}
-                                        {formData.customerType === 'tour' && tourMenus.map(tour => (
-                                            <div key={tour.id} className="flex justify-between items-center bg-white border border-orange-100 p-3 rounded-xl shadow-sm">
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-semibold text-gray-800">{tour.name}</h4>
-                                                        <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
+                                        {formData.customerType === 'tour' && tourMenus.map(tour => {
+                                            const isExpanded = expandedMenus.includes(tour.id);
+                                            return (
+                                                <div key={tour.id} className="bg-white border border-orange-100 p-3 rounded-xl shadow-sm">
+                                                    <div className="flex justify-between items-center">
+                                                        <div
+                                                            className="flex-1 cursor-pointer flex items-center gap-2"
+                                                            onClick={() => toggleMenuExpand(tour.id)}
+                                                        >
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h4 className="font-semibold text-gray-800">{tour.name}</h4>
+                                                                    <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
+                                                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                                                </div>
+                                                                <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
+                                                                {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
+                                                            <span className="w-4 text-center font-bold">{getQuantity(tour.id)}</span>
+                                                            <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700" title="Tăng"><Plus className="w-4 h-4" /></button>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
-                                                    {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
+                                                    {isExpanded && tour.items && tour.items.length > 0 && (
+                                                        <div className="mt-3 pt-3 border-t border-orange-50 text-sm">
+                                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Các món trong thực đơn</p>
+                                                            <ul className="space-y-1.5 list-disc list-inside px-2 text-gray-700">
+                                                                {tour.items.map((item, idx) => (
+                                                                    <li key={idx}>
+                                                                        {item.qty && <span className="font-bold mr-1">{item.qty}x</span>}
+                                                                        <span>{item.name}</span>
+                                                                        {item.note && <span className="text-gray-400 italic text-xs ml-1">({item.note})</span>}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600"><Minus className="w-4 h-4" /></button>
-                                                    <span className="w-4 text-center font-bold">{getQuantity(tour.id)}</span>
-                                                    <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700"><Plus className="w-4 h-4" /></button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </>
                                 )}
                             </div>
