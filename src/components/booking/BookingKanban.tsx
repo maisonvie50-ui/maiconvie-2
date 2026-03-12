@@ -637,9 +637,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                               {sourceLabels[booking.source] || booking.source}
                             </span>
                           )}
-                          {booking.area && (
+                          {booking.area && !booking.tableName && (
                             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium uppercase">
                               {booking.area === 'indoor' ? 'Trong nhà' : booking.area === 'outdoor' ? 'Ngoài trời' : booking.area === 'vip' ? 'VIP' : 'Sân thượng'}
+                            </span>
+                          )}
+                          {booking.tableName && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-[10px] font-bold uppercase truncate max-w-[120px]" title={booking.tableName}>
+                              {booking.tableName}
                             </span>
                           )}
                         </div>
@@ -851,7 +856,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
                       {/* Khu vực */}
                       <td className="px-4 py-3">
-                        {booking.area ? (
+                        {booking.tableName ? (
+                          <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded text-xs font-bold whitespace-nowrap">
+                            {booking.tableName}
+                          </span>
+                        ) : booking.area ? (
                           <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium whitespace-nowrap">
                             {areaLabels[booking.area] || booking.area}
                           </span>
@@ -1075,6 +1084,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                 {booking.source && (
                                   <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source]}`}>
                                     {sourceLabels[booking.source]}
+                                  </div>
+                                )}
+                                {booking.tableName && (
+                                  <div className="px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-[10px] font-bold uppercase truncate max-w-[90px]" title={booking.tableName}>
+                                    {booking.tableName}
                                   </div>
                                 )}
                               </div>
