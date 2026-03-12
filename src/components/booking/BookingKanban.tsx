@@ -182,10 +182,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     // 3. Filter by Search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      return (
+      const matchSearch =
         b.customerName.toLowerCase().includes(query) ||
-        b.phone?.includes(query) // Note: ID in supabase is UUID, won't search by it normally, but kept for compatibility if needed.
-      );
+        b.phone?.includes(query);
+      if (!matchSearch) return false;
+    }
+
+    // 4. Filter by Shift (Ca trưa / Ca tối)
+    if (filterShift) {
+      const hour = parseInt(b.time.split(':')[0] || '0', 10);
+      if (filterShift === 'lunch' && (hour < 10 || hour >= 16)) return false;
+      if (filterShift === 'dinner' && (hour < 16)) return false;
     }
 
     return true;
