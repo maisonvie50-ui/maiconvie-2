@@ -642,13 +642,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                               {booking.area === 'indoor' ? 'Trong nhà' : booking.area === 'outdoor' ? 'Ngoài trời' : booking.area === 'vip' ? 'VIP' : 'Sân thượng'}
                             </span>
                           )}
-                          {booking.tableName && (
+                        </div>
+                        {booking.tableName && (
+                          <div className="flex items-center mt-1">
                             <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
                               <LayoutGrid className="w-3 h-3" />
                               {booking.tableName}
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${statusConfig?.borderColor} ${statusConfig?.color} ${statusConfig?.borderColor.replace('border-', 'text-')}`}>
@@ -1087,13 +1089,16 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                     {sourceLabels[booking.source]}
                                   </div>
                                 )}
-                                {booking.tableName && (
-                                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
+                              </div>
+
+                              {booking.tableName && (
+                                <div className="mb-2">
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
                                     <LayoutGrid className="w-3 h-3 flex-shrink-0" />
                                     <span className="whitespace-nowrap">{booking.tableName}</span>
-                                  </div>
-                                )}
-                              </div>
+                                  </span>
+                                </div>
+                              )}
 
                               {booking.notes && booking.notes.length > 0 && (
                                 <div className="flex flex-wrap gap-1 mt-2">
