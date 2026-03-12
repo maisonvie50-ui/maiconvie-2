@@ -120,12 +120,28 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     setIsOrderSent(true);
 
     try {
-      const itemsToCreate = orderItems.map(item => ({
-        name: item.name,
-        quantity: item.quantity,
-        notes: item.notes || [],
-        category: item.category || 'Món chính' // Fallback
-      }));
+      const itemsToCreate = orderItems.map(item => {
+        let finalCategory = item.category || 'Món chính';
+        if (finalCategory === 'Rượu vang' || finalCategory.toLowerCase().includes('uống') || finalCategory.toLowerCase().includes('nước')) {
+          finalCategory = 'Đồ uống';
+        } else if (!['Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'].includes(finalCategory)) {
+          finalCategory = 'Món chính'; // Fallback to avoid constraint error
+        }
+
+        const finalNotes = [...(item.notes || [])];
+        if (item.isSetMenu && item.selections) {
+          item.selections.forEach((sel: any) => {
+            finalNotes.push(`${sel.courseTitle.split('|')[0].trim()}: ${sel.option?.nameVn || sel.option?.nameEn}`);
+          });
+        }
+
+        return {
+          name: item.name,
+          quantity: item.quantity,
+          notes: finalNotes,
+          category: finalCategory
+        };
+      });
 
       await orderService.createOrder(
         table.name,
