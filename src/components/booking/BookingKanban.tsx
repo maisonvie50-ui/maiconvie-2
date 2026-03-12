@@ -643,7 +643,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                             </span>
                           )}
                           {booking.tableName && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-[10px] font-bold uppercase truncate max-w-[120px]" title={booking.tableName}>
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
+                              <LayoutGrid className="w-3 h-3" />
                               {booking.tableName}
                             </span>
                           )}
@@ -1087,8 +1088,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                   </div>
                                 )}
                                 {booking.tableName && (
-                                  <div className="px-1.5 py-0.5 bg-teal-100 text-teal-800 rounded text-[10px] font-bold uppercase truncate max-w-[90px]" title={booking.tableName}>
-                                    {booking.tableName}
+                                  <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
+                                    <LayoutGrid className="w-3 h-3 flex-shrink-0" />
+                                    <span className="whitespace-nowrap">{booking.tableName}</span>
                                   </div>
                                 )}
                               </div>
