@@ -678,7 +678,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Khách hàng</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[120px]">SĐT</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px]">Pax</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[100px]">Khu vực</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[120px]">Khu vực</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[90px]">Nguồn</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[180px]">Trạng thái</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Ghi chú</th>
@@ -734,7 +734,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                       {/* Khu vực */}
                       <td className="px-4 py-3">
                         {booking.area ? (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium whitespace-nowrap">
                             {areaLabels[booking.area] || booking.area}
                           </span>
                         ) : (
