@@ -41,6 +41,12 @@ export default function PublicBookingForm() {
     const [activeRetailTab, setActiveRetailTab] = useState<'alacarte' | 'set'>('alacarte');
     const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
 
+    // Fullscreen menu detail modal
+    const [menuDetailItem, setMenuDetailItem] = useState<any | null>(null);
+
+    // Order summary step
+    const [showSummary, setShowSummary] = useState(false);
+
     const toggleMenuExpand = (id: string) => {
         setExpandedMenus(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
@@ -216,14 +222,14 @@ export default function PublicBookingForm() {
                         {/* LOẠI KHÁCH HÀNG */}
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Đối tượng Khách hàng</h3>
-                            <div className="flex gap-4">
-                                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border cursor-pointer transition-all ${formData.customerType === 'retail' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                            <div className="flex gap-3">
+                                <label className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg border cursor-pointer transition-all text-sm ${formData.customerType === 'retail' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" className="hidden" name="customerType" value="retail" checked={formData.customerType === 'retail'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
                                     <span className={`font-semibold ${formData.customerType === 'retail' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Lẻ</span>
                                 </label>
-                                <label className={`flex-1 flex items-center justify-center py-3 px-4 rounded-xl border cursor-pointer transition-all ${formData.customerType === 'tour' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
+                                <label className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg border cursor-pointer transition-all text-sm ${formData.customerType === 'tour' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" className="hidden" name="customerType" value="tour" checked={formData.customerType === 'tour'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
-                                    <span className={`font-semibold ${formData.customerType === 'tour' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Lữ Hành / Tour</span>
+                                    <span className={`font-semibold ${formData.customerType === 'tour' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Tour</span>
                                 </label>
                             </div>
                         </div>
@@ -232,7 +238,7 @@ export default function PublicBookingForm() {
                         <div className="space-y-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Thông tin liên hệ</h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <User className="w-4 h-4 text-teal-600" />
@@ -271,22 +277,24 @@ export default function PublicBookingForm() {
                         <div className="space-y-4 pt-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Thông tin Đặt Bàn</h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <CalendarIcon className="w-4 h-4 text-teal-600" />
-                                        Ngày <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        required
-                                        value={formData.date}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
-                                    />
-                                </div>
+                            {/* Ngày — full width */}
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4 text-teal-600" />
+                                    Ngày <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    name="date"
+                                    required
+                                    value={formData.date}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                />
+                            </div>
 
+                            {/* Giờ + Số khách — cùng hàng */}
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-teal-600" />
@@ -357,102 +365,44 @@ export default function PublicBookingForm() {
                                         ))}
 
                                         {/* Render SET MENU */}
-                                        {formData.customerType === 'retail' && activeRetailTab === 'set' && setMenus.map(set => {
-                                            const isExpanded = expandedMenus.includes(set.id);
-                                            return (
-                                                <div key={set.id} className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
-                                                    <div className="flex justify-between items-center">
-                                                        <div
-                                                            className="flex-1 cursor-pointer flex items-center gap-2"
-                                                            onClick={() => toggleMenuExpand(set.id)}
-                                                        >
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <h4 className="font-semibold text-gray-800">{set.name}</h4>
-                                                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                                                </div>
-                                                                <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
-                                                            <span className="w-4 text-center font-bold">{getQuantity(set.id)}</span>
-                                                            <button type="button" onClick={() => handleQuantityChange(set, 'set', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700" title="Tăng"><Plus className="w-4 h-4" /></button>
-                                                        </div>
+                                        {formData.customerType === 'retail' && activeRetailTab === 'set' && setMenus.map(set => (
+                                            <div key={set.id} className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex-1">
+                                                        <h4 className="font-semibold text-gray-800">{set.name}</h4>
+                                                        <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
+                                                        <button type="button" onClick={() => setMenuDetailItem(set)} className="text-xs text-teal-600 font-semibold mt-1 hover:underline">Xem chi tiết →</button>
                                                     </div>
-                                                    {isExpanded && set.courses && set.courses.length > 0 && (
-                                                        <div className="mt-3 pt-3 border-t border-gray-100 text-sm space-y-2">
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Chi tiết Set Menu</p>
-                                                            <div className="space-y-3">
-                                                                {set.courses.map((course: any, idx: number) => (
-                                                                    <div key={idx} className="flex flex-col gap-1">
-                                                                        <span className="text-xs font-bold text-teal-700 uppercase">{course.title}</span>
-                                                                        <div className="flex flex-col gap-1 pl-2 border-l-2 border-teal-100">
-                                                                            {course.options.map((opt: any, oIdx: number) => (
-                                                                                <div key={oIdx} className="text-sm text-gray-700 flex items-start gap-2">
-                                                                                    <span className="text-teal-400 mt-0.5">•</span>
-                                                                                    <span>{opt.nameVn || opt.nameEn}</span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-3">
+                                                        <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
+                                                        <span className="w-4 text-center font-bold">{getQuantity(set.id)}</span>
+                                                        <button type="button" onClick={() => handleQuantityChange(set, 'set', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-700" title="Tăng"><Plus className="w-4 h-4" /></button>
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        ))}
 
                                         {/* Render TOUR MENU */}
-                                        {formData.customerType === 'tour' && tourMenus.map(tour => {
-                                            const isExpanded = expandedMenus.includes(tour.id);
-                                            return (
-                                                <div key={tour.id} className="bg-white border border-orange-100 p-3 rounded-xl shadow-sm">
-                                                    <div className="flex justify-between items-center">
-                                                        <div
-                                                            className="flex-1 cursor-pointer flex items-center gap-2"
-                                                            onClick={() => toggleMenuExpand(tour.id)}
-                                                        >
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <h4 className="font-semibold text-gray-800">{tour.name}</h4>
-                                                                    <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
-                                                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                                                </div>
-                                                                <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
-                                                                {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
-                                                            </div>
+                                        {formData.customerType === 'tour' && tourMenus.map(tour => (
+                                            <div key={tour.id} className="bg-white border border-orange-100 p-3 rounded-xl shadow-sm">
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="font-semibold text-gray-800">{tour.name}</h4>
+                                                            <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
                                                         </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
-                                                            <span className="w-4 text-center font-bold">{getQuantity(tour.id)}</span>
-                                                            <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700" title="Tăng"><Plus className="w-4 h-4" /></button>
-                                                        </div>
+                                                        <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
+                                                        {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
+                                                        <button type="button" onClick={() => setMenuDetailItem(tour)} className="text-xs text-orange-600 font-semibold mt-1 hover:underline">Xem chi tiết →</button>
                                                     </div>
-                                                    {isExpanded && tour.courses && tour.courses.length > 0 && (
-                                                        <div className="mt-3 pt-3 border-t border-orange-50 text-sm space-y-2">
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Chi tiết Tour Menu</p>
-                                                            <div className="space-y-3">
-                                                                {tour.courses.map((course: any, idx: number) => (
-                                                                    <div key={idx} className="flex flex-col gap-1">
-                                                                        <span className="text-xs font-bold text-orange-700 uppercase">{course.title}</span>
-                                                                        <div className="flex flex-col gap-1 pl-2 border-l-2 border-orange-100">
-                                                                            {course.options.map((opt: any, oIdx: number) => (
-                                                                                <div key={oIdx} className="text-sm text-gray-700 flex items-start gap-2">
-                                                                                    <span className="text-orange-400 mt-0.5">•</span>
-                                                                                    <span>{opt.nameVn || opt.nameEn}</span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-3">
+                                                        <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
+                                                        <span className="w-4 text-center font-bold">{getQuantity(tour.id)}</span>
+                                                        <button type="button" onClick={() => handleQuantityChange(tour, 'tour', 1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-orange-100 hover:bg-orange-200 text-orange-700" title="Tăng"><Plus className="w-4 h-4" /></button>
+                                                    </div>
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+                                        ))}
                                     </>
                                 )}
                             </div>
@@ -477,12 +427,12 @@ export default function PublicBookingForm() {
                         </div>
 
                         <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 transition-all ${isSubmitting ? 'bg-teal-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.98]'}`}
+                            type="button"
+                            onClick={() => setShowSummary(true)}
+                            className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 transition-all bg-teal-600 hover:bg-teal-700 active:scale-[0.98]`}
                         >
-                            {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Đặt Bàn'}
-                            {!isSubmitting && <ArrowRight className="w-5 h-5" />}
+                            Tiếp tục
+                            <ArrowRight className="w-5 h-5" />
                         </button>
                     </form>
                 </div>
@@ -491,6 +441,110 @@ export default function PublicBookingForm() {
                     © 2026 Maison Vie. Bảo mật thông tin khách hàng.
                 </p>
             </div>
+
+            {/* Fullscreen Menu Detail Modal */}
+            {menuDetailItem && (
+                <div className="fixed inset-0 z-50 bg-white flex flex-col">
+                    <div className="bg-teal-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                        <h3 className="text-lg font-bold">{menuDetailItem.name}</h3>
+                        <button onClick={() => setMenuDetailItem(null)} className="text-white/80 hover:text-white bg-teal-700 p-2 rounded-lg" title="Đóng">
+                            <ArrowRight className="w-5 h-5 rotate-180" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl font-black text-teal-600">{menuDetailItem.price?.toLocaleString()} ₫</span>
+                            {menuDetailItem.netPrice && <span className="text-sm text-gray-400 line-through">{menuDetailItem.netPrice.toLocaleString()} ₫</span>}
+                            <span className="text-gray-400 text-sm">/khách</span>
+                        </div>
+                        {menuDetailItem.focPolicy && <p className="text-sm text-gray-600 italic bg-orange-50 p-3 rounded-lg border border-orange-100">FOC: {menuDetailItem.focPolicy}</p>}
+
+                        {menuDetailItem.courses && menuDetailItem.courses.length > 0 && (
+                            <div className="space-y-5 mt-4">
+                                {menuDetailItem.courses.map((course: any, idx: number) => (
+                                    <div key={idx}>
+                                        <h4 className="text-sm font-bold text-teal-700 uppercase tracking-wider mb-2">{course.title}</h4>
+                                        <div className="space-y-2 pl-3 border-l-2 border-teal-100">
+                                            {course.options.map((opt: any, oIdx: number) => (
+                                                <div key={oIdx} className="flex items-start gap-2 text-gray-700">
+                                                    <span className="text-teal-400 mt-1">•</span>
+                                                    <span className="text-base">{opt.nameVn || opt.nameEn}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
+                        <button onClick={() => setMenuDetailItem(null)} className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold text-base hover:bg-teal-700 transition-colors">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Order Summary Step */}
+            {showSummary && (
+                <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+                        <div className="bg-teal-600 text-white px-6 py-5 shrink-0">
+                            <h3 className="text-xl font-black">Xác nhận thông tin</h3>
+                            <p className="text-teal-100 text-sm mt-1">Vui lòng kiểm tra lại trước khi gửi</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                            <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Họ tên</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">SĐT</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Loại khách</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? 'Khách Tour' : 'Khách Lẻ'}</span></div>
+                            </div>
+                            <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Ngày</span><span className="font-semibold text-gray-800">{new Date(formData.date).toLocaleDateString('vi-VN')}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Giờ</span><span className="font-semibold text-gray-800">{formData.time}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Số khách</span><span className="font-semibold text-gray-800">{formData.pax} người</span></div>
+                            </div>
+
+                            {selectedMenus.length > 0 && (
+                                <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Món đã chọn</p>
+                                    {selectedMenus.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-sm">
+                                            <span className="text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-teal-600">x{item.quantity}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {formData.notes && (
+                                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ghi chú</p>
+                                    <p className="text-sm text-gray-700">{formData.notes}</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 bg-gray-50 border-t border-gray-100 flex gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setShowSummary(false)}
+                                className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+                            >
+                                Quay lại
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => { setShowSummary(false); handleSubmit(e as any); }}
+                                disabled={isSubmitting}
+                                className={`flex-1 py-3 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isSubmitting ? 'bg-teal-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'}`}
+                            >
+                                {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Đặt Bàn'}
+                                {!isSubmitting && <CheckCircle className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
