@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft, Receipt } from 'lucide-react';
 import OrderPad from './OrderPad';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
@@ -39,6 +39,7 @@ interface EditingItem {
 import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3, floorZones as mockZones, eventHall as initialEventHall } from '../../data/mockTables';
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
+import CheckoutModal from '../booking/CheckoutModal';
 
 export default function RestaurantMap() {
   const [activeFloor, setActiveFloor] = useState<1 | 2 | 3>(1);
@@ -52,6 +53,8 @@ export default function RestaurantMap() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPartitionMenuOpen, setIsPartitionMenuOpen] = useState(false);
+  const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | VipRoom | null>(null);
+  const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
 
   const fetchTables = async () => {
     try {
@@ -99,9 +102,6 @@ export default function RestaurantMap() {
 
   // Move Table State
   const [movingTableId, setMovingTableId] = useState<string | null>(null);
-
-  // Order Pad State
-  const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | VipRoom | null>(null);
 
   // Drag & Drop State
   const dragItem = useRef<number | null>(null);
@@ -544,8 +544,20 @@ export default function RestaurantMap() {
                           {table.notes}
                         </div>
                       )}
+                      {table.status === 'occupied' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTableCheckoutId(table.id);
+                          }}
+                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          Thanh toán
+                        </button>
+                      )}
                       {/* Arrow */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                     </div>
                   )}
                 </div>
@@ -758,7 +770,17 @@ export default function RestaurantMap() {
                         {room.notes}
                       </div>
                     )}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTableCheckoutId(room.id);
+                      }}
+                      className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      Thanh toán
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                   </div>
                 )}
               </div>
@@ -943,7 +965,19 @@ export default function RestaurantMap() {
                         <Clock className="w-3 h-3" />
                         {table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}
                       </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      {table.status === 'occupied' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTableCheckoutId(table.id);
+                          }}
+                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          Thanh toán
+                        </button>
+                      )}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                     </div>
                   )}
                 </div>
@@ -987,6 +1021,22 @@ export default function RestaurantMap() {
         <OrderPad
           table={selectedTableForOrder}
           onClose={() => setSelectedTableForOrder(null)}
+        />
+      )}
+
+      {/* Checkout Modal */}
+      {tableCheckoutId && (
+        <CheckoutModal
+          table={
+            tablesL1.find(t => t.id === tableCheckoutId) ||
+            vipRoomsList.find(v => v.id === tableCheckoutId) as any ||
+            tablesL3.find(t => t.id === tableCheckoutId)
+          }
+          onClose={() => setTableCheckoutId(null)}
+          onSuccess={() => {
+            setTableCheckoutId(null);
+            fetchTables();
+          }}
         />
       )}
 

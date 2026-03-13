@@ -29,9 +29,12 @@ import {
   Settings as SettingsIcon,
   BarChart3,
   ChefHat,
-  LogOut
+  LogOut,
+  Receipt,
+  X
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
+import CheckoutModal from '../booking/CheckoutModal';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
 interface Table {
@@ -67,6 +70,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [view, setView] = useState<ViewState>('tables');
   const [activeZone, setActiveZone] = useState<'T1' | 'T2' | 'T3'>('T1');
   const [selectedTable, setSelectedTable] = useState<any>(null);
+  const [tableActionTarget, setTableActionTarget] = useState<Table | VipRoom | null>(null);
+  const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -229,8 +234,12 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <div
                 key={table.id}
                 onClick={() => {
-                  setSelectedTable(table);
-                  handleSetView('menu');
+                  if (table.status === 'occupied') {
+                    setTableActionTarget(table);
+                  } else {
+                    setSelectedTable(table);
+                    handleSetView('menu');
+                  }
                 }}
                 className={`
                   relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
@@ -263,8 +272,12 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <div
                 key={room.id}
                 onClick={() => {
-                  setSelectedTable(room);
-                  handleSetView('menu');
+                  if (room.status === 'in-use') {
+                    setTableActionTarget(room);
+                  } else {
+                    setSelectedTable(room);
+                    handleSetView('menu');
+                  }
                 }}
                 className={`
                   relative p-4 rounded-2xl border-2 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform
@@ -297,8 +310,12 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <div
                 key={table.id}
                 onClick={() => {
-                  setSelectedTable(table);
-                  handleSetView('menu');
+                  if (table.status === 'occupied') {
+                    setTableActionTarget(table);
+                  } else {
+                    setSelectedTable(table);
+                    handleSetView('menu');
+                  }
                 }}
                 className={`
                   relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
@@ -372,16 +389,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               </div>
               {inCart ? (
                 <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
+                  <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="font-bold w-4 text-center">{inCart.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
+                  <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
                 <button
+                  title="Thêm vào giỏ hàng"
                   onClick={() => addToCart(item)}
                   className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center hover:bg-teal-100"
                 >
@@ -415,11 +433,11 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                   <p className="text-sm text-gray-500">{(item.price * item.quantity).toLocaleString()}đ</p>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
+                  <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="font-bold w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
+                  <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
@@ -576,8 +594,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'training' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
-              <h2 className="font-bold">Đào tạo</h2>
+              <button title="Đóng" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Đào tạo nội bộ</h2>
             </div>
             <div className="flex-1 min-h-0">
               <TrainingPortal />
@@ -586,9 +604,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         )}
         {view === 'crm' && (
           <div className="h-full flex flex-col pb-24">
-            <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
-              <h2 className="font-bold">Khách hàng</h2>
+            <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-2">
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Quản lý Khách hàng</h2>
             </div>
             <div className="flex-1 min-h-0">
               <CustomerCRM />
@@ -598,7 +616,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'settings' && (
           <div className="h-full overflow-y-auto pb-24">
             <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-2">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Cấu hình</h2>
             </div>
             <Settings />
@@ -607,7 +625,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'reports' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Báo cáo</h2>
             </div>
             <div className="flex-1 min-h-0">
@@ -618,7 +636,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'menu-management' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Quản lý thực đơn</h2>
             </div>
             <div className="flex-1 min-h-0">
@@ -629,7 +647,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'kitchen' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Màn hình Bếp</h2>
             </div>
             <div className="flex-1 min-h-0">
@@ -698,6 +716,64 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           </button>
         </div>
       )}
+
+      {/* Table Action Modal for Occupied Tables */}
+      {tableActionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{tableActionTarget.name.replace('Bàn ', 'Bàn ')}</h3>
+                <p className="text-sm text-gray-500">{tableActionTarget.customerName || 'Khách vãng lai'}</p>
+              </div>
+              <button title="Đóng" onClick={() => setTableActionTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-1 gap-3">
+              <button
+                onClick={() => {
+                  setSelectedTable(tableActionTarget);
+                  setTableActionTarget(null);
+                  handleSetView('menu');
+                }}
+                className="flex items-center justify-center gap-2 w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700 transition"
+              >
+                <Utensils className="w-5 h-5" />
+                Gọi thêm món
+              </button>
+              <button
+                onClick={() => {
+                  setTableCheckoutId(tableActionTarget.id);
+                  setTableActionTarget(null);
+                }}
+                className="flex items-center justify-center gap-2 w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold shadow-md hover:bg-teal-700 transition"
+              >
+                <Receipt className="w-5 h-5" />
+                Thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {tableCheckoutId && (
+        <CheckoutModal
+          table={
+            tablesL1.find(t => t.id === tableCheckoutId) ||
+            vipRoomsList.find(v => v.id === tableCheckoutId) as any ||
+            tablesL3.find(t => t.id === tableCheckoutId)
+          }
+          onClose={() => setTableCheckoutId(null)}
+          onSuccess={() => {
+            setTableCheckoutId(null);
+            fetchTables();
+            handleSetView('tables');
+          }}
+        />
+      )}
+
     </div>
   );
 }

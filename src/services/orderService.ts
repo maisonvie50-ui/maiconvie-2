@@ -7,6 +7,7 @@ export interface OrderItem {
     id: string;
     name: string;
     quantity: number;
+    price: number;
     notes?: string[];
     status: ItemStatus;
     category: ItemCategory;
@@ -66,6 +67,105 @@ export const orderService = {
                     id: item.id,
                     name: item.name,
                     quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
+    },
+
+    // Get orders by table ID (useful for billing/checkout)
+    async getOrdersByTableId(tableId: string): Promise<OrderTicket[]> {
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('table_id', tableId)
+            .eq('status', 'pending')
+            .order('order_time', { ascending: true });
+
+        if (orderError) {
+            console.error('Error fetching orders by table:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
+    },
+
+    // Get order by Booking Id
+    async getOrdersByBookingId(bookingId: string): Promise<OrderTicket[]> {
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('booking_id', bookingId)
+            .eq('status', 'pending') // Usually we bill what's pending to be closed
+            .order('order_time', { ascending: true });
+
+        if (orderError) {
+            console.error('Error fetching orders by booking:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
                     notes: item.notes || [],
                     status: item.status as ItemStatus,
                     category: item.category as ItemCategory
@@ -113,7 +213,7 @@ export const orderService = {
     },
 
     // 5. Create a new order (from OrderPad)
-    async createOrder(tableName: string, items: { name: string; quantity: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string) {
+    async createOrder(tableName: string, items: { name: string; quantity: number; price: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string) {
         // Insert the order
         const { data: order, error: orderError } = await supabase
             .from('orders')
@@ -138,6 +238,7 @@ export const orderService = {
             order_id: order.id,
             name: item.name,
             quantity: item.quantity,
+            price: item.price || 0,
             notes: item.notes || [],
             status: 'pending',
             category: item.category

@@ -138,6 +138,7 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
         return {
           name: item.name,
           quantity: item.quantity,
+          price: item.price || 0,
           notes: finalNotes,
           category: finalCategory
         };
