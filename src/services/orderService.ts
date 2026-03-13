@@ -18,6 +18,8 @@ export interface OrderTicket {
     table: string;
     tableId?: string;
     bookingId?: string;
+    customerName?: string;
+    customerPhone?: string;
     orderTime: Date;
     items: OrderItem[];
     status: 'pending' | 'completed' | 'cancelled';
@@ -295,7 +297,13 @@ export const orderService = {
     async getCompletedOrders(filters?: { dateFrom?: string; dateTo?: string; searchTable?: string }): Promise<OrderTicket[]> {
         let query = supabase
             .from('orders')
-            .select('*')
+            .select(`
+                *,
+                bookings:booking_id (
+                    customer_name,
+                    phone
+                )
+            `)
             .eq('status', 'completed')
             .order('order_time', { ascending: false });
 
@@ -337,6 +345,8 @@ export const orderService = {
             table: order.table_name,
             tableId: order.table_id,
             bookingId: order.booking_id,
+            customerName: order.bookings?.customer_name,
+            customerPhone: order.bookings?.phone,
             orderTime: new Date(order.order_time),
             status: order.status,
             bookingStatus: order.booking_status || 'confirmed',

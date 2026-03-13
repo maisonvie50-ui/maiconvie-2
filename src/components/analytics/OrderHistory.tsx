@@ -166,7 +166,12 @@ export default function OrderHistory() {
                                         <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => setSelectedOrder(order)}>
                                             <td className="p-4">
                                                 <div className="font-bold text-gray-800">{order.table || 'Mang đi'}</div>
-                                                <div className="text-xs text-gray-400 font-mono">#{order.id.slice(0, 8)}</div>
+                                                {order.customerName && (
+                                                    <div className="text-xs text-teal-700 font-medium mt-0.5">
+                                                        {order.customerName} {order.customerPhone && `- ${order.customerPhone}`}
+                                                    </div>
+                                                )}
+                                                <div className="text-xs text-gray-400 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
                                             </td>
                                             <td className="p-4 text-sm text-gray-600">
                                                 {order.orderTime.toLocaleString('vi-VN')}
@@ -212,6 +217,11 @@ export default function OrderHistory() {
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <div className="font-bold text-gray-900 text-sm">{order.table || 'Mang đi'}</div>
+                                                {order.customerName && (
+                                                    <div className="text-xs text-teal-700 font-medium mt-0.5">
+                                                        {order.customerName} {order.customerPhone && `- ${order.customerPhone}`}
+                                                    </div>
+                                                )}
                                                 <div className="text-[11px] text-gray-400 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
                                             </div>
                                             <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded text-[10px] font-bold">
@@ -249,9 +259,16 @@ export default function OrderHistory() {
                             </button>
                         </div>
                         <div className="p-4 border-b bg-gray-50 shrink-0">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="font-bold text-gray-800">{selectedOrder.table || 'Mang đi'}</span>
-                                <span className="text-sm font-medium text-gray-500">{selectedOrder.orderTime.toLocaleString('vi-VN')}</span>
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <span className="font-bold text-gray-800 block">{selectedOrder.table || 'Mang đi'}</span>
+                                    {selectedOrder.customerName && (
+                                        <span className="text-sm font-medium text-teal-700 block mt-1">
+                                            Khách: {selectedOrder.customerName} {selectedOrder.customerPhone && `- ${selectedOrder.customerPhone}`}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="text-sm font-medium text-gray-500 whitespace-nowrap">{selectedOrder.orderTime.toLocaleString('vi-VN')}</span>
                             </div>
                         </div>
                         <div className="p-4 flex-1 overflow-y-auto">
