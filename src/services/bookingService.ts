@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Booking, BookingStatus } from '../types/booking';
 import { customerService } from './customerService';
 import { orderService } from './orderService';
+import { tableService } from './tableService';
 
 export const bookingService = {
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
@@ -96,6 +97,45 @@ export const bookingService = {
             throw error;
         }
 
+        // --- Đồng bộ trạng thái sang Sơ đồ bàn ---
+        try {
+            const { data: booking } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (booking && booking.table_id) {
+                if (status === 'arrived') {
+                    await tableService.updateTableStatus(booking.table_id, {
+                        status: 'occupied',
+                        customerName: booking.customer_name,
+                        time: booking.time,
+                        notes: booking.notes,
+                        bookingId: booking.id
+                    } as any);
+                } else if (status === 'completed' || status === 'cancelled' || status === 'no_show') {
+                    await tableService.updateTableStatus(booking.table_id, {
+                        status: 'empty',
+                        customerName: undefined,
+                        time: undefined,
+                        notes: undefined,
+                        bookingId: null as any
+                    } as any);
+                } else if (status === 'confirmed' || status === 'pending' || status === 'new' || status === 'change_requested' || status === 'waiting_info') {
+                    await tableService.updateTableStatus(booking.table_id, {
+                        status: 'reserved',
+                        customerName: booking.customer_name,
+                        time: booking.time,
+                        notes: booking.notes,
+                        bookingId: booking.id
+                    } as any);
+                }
+            }
+        } catch (err) {
+            console.error('Error syncing table status:', err);
+        }
+
         // --- Tự động đồng bộ sang KDS Bếp khi khách đến ---
         if (status === 'arrived') {
             try {
@@ -143,6 +183,13 @@ export const bookingService = {
 
     // 4. Update toàn bộ thông tin
     async updateBooking(id: string, updates: Partial<Booking>) {
+        // Fetch old booking to check for table changes
+        const { data: oldBooking } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('id', id)
+            .single();
+
         const dbUpdates: any = {};
         if (updates.customerName) dbUpdates.customer_name = updates.customerName;
         if (updates.phone) dbUpdates.phone = updates.phone;
@@ -168,6 +215,56 @@ export const bookingService = {
         if (error) {
             console.error('Error updating booking:', error);
             throw error;
+        }
+
+        // --- Đồng bộ trạng thái sang Sơ đồ bàn ---
+        if (oldBooking) {
+            try {
+                const oldTableId = oldBooking.table_id;
+                const newTableId = updates.tableId !== undefined ? updates.tableId : oldTableId;
+                const activeStatus = updates.status !== undefined ? updates.status : oldBooking.status;
+                const customerName = updates.customerName !== undefined ? updates.customerName : oldBooking.customer_name;
+                const time = updates.time !== undefined ? updates.time : oldBooking.time;
+                const notes = updates.notes !== undefined ? updates.notes : oldBooking.notes;
+
+                // If table changed, clear old table
+                if (oldTableId && oldTableId !== newTableId) {
+                    await tableService.updateTableStatus(oldTableId, {
+                        status: 'empty',
+                        customerName: undefined,
+                        time: undefined,
+                        notes: undefined,
+                        bookingId: null as any
+                    } as any);
+                }
+
+                // Sync to new/current table
+                if (newTableId) {
+                    let tableStatus: 'empty' | 'reserved' | 'occupied' = 'reserved';
+                    if (activeStatus === 'arrived') tableStatus = 'occupied';
+                    if (activeStatus === 'completed' || activeStatus === 'cancelled' || activeStatus === 'no_show') tableStatus = 'empty';
+
+                    if (tableStatus === 'empty') {
+                        await tableService.updateTableStatus(newTableId, {
+                            status: 'empty',
+                            customerName: undefined,
+                            time: undefined,
+                            notes: undefined,
+                            bookingId: null as any
+                        } as any);
+                    } else {
+                        await tableService.updateTableStatus(newTableId, {
+                            status: tableStatus,
+                            customerName: customerName,
+                            time: time,
+                            notes: notes || undefined,
+                            bookingId: id
+                        } as any);
+                    }
+                }
+            } catch (err) {
+                console.error('Error syncing table update:', err);
+            }
         }
     },
 
