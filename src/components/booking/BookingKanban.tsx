@@ -65,11 +65,9 @@ const columns: { id: BookingStatus; label: string; color: string; borderColor: s
 ];
 
 const boardColumns = [
-  { id: 'col_new', label: 'Mới nhận', color: 'bg-blue-50', borderColor: 'border-blue-500', icon: Plus, statuses: ['new'], defaultStatus: 'new' },
-  { id: 'col_pending', label: 'Chờ xác nhận', color: 'bg-orange-50', borderColor: 'border-orange-400', icon: Clock, statuses: ['waiting_info', 'pending', 'change_requested'], defaultStatus: 'pending' },
-  { id: 'col_confirmed', label: 'Đã xác nhận', color: 'bg-green-50', borderColor: 'border-green-500', icon: CheckCircle, statuses: ['confirmed'], defaultStatus: 'confirmed' },
-  { id: 'col_arrived', label: 'Đã đến', color: 'bg-teal-50', borderColor: 'border-teal-500', icon: Users, statuses: ['arrived'], defaultStatus: 'arrived' },
-  { id: 'col_history', label: 'Lịch sử', color: 'bg-gray-100', borderColor: 'border-gray-400', icon: Archive, statuses: ['completed', 'cancelled', 'no_show'], defaultStatus: 'completed' },
+  { id: 'col_action', label: 'Cần xử lý', color: 'bg-red-50', borderColor: 'border-red-400', icon: AlertCircle, statuses: ['new', 'waiting_info', 'pending', 'change_requested'], defaultStatus: 'new' },
+  { id: 'col_confirmed', label: 'Đã chốt', color: 'bg-green-50', borderColor: 'border-green-500', icon: CheckCircle, statuses: ['confirmed'], defaultStatus: 'confirmed' },
+  { id: 'col_serving', label: 'Đang phục vụ', color: 'bg-teal-50', borderColor: 'border-teal-500', icon: Users, statuses: ['arrived'], defaultStatus: 'arrived' },
 ];
 
 interface BookingKanbanProps {
@@ -318,14 +316,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!destColumn) return;
     const newStatus = destColumn.defaultStatus as BookingStatus;
 
-    // INTERCEPT: Drop onto the "History" column
-    if (destDroppable === 'col_history') {
-      const bk = bookings.find(b => b.id === draggableId);
-      if (bk) {
-        setHistoryDropBooking(bk);
-      }
-      return;
-    }
+    // If dropped on serving column from confirmed, auto-set arrived
+    // (default behavior handles this via defaultStatus)
 
     if (newStatus === 'completed') {
       // Intercept and show checkout modal (fallback if manually changed to completed without going through history)
@@ -988,22 +980,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     );
   };
 
-  // --- Desktop Kanban View ---
+  // --- Desktop Kanban View (3 Columns) ---
 
   const renderDesktopKanban = () => (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex-1 relative group p-6 overflow-hidden">
-        {/* Scroll Left Button */}
-        <button
-          onClick={() => scrollKanban('left')}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-[55] bg-white/90 shadow-lg border border-gray-200 p-2 rounded-full text-gray-600 hover:text-teal-600 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-
-        <div className="flex gap-4 h-full overflow-x-auto no-scrollbar pb-4" ref={scrollRef}>
+      <div className="flex-1 relative p-6 overflow-hidden">
+        <div className="flex gap-5 h-full">
           {boardColumns.map((col) => {
-            const colBookings = filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status));
+            const colBookings = filteredBookings
+              .filter(b => (col.statuses as BookingStatus[]).includes(b.status))
+              .sort((a, b) => a.time.localeCompare(b.time));
+            const ColIcon = col.icon;
 
             return (
               <Droppable key={col.id} droppableId={col.id}>
@@ -1011,111 +998,125 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 flex flex-col min-w-[240px] rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
+                    className={`flex-1 flex flex-col rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
                       }`}
                   >
                     {/* Column Header */}
-                    <div className={`p-3 border-b border-gray-200 flex items-center justify-between rounded-t-xl ${col.color}`}>
+                    <div className={`px-4 py-3 border-b border-gray-200 flex items-center justify-between rounded-t-xl ${col.color}`}>
                       <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full border ${col.borderColor} bg-white`}></span>
-                        <h3 className="font-semibold text-gray-700 text-sm">{col.label}</h3>
+                        {ColIcon && <ColIcon className={`w-4 h-4 ${col.borderColor.replace('border-', 'text-')}`} />}
+                        <h3 className="font-bold text-gray-800 text-sm">{col.label}</h3>
                       </div>
-                      <span className="bg-white/60 px-2 py-0.5 rounded text-xs font-medium text-gray-600">
+                      <span className="bg-white/80 px-2.5 py-0.5 rounded-full text-xs font-bold text-gray-700 shadow-sm">
                         {colBookings.length}
                       </span>
                     </div>
 
                     {/* Cards Container */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                      {colBookings.map((booking, index) => (
-                        // @ts-ignore
-                        <Draggable key={booking.id} draggableId={booking.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`
-                                bg-white p-3 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative
-                                ${isMissingInfo(booking) ? 'border-red-400 ring-1 ring-red-400/50 bg-red-50/20' : col.borderColor}
-                                ${snapshot.isDragging ? 'shadow-xl rotate-2 scale-105 z-50' : ''}
-                              `}
-                              style={provided.draggableProps.style}
-                            >
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-semibold text-gray-900 text-sm">{booking.customerName || 'Không có tên'}</h4>
-                                    {booking.customerType === 'tour' ? (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Tour</span>
-                                    ) : booking.customerType === 'retail' ? (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">Lẻ</span>
-                                    ) : null}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                      {colBookings.map((booking, index) => {
+                        const statusConfig = columns.find(c => c.id === booking.status);
+                        const isServing = col.id === 'col_serving';
+                        return (
+                          // @ts-ignore
+                          <Draggable key={booking.id} draggableId={booking.id} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`
+                                  bg-white rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative
+                                  ${isMissingInfo(booking) ? 'border-red-400 ring-1 ring-red-400/50 bg-red-50/20' : col.borderColor}
+                                  ${snapshot.isDragging ? 'shadow-xl rotate-1 scale-105 z-50' : ''}
+                                `}
+                                style={provided.draggableProps.style}
+                              >
+                                <div className="p-3">
+                                  {/* Row 1: Name + badges + edit */}
+                                  <div className="flex justify-between items-start mb-1.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <h4 className="font-semibold text-gray-900 text-sm truncate">{booking.customerName || 'Không tên'}</h4>
+                                      {booking.customerType === 'tour' && (
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Tour</span>
+                                      )}
+                                      {booking.customerType === 'retail' && (
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">Lẻ</span>
+                                      )}
+                                      {isMissingInfo(booking) && (
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0">!</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      {col.statuses.length > 1 && statusConfig && (
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${statusConfig.color} ${statusConfig.borderColor.replace('border-', 'text-')}`}>
+                                          {statusConfig.label}
+                                        </span>
+                                      )}
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleEditBooking(booking); }}
+                                        className="text-gray-300 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                                        title="Chỉnh sửa"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
-                                  {isMissingInfo(booking) && (
-                                    <span className="text-[10px] font-bold text-red-500 mt-0.5 flex items-center gap-1 bg-red-50 px-1 py-0.5 rounded border border-red-100 max-w-max">
-                                      <AlertCircle className="w-3 h-3" /> Thiếu TT
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {col.statuses.length > 1 && (
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${columns.find(c => c.id === booking.status)?.color} ${columns.find(c => c.id === booking.status)?.borderColor.replace('border-', 'text-')}`}>
-                                      {columns.find(c => c.id === booking.status)?.label}
-                                    </span>
-                                  )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditBooking(booking);
-                                    }}
-                                    className="text-gray-400 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Chỉnh sửa"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
 
-                              <div className="flex items-center gap-4 text-xs text-gray-600 mb-2">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                                  {booking.time || '--:--'}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Users className="w-3.5 h-3.5 text-gray-400" />
-                                  {booking.pax || 0}
-                                </div>
-                                {booking.source && (
-                                  <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source]}`}>
-                                    {sourceLabels[booking.source]}
+                                  {/* Row 2: Time · Pax · Source · Table (single line) */}
+                                  <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                                    <span className="flex items-center gap-0.5 font-medium text-gray-700">
+                                      <Clock className="w-3 h-3 text-gray-400" />
+                                      {booking.time || '--:--'}
+                                    </span>
+                                    <span className="text-gray-300">·</span>
+                                    <span className="flex items-center gap-0.5">
+                                      <Users className="w-3 h-3 text-gray-400" />
+                                      {booking.pax || 0}
+                                    </span>
+                                    {booking.source && (
+                                      <>
+                                        <span className="text-gray-300">·</span>
+                                        <span className={`px-1 py-0 rounded text-[9px] font-bold uppercase ${sourceColors[booking.source]}`}>
+                                          {sourceLabels[booking.source]}
+                                        </span>
+                                      </>
+                                    )}
+                                    {booking.tableName && (
+                                      <>
+                                        <span className="text-gray-300">·</span>
+                                        <span className="inline-flex items-center gap-0.5 px-1 py-0 bg-teal-50 text-teal-700 rounded text-[9px] font-bold border border-teal-200">
+                                          <LayoutGrid className="w-2.5 h-2.5" />
+                                          {booking.tableName}
+                                        </span>
+                                      </>
+                                    )}
+                                    {booking.notes && booking.notes.length > 0 && (
+                                      <>
+                                        <span className="text-gray-300">·</span>
+                                        <span className="inline-flex items-center gap-0.5 px-1 py-0 bg-amber-50 text-amber-600 rounded text-[9px] font-medium border border-amber-100" title={booking.notes.join(', ')}>
+                                          💬 {booking.notes.length}
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
+                                </div>
+
+                                {/* Quick-complete button for Serving column */}
+                                {isServing && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'completed'); }}
+                                    className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-gray-400 bg-gray-50 border-t border-gray-100 rounded-b-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                                  >
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Hoàn thành
+                                  </button>
                                 )}
                               </div>
-
-                              {booking.tableName && (
-                                <div className="mb-2">
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
-                                    <LayoutGrid className="w-3 h-3 flex-shrink-0" />
-                                    <span className="whitespace-nowrap">{booking.tableName}</span>
-                                  </span>
-                                </div>
-                              )}
-
-                              {booking.notes && booking.notes.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {booking.notes.map((note, idx) => (
-                                    <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">
-                                      <AlertCircle className="w-3 h-3" />
-                                      {note}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                            )}
+                          </Draggable>
+                        );
+                      })}
                       {provided.placeholder}
                     </div>
                   </div>
@@ -1124,14 +1125,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
             );
           })}
         </div>
-
-        {/* Scroll Right Button */}
-        <button
-          onClick={() => scrollKanban('right')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-[55] bg-white/90 shadow-lg border border-gray-200 p-2 rounded-full text-gray-600 hover:text-teal-600 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
       </div>
     </DragDropContext>
   );
@@ -1185,58 +1178,95 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
       </div>
 
-      {/* Desktop Status Filter Bar */}
-      <div className="hidden md:flex px-6 py-2.5 bg-white border-b border-gray-100 items-center gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mr-1 flex-shrink-0">
-          <Filter className="w-3.5 h-3.5" />
-          Trạng thái
-        </div>
-        <button
-          onClick={() => setSelectedStatuses([])}
-          className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${selectedStatuses.length === 0
-            ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
-            : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
-            }`}
-        >
-          Tất cả
-          <span className={`ml-1 ${selectedStatuses.length === 0 ? 'text-gray-300' : 'text-gray-400'}`}>
-            {bookings.length}
-          </span>
-        </button>
-        {columns.map(col => {
-          const ColIcon = col.icon;
-          const isActive = selectedStatuses.includes(col.id);
-          const count = bookings.filter(b => b.status === col.id).length;
-          return (
-            <button
-              key={col.id}
-              onClick={() => toggleStatusFilter(col.id)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${isActive
-                ? `${col.color} ${col.borderColor} ${col.borderColor.replace('border-', 'text-')} shadow-sm`
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
-                }`}
-            >
-              {ColIcon && <ColIcon className="w-3 h-3" />}
-              {col.label}
-              {count > 0 && (
-                <span className={`px-1 py-0 rounded-full text-[10px] ${isActive ? 'bg-white/50' : 'bg-gray-100'
-                  }`}>
+      {/* Desktop Status Filter Bar (Simplified 3 groups) */}
+      {viewMode === 'kanban' && (
+        <div className="hidden md:flex px-6 py-2.5 bg-white border-b border-gray-100 items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mr-1 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5" />
+          </div>
+          {boardColumns.map(col => {
+            const count = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)).length;
+            const ColIcon = col.icon;
+            return (
+              <div key={col.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${col.color} ${col.borderColor.replace('border-', 'text-')}`}>
+                {ColIcon && <ColIcon className="w-3.5 h-3.5" />}
+                {col.label}
+                <span className="bg-white/70 px-1.5 py-0.5 rounded-full text-[10px] text-gray-700 font-bold shadow-sm">
                   {count}
                 </span>
-              )}
+              </div>
+            );
+          })}
+          <div className="ml-auto">
+            <button
+              onClick={() => {
+                setViewMode('table');
+                setSelectedStatuses(['completed', 'cancelled', 'no_show']);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors border border-gray-200"
+            >
+              <Archive className="w-3.5 h-3.5" />
+              Xem lịch sử
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px] text-gray-500 font-bold">
+                {bookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status)).length}
+              </span>
             </button>
-          );
-        })}
-        {selectedStatuses.length > 0 && (
+          </div>
+        </div>
+      )}
+      {viewMode === 'table' && (
+        <div className="hidden md:flex px-6 py-2.5 bg-white border-b border-gray-100 items-center gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mr-1 flex-shrink-0">
+            <Filter className="w-3.5 h-3.5" />
+            Trạng thái
+          </div>
           <button
             onClick={() => setSelectedStatuses([])}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${selectedStatuses.length === 0
+              ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+              }`}
           >
-            <X className="w-3 h-3" />
-            Xóa lọc
+            Tất cả
+            <span className={`ml-1 ${selectedStatuses.length === 0 ? 'text-gray-300' : 'text-gray-400'}`}>
+              {bookings.length}
+            </span>
           </button>
-        )}
-      </div>
+          {columns.map(col => {
+            const ColIcon = col.icon;
+            const isActive = selectedStatuses.includes(col.id);
+            const count = bookings.filter(b => b.status === col.id).length;
+            return (
+              <button
+                key={col.id}
+                onClick={() => toggleStatusFilter(col.id)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${isActive
+                  ? `${col.color} ${col.borderColor} ${col.borderColor.replace('border-', 'text-')} shadow-sm`
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                  }`}
+              >
+                {ColIcon && <ColIcon className="w-3 h-3" />}
+                {col.label}
+                {count > 0 && (
+                  <span className={`px-1 py-0 rounded-full text-[10px] ${isActive ? 'bg-white/50' : 'bg-gray-100'
+                    }`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {selectedStatuses.length > 0 && (
+            <button
+              onClick={() => setSelectedStatuses([])}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors flex-shrink-0"
+            >
+              <X className="w-3 h-3" />
+              Xóa lọc
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Conditional Rendering */}
       {isMobile
