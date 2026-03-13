@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import BookingLookup from './BookingLookup';
 import { bookingService } from '../../services/bookingService';
 import { menuService } from '../../services/menuService';
 import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
 
 export default function PublicBookingForm() {
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [showLookup, setShowLookup] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState<{
         customerType: 'retail' | 'tour';
@@ -184,7 +186,24 @@ export default function PublicBookingForm() {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center p-4 md:p-8 w-full max-w-2xl mx-auto">
-                <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-2 md:mt-8">
+                {/* Tra cứu đơn đặt bàn */}
+                <div className="w-full mt-2 md:mt-8 mb-3">
+                    <button
+                        onClick={() => setShowLookup(!showLookup)}
+                        className="flex items-center gap-2 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors mx-auto"
+                    >
+                        <Search className="w-4 h-4" />
+                        Tra cứu đơn đặt bàn
+                        {showLookup ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    {showLookup && (
+                        <div className="mt-3 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                            <BookingLookup />
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
                     <div className="bg-teal-600 px-6 py-8 text-white text-center">
                         <h2 className="text-2xl md:text-3xl font-black mb-2">ĐẶT BÀN ONLINE</h2>

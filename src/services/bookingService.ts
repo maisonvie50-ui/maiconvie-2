@@ -184,5 +184,40 @@ export const bookingService = {
                     console.log('Successfully subscribed to bookings realtime!');
                 }
             });
+    },
+
+    // 6. Tra cứu booking theo tên hoặc SĐT (Public)
+    async searchBookingsByContact(query: string) {
+        const trimmed = query.trim();
+        if (!trimmed) return [];
+
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('*')
+            .or(`customer_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.error('Error searching bookings:', error);
+            throw error;
+        }
+
+        return (data || []).map(b => ({
+            id: b.id,
+            customerName: b.customer_name,
+            phone: b.phone,
+            time: b.time,
+            pax: b.pax,
+            status: b.status,
+            notes: b.notes || [],
+            area: b.area,
+            source: b.source,
+            customerType: b.customer_type,
+            selectedMenus: b.selected_menus || [],
+            tableId: b.table_id,
+            tableName: b.table_name,
+            createdAt: b.created_at
+        })) as (Booking & { createdAt?: string })[];
     }
 };
