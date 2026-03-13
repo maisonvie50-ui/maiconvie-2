@@ -46,16 +46,16 @@ export default function OrderHistory() {
 
     return (
         <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-            {/* Header */}
-            <div className="bg-white border-b px-6 py-4 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header - Ẩn trên mobile vì MobileCaptainApp đã có header riêng */}
+            <div className="bg-white border-b px-4 md:px-6 py-4 shrink-0 hidden md:flex flex-row items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold font-serif text-teal-800">Lịch sử Hoá đơn</h1>
-                    <p className="text-gray-500 text-sm">Xem lại các hóa đơn đã thanh toán</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Lịch sử Hoá đơn</h1>
+                    <p className="text-gray-500 text-sm mt-0.5">Xem lại các hóa đơn đã thanh toán</p>
                 </div>
             </div>
 
             {/* Filters & Stats */}
-            <div className="p-6 shrink-0 space-y-6">
+            <div className="p-4 md:p-6 shrink-0 space-y-4 md:space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Stats Cards */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
@@ -79,8 +79,8 @@ export default function OrderHistory() {
                 </div>
 
                 {/* Filters */}
-                <form onSubmit={handleSearch} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                <form onSubmit={handleSearch} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-stretch md:items-end">
+                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
                         <label htmlFor="dateFrom" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Từ ngày</label>
                         <div className="relative">
                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -94,7 +94,7 @@ export default function OrderHistory() {
                             />
                         </div>
                     </div>
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
                         <label htmlFor="dateTo" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Đến ngày</label>
                         <div className="relative">
                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -108,7 +108,7 @@ export default function OrderHistory() {
                             />
                         </div>
                     </div>
-                    <div className="space-y-1.5 flex-1 min-w-[200px]">
+                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
                         <label htmlFor="searchTable" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Tìm theo bàn</label>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -123,16 +123,17 @@ export default function OrderHistory() {
                             />
                         </div>
                     </div>
-                    <button type="submit" className="px-6 py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                    <button type="submit" className="px-6 py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors w-full md:w-auto mt-2 md:mt-0">
                         Lọc
                     </button>
                 </form>
             </div>
 
             {/* List */}
-            <div className="flex-1 px-6 pb-6 overflow-hidden flex flex-col">
+            <div className="flex-1 px-4 md:px-6 pb-6 overflow-hidden flex flex-col">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -187,19 +188,61 @@ export default function OrderHistory() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Card List View */}
+                    <div className="md:hidden overflow-y-auto flex-1 p-2 md:p-3 bg-gray-50">
+                        {loading ? (
+                            <div className="p-8 flex justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+                            </div>
+                        ) : orders.length === 0 ? (
+                            <div className="p-8 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
+                                Không có đơn hàng nào trong khoảng thời gian này.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {orders.map(order => (
+                                    <div
+                                        key={order.id}
+                                        className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform"
+                                        onClick={() => setSelectedOrder(order)}
+                                    >
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <div className="font-bold text-gray-900 text-lg">{order.table || 'Mang đi'}</div>
+                                                <div className="text-xs text-gray-500 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
+                                            </div>
+                                            <span className="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-[10px] font-bold uppercase">
+                                                Đã thanh toán
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-end mt-4">
+                                            <div className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
+                                                <Clock className="w-4 h-4 text-gray-400" />
+                                                {order.orderTime.toLocaleString('vi-VN')}
+                                            </div>
+                                            <div className="font-bold text-teal-600 text-lg">
+                                                {calculateOrderTotal(order).toLocaleString('vi-VN')}đ
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Modal Detail */}
             {selectedOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh] md:max-h-[90vh] animate-in zoom-in-95 duration-200">
                         <div className="bg-gray-900 text-white p-4 flex justify-between items-center shrink-0">
                             <div>
                                 <h2 className="text-lg font-bold">Chi tiết Hoá đơn</h2>
                                 <p className="text-gray-400 text-xs font-mono">#{selectedOrder.id}</p>
                             </div>
-                            <button title="Đóng" onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-800 rounded-full transition-colors">
+                            <button title="Đóng" onClick={() => setSelectedOrder(null)} className="p-3 md:p-2 -mr-1 md:mr-0 hover:bg-gray-800 rounded-full transition-colors">
                                 <X className="w-5 h-5 text-gray-300" />
                             </button>
                         </div>
