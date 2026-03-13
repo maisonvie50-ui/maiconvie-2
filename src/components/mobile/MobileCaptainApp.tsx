@@ -601,7 +601,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     <div className="h-screen bg-gray-50 flex flex-col font-sans">
       {/* Header */}
       {!isFullScreenView && view !== 'bookings' && (
-        <div className="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-20">
+        <div className="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between z-20 shrink-0">
           <div className="flex items-center gap-3">
             {view !== 'tables' && view !== 'success' && view !== 'more' && (
               <button
@@ -645,7 +645,11 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'cart' && renderCart()}
         {view === 'success' && renderSuccess()}
         {view === 'bookings' && <BookingKanban />}
-        {view === 'more' && renderMoreMenu()}
+        {view === 'more' && (
+          <div className="flex-1 overflow-y-auto">
+            {renderMoreMenu()}
+          </div>
+        )}
         {view === 'training' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
