@@ -1522,6 +1522,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    title="Nhập ghi chú"
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
@@ -1589,6 +1590,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               <label className="block text-sm font-medium text-gray-700 mb-2">Số tiền thanh toán (VNĐ)</label>
               <input
                 type="text"
+                title="Số tiền thanh toán"
                 className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-teal-500 font-bold text-lg"
                 placeholder="VD: 1,500,000"
                 value={checkoutAmount}
@@ -1690,6 +1692,121 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 className="w-full py-2.5 rounded-xl text-gray-600 font-bold hover:bg-gray-200 transition-colors"
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Details Read-Only Modal */}
+      {viewingBooking && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setViewingBooking(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div className="flex items-center gap-3">
+                <h3 className="font-bold text-lg text-gray-800">Chi tiết đặt bàn</h3>
+                <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${columns.find(c => c.id === viewingBooking.status)?.color} ${columns.find(c => c.id === viewingBooking.status)?.borderColor.replace('border-', 'text-')}`}>
+                  {columns.find(c => c.id === viewingBooking.status)?.label || viewingBooking.status}
+                </span>
+              </div>
+              <button onClick={() => setViewingBooking(null)} className="text-gray-400 hover:text-gray-600 bg-white p-1.5 rounded-full shadow-sm border border-gray-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar bg-white">
+              {/* Customer Header */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-1">{viewingBooking.customerName || 'Không có tên'}</h2>
+                  {viewingBooking.phone && (
+                    <div className="flex items-center text-teal-600 font-medium">
+                      <Phone className="w-4 h-4 mr-1.5" />
+                      {viewingBooking.phone}
+                    </div>
+                  )}
+                </div>
+                {viewingBooking.customerType && (
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${viewingBooking.customerType === 'tour' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                    Khách {viewingBooking.customerType === 'tour' ? 'Tour' : 'Lẻ'}
+                  </span>
+                )}
+              </div>
+
+              {/* Time & Info block */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Thời gian</p>
+                  <p className="text-sm font-semibold flex items-center gap-1.5">
+                    <CalendarIcon className="w-4 h-4 text-gray-500" />
+                    {viewingBooking.bookingDate ? new Date(viewingBooking.bookingDate).toLocaleDateString('vi-VN') : 'Không rõ'}
+                    <span className="text-gray-300 mx-0.5">•</span>
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    {viewingBooking.time || '--:--'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Số lượng khách</p>
+                  <p className="text-sm font-semibold flex items-center gap-1.5 text-gray-900">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    {viewingBooking.pax} <span className="font-normal text-gray-500">người</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Bàn phục vụ</p>
+                  <p className="text-sm font-semibold flex items-center gap-1.5 text-gray-900">
+                    <LayoutGrid className="w-4 h-4 text-teal-500" />
+                    {viewingBooking.tableName ? (
+                      <span className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded border border-teal-100">{viewingBooking.tableName}</span>
+                    ) : (
+                      <span className="text-gray-400 font-normal italic">Chưa xếp bàn</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nguồn đặt</p>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {sourceLabels[viewingBooking.source] || viewingBooking.source}
+                  </p>
+                </div>
+              </div>
+
+              {/* Notes block */}
+              {viewingBooking.notes && viewingBooking.notes.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-amber-500" />
+                    Ghi chú từ khách hàng / hệ thống
+                  </p>
+                  <div className="space-y-2">
+                    {viewingBooking.notes.map((note, idx) => (
+                      <div key={idx} className="bg-amber-50 border border-amber-100 text-amber-800 text-sm p-3 rounded-lg flex items-start gap-2">
+                        <span className="mt-0.5 text-amber-400">•</span>
+                        <span>{note}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingBooking(null);
+                  handleEditBooking(viewingBooking);
+                }}
+                className="w-full py-2.5 bg-white border border-gray-200 hover:border-teal-500 hover:text-teal-600 text-gray-700 text-sm font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Sửa thông tin đơn
               </button>
             </div>
           </div>
