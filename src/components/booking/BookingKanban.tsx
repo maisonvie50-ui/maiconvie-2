@@ -29,7 +29,8 @@ import {
   List,
   ChevronDown,
   Filter,
-  MoreVertical
+  MoreVertical,
+  Eye
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
@@ -1035,7 +1036,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                 `}
                                 style={provided.draggableProps.style}
                               >
-                                <div className="p-3">
+                                <div className="p-3" onDoubleClick={() => setViewingBooking(booking)}>
                                   {/* Row 1: Name + badges + edit */}
                                   <div className="flex justify-between items-start mb-1.5">
                                     <div className="flex items-center gap-1.5 min-w-0">
@@ -1081,6 +1082,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                           )}
                                         </div>
                                       )}
+
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setViewingBooking(booking); }}
+                                        className="text-gray-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                                        title="Xem chi tiết"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                      </button>
 
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleEditBooking(booking); }}
