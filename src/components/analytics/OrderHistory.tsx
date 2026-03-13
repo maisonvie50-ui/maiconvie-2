@@ -55,77 +55,86 @@ export default function OrderHistory() {
             </div>
 
             {/* Filters & Stats */}
-            <div className="p-4 md:p-6 shrink-0 space-y-4 md:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-3 md:p-6 shrink-0 space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
                     {/* Stats Cards */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
-                            <TrendingUp className="w-6 h-6" />
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-center gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">
+                            <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
-                        <div>
-                            <div className="text-sm font-medium text-gray-500">Tổng doanh thu (Kỳ này)</div>
-                            <div className="text-2xl font-bold text-gray-900">{totalRevenue.toLocaleString('vi-VN')}đ</div>
+                        <div className="min-w-0">
+                            <div className="text-xs md:text-sm font-medium text-gray-500 truncate">Tổng doanh thu</div>
+                            <div className="text-base md:text-2xl font-bold text-gray-900 truncate" title={`${totalRevenue.toLocaleString('vi-VN')}đ`}>
+                                {totalRevenue > 1000000 ? `${(totalRevenue / 1000000).toFixed(1)}Tr` : `${totalRevenue.toLocaleString('vi-VN')}đ`}
+                            </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                            <Receipt className="w-6 h-6" />
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-center gap-3">
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                            <Receipt className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
                         <div>
-                            <div className="text-sm font-medium text-gray-500">Tổng số đơn</div>
-                            <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
+                            <div className="text-xs md:text-sm font-medium text-gray-500">Tổng số đơn</div>
+                            <div className="text-base md:text-2xl font-bold text-gray-900">{orders.length}</div>
                         </div>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <form onSubmit={handleSearch} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-stretch md:items-end">
-                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
-                        <label htmlFor="dateFrom" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Từ ngày</label>
-                        <div className="relative">
-                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="date"
-                                id="dateFrom"
-                                title="Ngày bắt đầu"
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                            />
+                <form onSubmit={handleSearch} className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+                    <div className="flex gap-3 w-full">
+                        <div className="space-y-1 flex-1">
+                            <label htmlFor="dateFrom" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Từ ngày</label>
+                            <div className="relative">
+                                <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                                <input
+                                    type="date"
+                                    id="dateFrom"
+                                    title="Ngày bắt đầu"
+                                    className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1 flex-1">
+                            <label htmlFor="dateTo" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Đến ngày</label>
+                            <div className="relative">
+                                <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                                <input
+                                    type="date"
+                                    id="dateTo"
+                                    title="Ngày kết thúc"
+                                    className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
-                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
-                        <label htmlFor="dateTo" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Đến ngày</label>
-                        <div className="relative">
-                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="date"
-                                id="dateTo"
-                                title="Ngày kết thúc"
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                            />
+
+                    <div className="flex gap-3 w-full md:w-auto">
+                        <div className="space-y-1 flex-1 md:min-w-[200px]">
+                            <label htmlFor="searchTable" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Tìm theo bàn</label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    id="searchTable"
+                                    title="Bàn hoặc Booking ID"
+                                    placeholder="Nhập tên bàn..."
+                                    className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                                    value={searchTable}
+                                    onChange={(e) => setSearchTable(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-end">
+                            <button type="submit" className="px-4 md:px-6 py-1.5 md:py-2.5 bg-gray-900 text-white text-sm md:text-base rounded-lg font-medium hover:bg-gray-800 transition-colors h-[34px] md:h-[42px] min-w-[70px]">
+                                Lọc
+                            </button>
                         </div>
                     </div>
-                    <div className="space-y-1.5 flex-1 min-w-[0] md:min-w-[200px]">
-                        <label htmlFor="searchTable" className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Tìm theo bàn</label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                id="searchTable"
-                                title="Bàn hoặc Booking ID"
-                                placeholder="Nhập tên bàn..."
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                                value={searchTable}
-                                onChange={(e) => setSearchTable(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <button type="submit" className="px-6 py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors w-full md:w-auto mt-2 md:mt-0">
-                        Lọc
-                    </button>
                 </form>
             </div>
 
@@ -190,38 +199,38 @@ export default function OrderHistory() {
                     </div>
 
                     {/* Mobile Card List View */}
-                    <div className="md:hidden overflow-y-auto flex-1 p-2 md:p-3 bg-gray-50">
+                    <div className="md:hidden overflow-y-auto flex-1 p-2 md:p-3 bg-gray-50 pb-20">
                         {loading ? (
                             <div className="p-8 flex justify-center">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
                             </div>
                         ) : orders.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100 mt-2">
-                                Không có đơn hàng nào trong khoảng thời gian này.
+                            <div className="p-6 text-center text-sm text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100">
+                                Không có đơn hàng nào.
                             </div>
                         ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 {orders.map(order => (
                                     <div
                                         key={order.id}
-                                        className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform"
+                                        className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm active:scale-[0.98] transition-transform"
                                         onClick={() => setSelectedOrder(order)}
                                     >
-                                        <div className="flex justify-between items-start mb-3">
+                                        <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <div className="font-bold text-gray-900 text-lg">{order.table || 'Mang đi'}</div>
-                                                <div className="text-xs text-gray-500 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
+                                                <div className="font-bold text-gray-900 text-sm">{order.table || 'Mang đi'}</div>
+                                                <div className="text-[11px] text-gray-400 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
                                             </div>
-                                            <span className="px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-[10px] font-bold uppercase">
-                                                Đã thanh toán
+                                            <span className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded text-[10px] font-bold">
+                                                ĐÃ THANH TOÁN
                                             </span>
                                         </div>
-                                        <div className="flex justify-between items-end mt-4">
-                                            <div className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
-                                                <Clock className="w-4 h-4 text-gray-400" />
+                                        <div className="flex justify-between items-end mt-2">
+                                            <div className="text-[11px] text-gray-500 flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
                                                 {order.orderTime.toLocaleString('vi-VN')}
                                             </div>
-                                            <div className="font-bold text-teal-600 text-lg">
+                                            <div className="font-bold text-teal-600 text-base">
                                                 {calculateOrderTotal(order).toLocaleString('vi-VN')}đ
                                             </div>
                                         </div>
