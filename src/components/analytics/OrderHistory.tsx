@@ -139,8 +139,8 @@ export default function OrderHistory() {
             </div>
 
             {/* List */}
-            <div className="flex-1 px-4 md:px-6 pb-6 overflow-hidden flex flex-col">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 px-0 md:px-6 pb-0 md:pb-6 overflow-hidden flex flex-col">
+                <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-sm border-transparent md:border-gray-100 md:border flex-1 overflow-hidden flex flex-col">
                     {/* Desktop Table View */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -199,7 +199,7 @@ export default function OrderHistory() {
                     </div>
 
                     {/* Mobile Card List View */}
-                    <div className="md:hidden overflow-y-auto flex-1 p-2 md:p-3 bg-gray-50 pb-20">
+                    <div className="md:hidden overflow-y-auto flex-1 px-3 pt-1 pb-24">
                         {loading ? (
                             <div className="p-8 flex justify-center">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
