@@ -10,7 +10,8 @@ import {
   BookOpen,
   X,
   BarChart3,
-  LogOut
+  LogOut,
+  Receipt
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
 
   const allMenuItems = [
     { path: '/bao-cao', icon: BarChart3, label: 'Báo cáo chuyên sâu', allowedRoles: ['admin', 'manager'] },
+    { path: '/lich-su-don', icon: Receipt, label: 'Lịch sử Hoá đơn', allowedRoles: ['admin', 'manager', 'receptionist'] },
     { path: '/dat-ban', icon: CalendarDays, label: 'Lịch đặt bàn', allowedRoles: ['admin', 'manager', 'receptionist'] },
     { path: '/so-do-nha-hang', icon: Map, label: 'Sơ đồ nhà hàng', allowedRoles: ['admin', 'manager', 'receptionist', 'server'] },
     { path: '/thuc-don', icon: BookOpen, label: 'Thực đơn', allowedRoles: ['admin', 'manager'] },

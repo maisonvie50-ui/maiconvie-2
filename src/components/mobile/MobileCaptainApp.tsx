@@ -36,6 +36,7 @@ import {
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
 import CheckoutModal from '../booking/CheckoutModal';
+import OrderHistory from '../analytics/OrderHistory';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
 interface Table {
@@ -61,7 +62,7 @@ interface VipRoom {
   notes?: string;
 }
 
-type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen';
+type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen' | 'order-history';
 
 interface MobileCaptainAppProps {
   onLogout?: () => void;
@@ -573,6 +574,16 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       </button>
 
       <button
+        onClick={() => handleSetView('order-history')}
+        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+      >
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+          <Receipt className="w-7 h-7" />
+        </div>
+        <span className="font-bold text-gray-800">Lịch sử đơn</span>
+      </button>
+
+      <button
         onClick={onLogout}
         className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40 col-span-2"
       >
@@ -689,6 +700,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             </div>
             <div className="flex-1 min-h-0">
               <KitchenDisplay />
+            </div>
+          </div>
+        )}
+        {view === 'order-history' && (
+          <div className="h-full flex flex-col pb-24">
+            <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Lịch sử Hoá đơn</h2>
+            </div>
+            <div className="flex-1 min-h-0">
+              <OrderHistory />
             </div>
           </div>
         )}

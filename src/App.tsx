@@ -15,6 +15,7 @@ import CustomerCRM from './components/crm/CustomerCRM';
 import Settings from './components/settings/Settings';
 import MenuManagement from './components/menu/MenuManagement';
 import AdvancedAnalytics from './components/analytics/AdvancedAnalytics';
+import OrderHistory from './components/analytics/OrderHistory';
 import MobileCaptainApp from './components/mobile/MobileCaptainApp';
 import Login from './components/auth/Login';
 import UserProfile from './components/profile/UserProfile';
@@ -60,6 +61,7 @@ function DesktopLayout() {
             <Route index element={<Navigate to="/so-do-nha-hang" replace />} />
             <Route path="so-do-nha-hang" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist', 'server']}><RestaurantMap /></RoleGuard>} />
             <Route path="bao-cao" element={<RoleGuard allowedRoles={['admin', 'manager']}><AdvancedAnalytics /></RoleGuard>} />
+            <Route path="lich-su-don" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist']}><OrderHistory /></RoleGuard>} />
             <Route path="dat-ban" element={
               <RoleGuard allowedRoles={['admin', 'manager', 'receptionist']}>
                 <BookingKanban isModalOpen={isBookingModalOpen} onToggleModal={setIsBookingModalOpen} />

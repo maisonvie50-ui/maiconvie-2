@@ -289,5 +289,68 @@ export const orderService = {
                     console.log('Successfully subscribed to kitchen orders realtime!');
                 }
             });
+    },
+
+    // 8. Get completed orders (for Order History page)
+    async getCompletedOrders(filters?: { dateFrom?: string; dateTo?: string; searchTable?: string }): Promise<OrderTicket[]> {
+        let query = supabase
+            .from('orders')
+            .select('*')
+            .eq('status', 'completed')
+            .order('order_time', { ascending: false });
+
+        if (filters?.dateFrom) {
+            query = query.gte('order_time', filters.dateFrom);
+        }
+        if (filters?.dateTo) {
+            // Add 1 day to include the entire "dateTo" day
+            const endDate = new Date(filters.dateTo);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('order_time', endDate.toISOString());
+        }
+        if (filters?.searchTable) {
+            query = query.ilike('table_name', `%${filters.searchTable}%`);
+        }
+
+        const { data: orders, error: orderError } = await query;
+
+        if (orderError) {
+            console.error('Error fetching completed orders:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
     }
 };
