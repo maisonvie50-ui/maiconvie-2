@@ -46,13 +46,6 @@ export default function OrderHistory() {
 
     return (
         <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-            {/* Header - Ẩn trên mobile vì MobileCaptainApp đã có header riêng */}
-            <div className="bg-white border-b px-4 md:px-6 py-4 shrink-0 hidden md:flex flex-row items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Lịch sử Hoá đơn</h1>
-                    <p className="text-gray-500 text-sm mt-0.5">Xem lại các hóa đơn đã thanh toán</p>
-                </div>
-            </div>
 
             {/* Filters & Stats */}
             <div className="p-3 md:p-6 shrink-0 space-y-4">

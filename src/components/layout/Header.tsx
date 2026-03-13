@@ -9,6 +9,7 @@ interface HeaderProps {
 
 const VIEW_TITLES: Record<string, string> = {
   '/bao-cao': 'Báo cáo chuyên sâu',
+  '/lich-su-don': 'Lịch sử Hoá đơn',
   '/dat-ban': 'Quản lý Đặt Bàn',
   '/so-do-nha-hang': 'Sơ đồ nhà hàng',
   '/thuc-don': 'Quản lý Thực đơn',
