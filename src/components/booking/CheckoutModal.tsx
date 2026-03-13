@@ -97,14 +97,25 @@ export default function CheckoutModal({ booking, table, onClose, onSuccess }: Ch
                 {/* Guest Info */}
                 <div className="bg-gray-50 border-b p-4 shrink-0">
                     <div className="flex justify-between items-start mb-2">
-                        <div className="font-bold text-gray-800">{booking.customerName}</div>
+                        <div className="font-bold text-gray-800">
+                            {booking ? booking.customerName : ((table as any)?.customerName || 'Khách vãng lai')}
+                        </div>
                         <div className="text-teal-600 font-bold px-2 py-0.5 bg-teal-100 rounded text-sm">
-                            {booking.tableName || 'Chưa xếp bàn'}
+                            {booking ? (booking.tableName || 'Chưa xếp bàn') : (table as any)?.name}
                         </div>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {booking.time}</div>
-                        <div className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {booking.pax} khách</div>
+                        {booking ? (
+                            <>
+                                <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {booking.time}</div>
+                                <div className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {booking.pax} khách</div>
+                            </>
+                        ) : (
+                            <>
+                                {((table as any)?.time) && <div className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {(table as any).time}</div>}
+                                {((table as any)?.pax || (table as any)?.capacity) && <div className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {(table as any).pax || (table as any).capacity} khách</div>}
+                            </>
+                        )}
                     </div>
                 </div>
 

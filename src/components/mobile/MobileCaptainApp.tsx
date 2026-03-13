@@ -34,6 +34,7 @@ import {
   X
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
+import { orderService } from '../../services/orderService';
 import CheckoutModal from '../booking/CheckoutModal';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
@@ -193,13 +194,42 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleSendOrder = () => {
-    handleSetView('success');
-    setTimeout(() => {
-      setCart([]);
-      setSelectedTable(null);
-      handleSetView('tables');
-    }, 2000);
+  const [isSendingOrder, setIsSendingOrder] = useState(false);
+
+  const handleSendOrder = async () => {
+    if (!selectedTable || cart.length === 0) return;
+
+    setIsSendingOrder(true);
+    try {
+      const items = cart.map(item => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category || 'Khác',
+        status: 'pending' as const,
+        notes: item.notes ? [item.notes] : undefined
+      }));
+
+      await orderService.createOrder(
+        selectedTable.name,
+        items,
+        selectedTable.id,
+        (selectedTable as any).bookingId
+      );
+
+      handleSetView('success');
+      setTimeout(() => {
+        setCart([]);
+        setSelectedTable(null);
+        handleSetView('tables');
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to send order', err);
+      alert('Lỗi: Không thể gửi order xuống bếp.');
+    } finally {
+      setIsSendingOrder(false);
+    }
   };
 
   const renderTables = () => (
@@ -452,10 +482,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             </div>
             <button
               onClick={handleSendOrder}
-              className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200 active:scale-95 transition-transform flex items-center justify-center gap-2"
+              disabled={isSendingOrder}
+              className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Send className="w-5 h-5" />
-              Gửi Bếp
+              {isSendingOrder ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  Gửi Bếp
+                </>
+              )}
             </button>
           </div>
         </>
