@@ -31,7 +31,31 @@ import {
   ChefHat,
   LogOut
 } from 'lucide-react';
+import { tableService } from '../../services/tableService';
 
+type TableStatus = 'empty' | 'occupied' | 'reserved';
+interface Table {
+  id: string;
+  name: string;
+  type: 'circle' | 'square';
+  status: TableStatus;
+  pax: number;
+  customerName?: string;
+  time?: string;
+  duration?: string;
+  notes?: string;
+  floor?: number;
+}
+
+interface VipRoom {
+  id: string;
+  name: string;
+  capacity: number;
+  status: 'empty' | 'in-use';
+  customerName?: string;
+  time?: string;
+  notes?: string;
+}
 
 type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen';
 
@@ -47,8 +71,53 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
+  // Real database states
+  const [tablesL1, setTablesL1] = useState<Table[]>([]);
+  const [tablesL3, setTablesL3] = useState<Table[]>([]);
+  const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
+
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Load tables from Supabase
+  const fetchTables = async () => {
+    try {
+      const allTables = await tableService.getTables();
+      setTablesL1(allTables.filter(t => t.floor === 1));
+
+      // Map floor 2 to vipRooms
+      const vip = allTables.filter(t => t.floor === 2).map(t => ({
+        id: t.id,
+        name: t.name,
+        capacity: t.pax,
+        status: (t.status === 'occupied' || t.status === 'reserved') ? 'in-use' : 'empty',
+        customerName: t.customerName,
+        time: t.time || undefined,
+        notes: t.notes || undefined
+      } as VipRoom));
+      setVipRoomsList(vip);
+
+      setTablesL3(allTables.filter(t => t.floor === 3));
+    } catch (e) {
+      console.error('Failed to load tables in mobile app', e);
+      // Fallback to mock data if needed
+      setTablesL1(level1Tables as any);
+      setVipRoomsList(vipRooms as any);
+      setTablesL3(eventHall as any); // Type assertion hack for fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchTables();
+
+    const subscription = tableService.subscribeToTables(() => {
+      fetchTables();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Sync URL with View
   useEffect(() => {
@@ -62,7 +131,6 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     else if (path.includes('/cau-hinh')) setView('settings');
     else if (path.includes('/bao-cao')) setView('reports');
     else if (path.includes('/so-do-nha-hang') || path === '/') setView('tables');
-    // 'cart', 'success', 'more' are internal states, usually not directly linked to a URL unless we want to
   }, [location.pathname]);
 
   const handleSetView = (newView: ViewState) => {
@@ -77,11 +145,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       case 'reports': navigate('/bao-cao'); break;
       case 'menu-management': navigate('/quan-ly-thuc-don'); break;
       case 'kitchen': navigate('/bep'); break;
-      // For internal views, we might not want to change URL or just keep current
       case 'more':
       case 'cart':
       case 'success':
-        // Optional: could have specific routes for these too
         break;
     }
   };
@@ -159,7 +225,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       <div className="flex-1 overflow-y-auto p-4">
         {activeZone === 'T1' && (
           <div className="grid grid-cols-3 gap-4">
-            {level1Tables.map(table => (
+            {tablesL1.map(table => (
               <div
                 key={table.id}
                 onClick={() => {
@@ -193,7 +259,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
         {activeZone === 'T2' && (
           <div className="grid grid-cols-2 gap-4">
-            {vipRooms.map(room => (
+            {vipRoomsList.map(room => (
               <div
                 key={room.id}
                 onClick={() => {
@@ -226,37 +292,36 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         )}
 
         {activeZone === 'T3' && (
-          <div className="space-y-4">
-            {eventHall.map(hall => (
+          <div className="grid grid-cols-3 gap-4">
+            {tablesL3.map(table => (
               <div
-                key={hall.id}
+                key={table.id}
                 onClick={() => {
-                  setSelectedTable(hall);
+                  setSelectedTable(table);
                   handleSetView('menu');
                 }}
                 className={`
-                  relative p-6 rounded-2xl border-2 shadow-sm flex flex-col justify-between h-40 active:scale-95 transition-transform
-                  ${getStatusColor(hall.status)}
+                  relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
+                  ${getStatusColor(table.status)}
+                  ${table.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}
                 `}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-xl font-bold block">{hall.name}</span>
-                    <div className="flex items-center gap-2 text-sm font-medium opacity-80 mt-1">
-                      <Users className="w-4 h-4" /> Sức chứa: {hall.capacity}
+                <div className="text-center">
+                  <span className="text-base font-bold block">{table.name.replace('Bàn ', '')}</span>
+                  <div className="flex items-center justify-center gap-1 text-[10px] font-medium opacity-80">
+                    <Users className="w-3 h-3" /> {table.pax}
+                  </div>
+                  {table.status === 'occupied' && (
+                    <div className="text-[9px] mt-1 font-bold text-green-700 bg-white/50 px-1 rounded">
+                      {table.duration}
                     </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${hall.status === 'empty' ? 'bg-gray-100 text-gray-500' : 'bg-white/50 text-current'}`}>
-                    {hall.status === 'empty' ? 'Trống' : 'Đã đặt'}
-                  </div>
+                  )}
+                  {table.status === 'reserved' && (
+                    <div className="text-[9px] mt-1 font-bold text-yellow-700 bg-white/50 px-1 rounded">
+                      {table.time}
+                    </div>
+                  )}
                 </div>
-
-                {hall.status === 'reserved' && (
-                  <div className="mt-4 pt-4 border-t border-current/20">
-                    <div className="font-bold">{hall.customerName}</div>
-                    <div className="text-xs opacity-80">Thời gian: {hall.time}</div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
