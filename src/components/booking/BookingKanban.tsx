@@ -28,7 +28,8 @@ import {
   LayoutGrid,
   List,
   ChevronDown,
-  Filter
+  Filter,
+  MoreVertical
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
@@ -92,6 +93,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   // UI Interactive States
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
   const [historyDropBooking, setHistoryDropBooking] = useState<Booking | null>(null);
+  const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
 
   // Checkout States
   const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
@@ -1025,6 +1027,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
+                                onDoubleClick={() => setViewingBooking(booking)}
                                 className={`
                                   bg-white rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative
                                   ${isMissingInfo(booking) ? 'border-red-400 ring-1 ring-red-400/50 bg-red-50/20' : col.borderColor}
@@ -1053,6 +1056,32 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                                           {statusConfig.label}
                                         </span>
                                       )}
+
+                                      {/* Quick Status Action Menu for 'action_needed' column */}
+                                      {col.id === 'col_action' && (
+                                        <div className="relative">
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === booking.id ? null : booking.id); }}
+                                            className="text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                                            title="Đổi trạng thái nhanh"
+                                          >
+                                            <MoreVertical className="w-3.5 h-3.5" />
+                                          </button>
+                                          {statusDropdownId === booking.id && (
+                                            <>
+                                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
+                                              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
+                                                <button onClick={() => { handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
+                                                <button onClick={() => { handleStatusChange(booking.id, 'change_requested'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Đổi giờ/ngày</button>
+                                                <div className="h-px bg-gray-100 my-1"></div>
+                                                <button onClick={() => { handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
+                                                <button onClick={() => { handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
+
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleEditBooking(booking); }}
                                         className="text-gray-300 hover:text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
