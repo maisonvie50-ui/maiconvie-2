@@ -604,7 +604,13 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         <div className="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             {view !== 'tables' && view !== 'success' && view !== 'more' && (
-              <button onClick={() => handleSetView('tables')} className="p-1 -ml-2 text-gray-500">
+              <button
+                onClick={() => {
+                  if (view === 'order-history') handleSetView('more');
+                  else handleSetView('tables');
+                }}
+                className="p-1 -ml-2 text-gray-500"
+              >
                 <ChevronLeft className="w-6 h-6" />
               </button>
             )}
@@ -612,9 +618,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <h1 className="font-bold text-lg text-gray-800">
                 {view === 'tables' ? 'Sơ đồ nhà hàng' :
                   view === 'more' ? 'Tiện ích mở rộng' :
-                    selectedTable?.name}
+                    view === 'order-history' ? 'Lịch sử Hoá đơn' :
+                      selectedTable?.name}
               </h1>
-              {selectedTable && view !== 'tables' && view !== 'more' && (
+              {selectedTable && view !== 'tables' && view !== 'more' && view !== 'order-history' && (
                 <p className="text-xs text-gray-500">
                   {selectedTable.pax || selectedTable.capacity} khách • {
                     ['occupied', 'in-use'].includes(selectedTable.status) ? 'Đang phục vụ' :
@@ -705,10 +712,6 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         )}
         {view === 'order-history' && (
           <div className="h-full flex flex-col pb-24">
-            <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
-              <h2 className="font-bold">Lịch sử Hoá đơn</h2>
-            </div>
             <div className="flex-1 min-h-0">
               <OrderHistory />
             </div>
