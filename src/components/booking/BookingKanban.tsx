@@ -174,6 +174,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   // Mobile Action Sheet State
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
+  // Pending Status Update State (when forced to choose table before arriving)
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{ id: string, status: BookingStatus } | null>(null);
+
   // Horizontal Scroll Rep
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -303,6 +306,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!showModal) {
       setEditingId(null);
       setNewBooking({ customerName: '', phone: '', time: '', bookingDate: selectedDate, pax: 2, notes: [], area: undefined, source: 'hotline' });
+      setPendingStatusUpdate(null);
     }
   }, [showModal]);
 
@@ -324,6 +328,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       const bk = bookings.find(b => b.id === draggableId);
       if (bk && !bk.tableId) {
         alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
+        setPendingStatusUpdate({ id: draggableId, status: 'arrived' });
         handleEditBooking(bk);
         return;
       }
@@ -371,6 +376,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       const bk = bookings.find(b => b.id === bookingId);
       if (bk && !bk.tableId) {
         alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
+        setPendingStatusUpdate({ id: bookingId, status: 'arrived' });
         handleEditBooking(bk);
         return;
       }
@@ -472,6 +478,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
         setBookings(prev => [created, ...prev]);
       }
       setShowModal(false);
+
+      // Execute any pending status update (e.g., table assigned successfully after drag drop intercept)
+      if (pendingStatusUpdate && newBooking.tableId) {
+        try {
+          await handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status);
+          setPendingStatusUpdate(null);
+        } catch (e) {
+          console.error("Failed executing pending status transition", e);
+        }
+      }
+
     } catch (error) {
       console.error('Error saving booking', error);
       alert('Đã xảy ra lỗi khi lưu đặt bàn');
