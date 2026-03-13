@@ -646,7 +646,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'success' && renderSuccess()}
         {view === 'bookings' && <BookingKanban />}
         {view === 'more' && (
-          <div className="flex-1 overflow-y-auto">
+          <div className="h-full overflow-y-auto pb-6">
             {renderMoreMenu()}
           </div>
         )}
