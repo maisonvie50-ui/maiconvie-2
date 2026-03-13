@@ -4,6 +4,7 @@ export interface Booking {
   id: string;
   customerName: string;
   time: string;
+  bookingDate?: string;
   pax: number;
   status: BookingStatus;
   notes?: string[];

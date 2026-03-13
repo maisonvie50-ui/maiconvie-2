@@ -254,6 +254,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     customerName: '',
     phone: '',
     time: '',
+    bookingDate: new Date().toISOString().split('T')[0],
     pax: 2,
     notes: [],
     source: 'hotline',
@@ -300,7 +301,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   useEffect(() => {
     if (!showModal) {
       setEditingId(null);
-      setNewBooking({ customerName: '', phone: '', time: '', pax: 2, notes: [], area: undefined, source: 'hotline' });
+      setNewBooking({ customerName: '', phone: '', time: '', bookingDate: selectedDate, pax: 2, notes: [], area: undefined, source: 'hotline' });
     }
   }, [showModal]);
 
@@ -470,6 +471,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       customerName: booking.customerName,
       phone: booking.phone,
       time: booking.time,
+      bookingDate: booking.bookingDate,
       pax: booking.pax,
       notes: booking.notes,
       area: booking.area,
@@ -1387,35 +1389,46 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đến</label>
-                <div className="relative">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày đến</label>
                   <input
-                    type="time"
-                    value={newBooking.time}
-                    onChange={(e) => setNewBooking({ ...newBooking, time: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${suggestedSlots.length > 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                    type="date"
+                    value={newBooking.bookingDate || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, bookingDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   />
-                  {suggestedSlots.length > 0 && (
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertCircle className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs font-bold text-blue-800">Khung giờ này đã kín chỗ!</span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đến</label>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={newBooking.time}
+                      onChange={(e) => setNewBooking({ ...newBooking, time: e.target.value })}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${suggestedSlots.length > 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                    />
+                    {suggestedSlots.length > 0 && (
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle className="w-4 h-4 text-blue-600" />
+                          <span className="text-xs font-bold text-blue-800">Khung giờ này đã kín chỗ!</span>
+                        </div>
+                        <p className="text-xs text-blue-700 mb-2">Gợi ý các khung giờ còn trống:</p>
+                        <div className="flex gap-2">
+                          {suggestedSlots.map(slot => (
+                            <button
+                              key={slot}
+                              onClick={() => setNewBooking({ ...newBooking, time: slot })}
+                              className="px-3 py-1 bg-white border border-blue-200 text-blue-700 text-xs font-bold rounded-md shadow-sm hover:bg-blue-100 transition-colors"
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <p className="text-xs text-blue-700 mb-2">Gợi ý các khung giờ còn trống:</p>
-                      <div className="flex gap-2">
-                        {suggestedSlots.map(slot => (
-                          <button
-                            key={slot}
-                            onClick={() => setNewBooking({ ...newBooking, time: slot })}
-                            className="px-3 py-1 bg-white border border-blue-200 text-blue-700 text-xs font-bold rounded-md shadow-sm hover:bg-blue-100 transition-colors"
-                          >
-                            {slot}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
 

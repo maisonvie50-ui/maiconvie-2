@@ -22,6 +22,7 @@ export const bookingService = {
             customerName: b.customer_name,
             phone: b.phone,
             time: b.time,
+            bookingDate: b.booking_date,
             pax: b.pax,
             status: b.status,
             notes: b.notes || [],
@@ -49,6 +50,7 @@ export const bookingService = {
                 customer_name: booking.customerName,
                 phone: booking.phone,
                 time: booking.time,
+                booking_date: booking.bookingDate,
                 pax: booking.pax,
                 status: booking.status,
                 notes: booking.notes,
@@ -71,6 +73,7 @@ export const bookingService = {
             customerName: data.customer_name,
             phone: data.phone,
             time: data.time,
+            bookingDate: data.booking_date,
             pax: data.pax,
             status: data.status,
             notes: data.notes || [],
@@ -144,6 +147,7 @@ export const bookingService = {
         if (updates.customerName) dbUpdates.customer_name = updates.customerName;
         if (updates.phone) dbUpdates.phone = updates.phone;
         if (updates.time) dbUpdates.time = updates.time;
+        if (updates.bookingDate) dbUpdates.booking_date = updates.bookingDate;
         if (updates.pax) dbUpdates.pax = updates.pax;
         if (updates.status) dbUpdates.status = updates.status;
         if (updates.notes) dbUpdates.notes = updates.notes;
@@ -208,6 +212,7 @@ export const bookingService = {
             customerName: b.customer_name,
             phone: b.phone,
             time: b.time,
+            bookingDate: b.booking_date,
             pax: b.pax,
             status: b.status,
             notes: b.notes || [],

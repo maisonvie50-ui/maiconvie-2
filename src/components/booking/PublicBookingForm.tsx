@@ -99,14 +99,12 @@ export default function PublicBookingForm() {
 
         setIsSubmitting(true);
         try {
-            // Combine date and time
-            const bookingDateTime = new Date(`${formData.date}T${formData.time}`);
-
             // Create a new booking object
             const newBooking = {
                 customerName: formData.customerName,
                 phone: formData.phone,
-                time: bookingDateTime.toISOString(),
+                time: formData.time,
+                bookingDate: formData.date,
                 pax: Number(formData.pax),
                 status: 'new' as BookingStatus,
                 area: formData.area as any,
