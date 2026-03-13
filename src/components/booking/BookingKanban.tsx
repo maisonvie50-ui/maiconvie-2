@@ -480,12 +480,22 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       setShowModal(false);
 
       // Execute any pending status update (e.g., table assigned successfully after drag drop intercept)
+      // We call bookingService.updateBookingStatus directly instead of handleStatusChange
+      // because handleStatusChange re-checks bk.tableId from the stale React state closure
       if (pendingStatusUpdate && newBooking.tableId) {
         try {
-          await handleStatusChange(pendingStatusUpdate.id, pendingStatusUpdate.status);
+          // Optimistic UI update for the status change
+          setBookings(prev => prev.map(b =>
+            b.id === pendingStatusUpdate.id
+              ? { ...b, status: pendingStatusUpdate.status, tableId: newBooking.tableId }
+              : b
+          ));
+          // Directly update status in database (this also triggers table sync)
+          await bookingService.updateBookingStatus(pendingStatusUpdate.id, pendingStatusUpdate.status);
           setPendingStatusUpdate(null);
         } catch (e) {
           console.error("Failed executing pending status transition", e);
+          fetchBookings(); // Revert on failure
         }
       }
 
