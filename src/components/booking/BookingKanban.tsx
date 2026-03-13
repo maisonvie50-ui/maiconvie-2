@@ -319,6 +319,16 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (!destColumn) return;
     const newStatus = destColumn.defaultStatus as BookingStatus;
 
+    // Check for empty table assignment on "arrived"
+    if (newStatus === 'arrived') {
+      const bk = bookings.find(b => b.id === draggableId);
+      if (bk && !bk.tableId) {
+        alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
+        handleEditBooking(bk);
+        return;
+      }
+    }
+
     // If dropped on serving column from confirmed, auto-set arrived
     // (default behavior handles this via defaultStatus)
 
@@ -355,6 +365,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       setCheckoutBooking({ id: bookingId, customerId: (bk as any)?.customer_id });
       setSelectedBooking(null);
       return;
+    }
+
+    if (newStatus === 'arrived') {
+      const bk = bookings.find(b => b.id === bookingId);
+      if (bk && !bk.tableId) {
+        alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
+        handleEditBooking(bk);
+        return;
+      }
     }
 
     // Optimistic update
