@@ -651,65 +651,67 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                 <div
                   key={booking.id}
                   onClick={() => setSelectedBooking(booking)}
-                  className={`bg-white p-4 rounded-xl shadow-sm border ${isMissingInfo(booking) ? 'border-red-300 ring-1 ring-red-400/50' : 'border-gray-100'} active:scale-[0.98] transition-transform relative overflow-hidden`}
+                  className={`bg-white rounded-xl border ${isMissingInfo(booking) ? 'border-red-300 ring-1 ring-red-400/30' : 'border-gray-100'} active:scale-[0.98] transition-transform relative overflow-hidden`}
                 >
-                  {/* Status Indicator Bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isMissingInfo(booking) ? 'bg-red-500' : statusConfig?.color.replace('bg-', 'bg-').replace('-50', '-500')}`}></div>
+                  {/* Status Indicator Bar - 3px */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl ${isMissingInfo(booking) ? 'bg-red-500' : statusConfig?.borderColor.replace('border-', 'bg-')}`}></div>
 
-                  <div className="flex justify-between items-start mb-2 pl-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isMissingInfo(booking) ? 'bg-red-50 text-red-500' : statusConfig?.color}`}>
-                        {isMissingInfo(booking) ? <AlertCircle className="w-5 h-5 text-red-500" /> : (statusConfig?.icon && <statusConfig.icon className={`w-5 h-5 ${statusConfig.borderColor.replace('border-', 'text-')}`} />)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-gray-900">{booking.customerName || 'Không có tên'}</h4>
-                          {booking.customerType === 'tour' ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Tour</span>
-                          ) : booking.customerType === 'retail' ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">Lẻ</span>
-                          ) : null}
-                          {isMissingInfo(booking) && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">Thiếu TT</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.time || '--:--'}</span>
-                          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {booking.pax || 0}</span>
-                          {booking.source && (
-                            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
-                              {sourceLabels[booking.source] || booking.source}
-                            </span>
-                          )}
-                          {booking.area && !booking.tableName && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium uppercase">
-                              {booking.area === 'indoor' ? 'Trong nhà' : booking.area === 'outdoor' ? 'Ngoài trời' : booking.area === 'vip' ? 'VIP' : 'Sân thượng'}
-                            </span>
-                          )}
-                        </div>
-                        {booking.tableName && (
-                          <div className="flex items-center mt-1">
-                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200" title={booking.tableName}>
-                              <LayoutGrid className="w-3 h-3" />
-                              {booking.tableName}
-                            </span>
-                          </div>
+                  <div className="pl-3.5 pr-3 py-3">
+                    {/* Row 1: Name + Type + Status Badge */}
+                    <div className="flex justify-between items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <h4 className="font-bold text-sm text-gray-900 truncate">{booking.customerName || 'Không có tên'}</h4>
+                        {booking.customerType === 'tour' ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 shrink-0">Tour</span>
+                        ) : booking.customerType === 'retail' ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 shrink-0">Lẻ</span>
+                        ) : null}
+                        {isMissingInfo(booking) && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 shrink-0">⚠</span>
                         )}
                       </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0 ${statusConfig?.color} ${statusConfig?.borderColor.replace('border-', 'text-')}`}>
+                        {statusConfig?.label}
+                      </span>
                     </div>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${statusConfig?.borderColor} ${statusConfig?.color} ${statusConfig?.borderColor.replace('border-', 'text-')}`}>
-                      {statusConfig?.label}
-                    </span>
-                  </div>
-                  {booking.notes && booking.notes.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2 pl-[54px]">
-                      {booking.notes.map((note, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-medium rounded border border-amber-100">
-                          {note}
+
+                    {/* Row 2: Time + Pax + Source + Area */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Clock className="w-3 h-3" /> {booking.time || '--:--'}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <Users className="w-3 h-3" /> {booking.pax || 0}
+                      </span>
+                      {booking.source && (
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
+                          {sourceLabels[booking.source] || booking.source}
                         </span>
-                      ))}
+                      )}
+                      {booking.area && !booking.tableName && (
+                        <span className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium uppercase text-gray-600">
+                          {booking.area === 'indoor' ? 'Trong nhà' : booking.area === 'outdoor' ? 'Ngoài trời' : booking.area === 'vip' ? 'VIP' : 'Sân thượng'}
+                        </span>
+                      )}
                     </div>
-                  )}
+
+                    {/* Row 3: Table + Notes (compact) */}
+                    {(booking.tableName || (booking.notes && booking.notes.length > 0)) && (
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        {booking.tableName && (
+                          <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200">
+                            <LayoutGrid className="w-3 h-3" />
+                            {booking.tableName}
+                          </span>
+                        )}
+                        {booking.notes && booking.notes.length > 0 && (
+                          <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 truncate max-w-[180px]">
+                            {booking.notes.join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })
