@@ -8,7 +8,7 @@ import AdvancedAnalytics from '../analytics/AdvancedAnalytics';
 import MenuManagement from '../menu/MenuManagement';
 import KitchenDisplay from '../kitchen/KitchenDisplay';
 import { level1Tables, vipRooms, eventHall } from '../../data/mockTables';
-import type { Category, MenuItem } from '../../types';
+import type { Category, MenuItem, SetMenu } from '../../types';
 import { menuService } from '../../services/menuService';
 import {
   Menu,
@@ -82,6 +82,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   // Real database states
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
   const [menuItemsList, setMenuItemsList] = useState<MenuItem[]>([]);
+  const [setMenusList, setSetMenusList] = useState<SetMenu[]>([]);
   const [tablesL1, setTablesL1] = useState<Table[]>([]);
   const [tablesL3, setTablesL3] = useState<Table[]>([]);
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
@@ -119,12 +120,14 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const fetchMenuData = async () => {
     try {
-      const [categories, items] = await Promise.all([
+      const [categories, items, setMenus] = await Promise.all([
         menuService.getCategories(),
-        menuService.getMenuItems()
+        menuService.getMenuItems(),
+        menuService.getSetMenus()
       ]);
       setMenuCategories(categories);
       setMenuItemsList(items);
+      setSetMenusList(setMenus);
     } catch (e) {
       console.error('Failed to load menu data in mobile app', e);
     }
@@ -419,19 +422,42 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           <button
             onClick={() => setActiveCategory('All')}
             className={`
-              px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors
-              ${activeCategory === 'All' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm
+              ${activeCategory === 'All' ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}
             `}
           >
             Tất cả
           </button>
+
+          {/* Degustation Premium Tabs */}
+          <button
+            onClick={() => setActiveCategory('set-2-4')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 shadow-sm
+              ${activeCategory === 'set-2-4' ? 'bg-gray-900 text-white ring-2 ring-gray-900/20' : 'bg-gradient-to-r from-gray-800 to-gray-900 text-amber-50'}
+            `}
+          >
+            ⭐ Dégustation (2-4 Món)
+          </button>
+          <button
+            onClick={() => setActiveCategory('set-4-7')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 shadow-sm
+              ${activeCategory === 'set-4-7' ? 'bg-amber-600 text-white ring-2 ring-amber-600/20' : 'bg-gradient-to-r from-amber-500 to-amber-700 text-amber-50'}
+            `}
+          >
+            👑 Dégustation (4-7 Món)
+          </button>
+
+          <div className="w-px h-6 bg-gray-300 mx-1 self-center shrink-0"></div>
+
           {menuCategories.map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={`
-                px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors
-                ${activeCategory === cat.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
+                px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+                ${activeCategory === cat.id ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
               `}
             >
               {cat.name}
@@ -442,41 +468,113 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
       {/* Menu List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredMenu.map(item => {
-          const inCart = cart.find(i => i.id === item.id);
-          return (
-            <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-3">
-                {item.image && (
-                  <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow-sm shrink-0" />
+
+        {activeCategory.startsWith('set-') ? (
+          // Render Set Menus (Premium UI)
+          setMenusList
+            .filter(set => {
+              if (activeCategory === 'set-2-4') return set.courses.length <= 4;
+              if (activeCategory === 'set-4-7') return set.courses.length > 4;
+              return false;
+            })
+            .map(set => {
+              const inCart = cart.find(i => i.id === set.id);
+              return (
+                <div key={set.id} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 relative">
+                  {/* Decorative element */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                  <div className="p-5 relative z-10">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-serif text-xl font-bold text-amber-400 leading-tight mb-1">{set.name}</h3>
+                        <p className="text-gray-400 text-sm">{set.courses.length} Khóa (Courses)</p>
+                      </div>
+                      <span className="font-bold text-lg text-white bg-white/10 px-3 py-1 rounded-xl backdrop-blur-sm border border-white/5">
+                        {set.price.toLocaleString()}đ
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 my-4">
+                      {set.courses.map((course, idx) => (
+                        <div key={idx} className="border-l-2 border-amber-500/30 pl-3 py-1">
+                          <h4 className="text-xs font-bold text-amber-200/80 uppercase tracking-widest">{course.title}</h4>
+                          <p className="text-sm text-gray-300 mt-1 leading-snug">
+                            {course.options.map(opt => opt.nameVn).join(' / ')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {set.includedDrink && (
+                      <div className="text-xs font-medium text-amber-300 bg-amber-500/10 inline-block px-3 py-1.5 rounded-lg mb-4">
+                        🍷 {set.includedDrink}
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-gray-700 flex justify-end">
+                      {inCart ? (
+                        <div className="flex items-center gap-4 bg-white/10 rounded-xl p-1.5 backdrop-blur-sm border border-white/5">
+                          <button onClick={() => updateQuantity(set.id, -1)} className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-lg text-white hover:bg-gray-700 transition-colors">
+                            <Minus className="w-5 h-5" />
+                          </button>
+                          <span className="font-bold text-white w-6 text-center text-lg">{inCart.quantity}</span>
+                          <button onClick={() => updateQuantity(set.id, 1)} className="w-10 h-10 flex items-center justify-center bg-amber-500 rounded-lg text-white hover:bg-amber-600 transition-colors shadow-md">
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => addToCart({ ...set, categoryId: 'Set Menu' } as any)}
+                          className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98]"
+                        >
+                          <ShoppingBag className="w-5 h-5" />
+                          Thêm vào Order
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+        ) : (
+          // Render A La Carte Items
+          filteredMenu.map(item => {
+            const inCart = cart.find(i => i.id === item.id);
+            return (
+              <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3">
+                  {item.image && (
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow-sm shrink-0" />
+                  )}
+                  <div>
+                    <h4 className="font-bold text-gray-800 line-clamp-2">{item.name}</h4>
+                    <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
+                  </div>
+                </div>
+                {inCart ? (
+                  <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1 shrink-0 ml-2">
+                    <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="font-bold w-4 text-center">{inCart.quantity}</span>
+                    <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    title="Thêm vào giỏ hàng"
+                    onClick={() => addToCart(item)}
+                    className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center hover:bg-teal-100 shrink-0 ml-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 )}
-                <div>
-                  <h4 className="font-bold text-gray-800 line-clamp-2">{item.name}</h4>
-                  <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
-                </div>
               </div>
-              {inCart ? (
-                <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
-                  <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="font-bold w-4 text-center">{inCart.quantity}</span>
-                  <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  title="Thêm vào giỏ hàng"
-                  onClick={() => addToCart(item)}
-                  className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center hover:bg-teal-100"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
