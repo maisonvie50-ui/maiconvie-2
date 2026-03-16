@@ -101,32 +101,7 @@ export default function Header({ onAddBooking, onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      {/* Action Bar - Only for Booking View */}
-      {currentPath === '/dat-ban' && (
-        <div className="px-4 md:px-6 py-3 flex flex-col lg:flex-row items-start lg:items-center justify-end bg-gray-50/50 gap-4 border-b border-gray-100">
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mt-2 lg:mt-0">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm tên khách, SĐT..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 shadow-sm"
-              />
-            </div>
-
-            {/* Add Button */}
-            <button
-              onClick={onAddBooking}
-              className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Đặt bàn mới</span>
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
