@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
-type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
+type ItemCategory = string; // e.g. 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống' | 'Set Menu' | 'Khác';
 
 export interface OrderItem {
     id: string;
