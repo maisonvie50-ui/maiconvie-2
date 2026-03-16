@@ -429,24 +429,24 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             Tất cả
           </button>
 
-          {/* Degustation Premium Tabs */}
+          {/* Degustation Tabs */}
           <button
             onClick={() => setActiveCategory('set-2-4')}
             className={`
-              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 shadow-sm
-              ${activeCategory === 'set-2-4' ? 'bg-gray-900 text-white ring-2 ring-gray-900/20' : 'bg-gradient-to-r from-gray-800 to-gray-900 text-amber-50'}
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+              ${activeCategory === 'set-2-4' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
             `}
           >
-            ⭐ Dégustation (2-4 Món)
+            Dégustation (2-4 Món)
           </button>
           <button
             onClick={() => setActiveCategory('set-4-7')}
             className={`
-              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex items-center gap-1 shadow-sm
-              ${activeCategory === 'set-4-7' ? 'bg-amber-600 text-white ring-2 ring-amber-600/20' : 'bg-gradient-to-r from-amber-500 to-amber-700 text-amber-50'}
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+              ${activeCategory === 'set-4-7' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
             `}
           >
-            👑 Dégustation (4-7 Món)
+            Dégustation (4-7 Món)
           </button>
 
           <div className="w-px h-6 bg-gray-300 mx-1 self-center shrink-0"></div>
@@ -480,26 +480,24 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             .map(set => {
               const inCart = cart.find(i => i.id === set.id);
               return (
-                <div key={set.id} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-700 relative">
-                  {/* Decorative element */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div key={set.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative">
 
-                  <div className="p-5 relative z-10">
-                    <div className="flex justify-between items-start mb-3">
+                  <div className="p-4 relative z-10">
+                    <div className="flex justify-between items-start mb-3 gap-2">
                       <div>
-                        <h3 className="font-serif text-xl font-bold text-amber-400 leading-tight mb-1">{set.name}</h3>
-                        <p className="text-gray-400 text-sm">{set.courses.length} Khóa (Courses)</p>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1">{set.name}</h3>
+                        <p className="text-gray-500 text-xs font-medium">{set.courses.length} Khóa (Courses)</p>
                       </div>
-                      <span className="font-bold text-lg text-white bg-white/10 px-3 py-1 rounded-xl backdrop-blur-sm border border-white/5">
+                      <span className="font-bold text-teal-600 shrink-0">
                         {set.price.toLocaleString()}đ
                       </span>
                     </div>
 
-                    <div className="space-y-3 my-4">
+                    <div className="space-y-3 my-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
                       {set.courses.map((course, idx) => (
-                        <div key={idx} className="border-l-2 border-amber-500/30 pl-3 py-1">
-                          <h4 className="text-xs font-bold text-amber-200/80 uppercase tracking-widest">{course.title}</h4>
-                          <p className="text-sm text-gray-300 mt-1 leading-snug">
+                        <div key={idx} className="border-l-2 border-teal-500/30 pl-3 py-0.5">
+                          <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{course.title}</h4>
+                          <p className="text-sm text-gray-800 mt-0.5 font-medium leading-snug">
                             {course.options.map(opt => opt.nameVn).join(' / ')}
                           </p>
                         </div>
@@ -507,26 +505,26 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                     </div>
 
                     {set.includedDrink && (
-                      <div className="text-xs font-medium text-amber-300 bg-amber-500/10 inline-block px-3 py-1.5 rounded-lg mb-4">
+                      <div className="text-xs font-medium text-teal-700 bg-teal-50 border border-teal-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg mb-4">
                         🍷 {set.includedDrink}
                       </div>
                     )}
 
-                    <div className="pt-4 border-t border-gray-700 flex justify-end">
+                    <div className="pt-3 border-t border-gray-100 flex justify-end">
                       {inCart ? (
-                        <div className="flex items-center gap-4 bg-white/10 rounded-xl p-1.5 backdrop-blur-sm border border-white/5">
-                          <button onClick={() => updateQuantity(set.id, -1)} className="w-10 h-10 flex items-center justify-center bg-gray-800 rounded-lg text-white hover:bg-gray-700 transition-colors">
+                        <div className="flex items-center gap-3 bg-gray-100 rounded-xl p-1 border border-gray-200">
+                          <button onClick={() => updateQuantity(set.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-red-500 shadow-sm transition-colors hover:bg-gray-50">
                             <Minus className="w-5 h-5" />
                           </button>
-                          <span className="font-bold text-white w-6 text-center text-lg">{inCart.quantity}</span>
-                          <button onClick={() => updateQuantity(set.id, 1)} className="w-10 h-10 flex items-center justify-center bg-amber-500 rounded-lg text-white hover:bg-amber-600 transition-colors shadow-md">
+                          <span className="font-bold text-gray-800 w-6 text-center text-lg">{inCart.quantity}</span>
+                          <button onClick={() => updateQuantity(set.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-teal-600 shadow-sm transition-colors hover:bg-gray-50">
                             <Plus className="w-5 h-5" />
                           </button>
                         </div>
                       ) : (
                         <button
                           onClick={() => addToCart({ ...set, categoryId: 'Set Menu' } as any)}
-                          className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-[0.98]"
+                          className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
                         >
                           <ShoppingBag className="w-5 h-5" />
                           Thêm vào Order
