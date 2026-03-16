@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Phone, User, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, Phone, User, Mail, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import BookingLookup from './BookingLookup';
 import { bookingService } from '../../services/bookingService';
 import { menuService } from '../../services/menuService';
@@ -13,6 +13,7 @@ export default function PublicBookingForm() {
         customerType: 'retail' | 'tour';
         customerName: string;
         phone: string;
+        email: string;
         date: string;
         time: string;
         pax: number;
@@ -22,6 +23,7 @@ export default function PublicBookingForm() {
         customerType: 'retail',
         customerName: '',
         phone: '',
+        email: '',
         date: new Date().toISOString().split('T')[0],
         time: '19:00',
         pax: 2,
@@ -109,6 +111,7 @@ export default function PublicBookingForm() {
             const newBooking = {
                 customerName: formData.customerName,
                 phone: formData.phone,
+                email: formData.email,
                 time: formData.time,
                 bookingDate: formData.date,
                 pax: Number(formData.pax),
@@ -268,6 +271,21 @@ export default function PublicBookingForm() {
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
                                         placeholder="090 123 4567"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5 col-span-2">
+                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <Mail className="w-4 h-4 text-teal-600" />
+                                        Email (Tùy chọn)
+                                    </label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                        placeholder="nguyenvana@example.com"
                                     />
                                 </div>
                             </div>
@@ -497,6 +515,7 @@ export default function PublicBookingForm() {
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">Họ tên</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">SĐT</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
+                                {formData.email && <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>}
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">Loại khách</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? 'Khách Tour' : 'Khách Lẻ'}</span></div>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">

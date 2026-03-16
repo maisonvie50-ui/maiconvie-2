@@ -22,6 +22,7 @@ export const bookingService = {
             id: b.id,
             customerName: b.customer_name,
             phone: b.phone,
+            email: b.email,
             time: b.time,
             bookingDate: b.booking_date,
             pax: b.pax,
@@ -50,6 +51,7 @@ export const bookingService = {
             .insert({
                 customer_name: booking.customerName,
                 phone: booking.phone,
+                email: booking.email,
                 time: booking.time,
                 booking_date: booking.bookingDate,
                 pax: booking.pax,
@@ -73,6 +75,7 @@ export const bookingService = {
             id: data.id,
             customerName: data.customer_name,
             phone: data.phone,
+            email: data.email,
             time: data.time,
             bookingDate: data.booking_date,
             pax: data.pax,
@@ -193,6 +196,7 @@ export const bookingService = {
         const dbUpdates: any = {};
         if (updates.customerName) dbUpdates.customer_name = updates.customerName;
         if (updates.phone) dbUpdates.phone = updates.phone;
+        if (updates.email) dbUpdates.email = updates.email;
         if (updates.time) dbUpdates.time = updates.time;
         if (updates.bookingDate) dbUpdates.booking_date = updates.bookingDate;
         if (updates.pax) dbUpdates.pax = updates.pax;
@@ -295,7 +299,7 @@ export const bookingService = {
         const { data, error } = await supabase
             .from('bookings')
             .select('*')
-            .or(`customer_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
+            .or(`customer_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
             .order('created_at', { ascending: false })
             .limit(10);
 
@@ -308,6 +312,7 @@ export const bookingService = {
             id: b.id,
             customerName: b.customer_name,
             phone: b.phone,
+            email: b.email,
             time: b.time,
             bookingDate: b.booking_date,
             pax: b.pax,

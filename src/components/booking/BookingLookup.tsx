@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Phone, User, Clock, Users, CalendarIcon, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Phone, User, Clock, Users, CalendarIcon, Loader2, X, ChevronDown, ChevronUp, Mail } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import { Booking, BookingStatus } from '../../types';
 
@@ -61,7 +61,7 @@ export default function BookingLookup() {
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Nhập tên hoặc SĐT..."
+                        placeholder="Nhập tên, SĐT hoặc email..."
                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white text-sm"
                     />
                     {query && (
@@ -99,7 +99,7 @@ export default function BookingLookup() {
             {!isLoading && hasSearched && results.length === 0 && !error && (
                 <div className="text-center py-6">
                     <p className="text-gray-400 text-sm">Không tìm thấy đơn đặt bàn nào.</p>
-                    <p className="text-gray-300 text-xs mt-1">Vui lòng kiểm tra lại tên hoặc SĐT.</p>
+                    <p className="text-gray-300 text-xs mt-1">Vui lòng kiểm tra lại tên, SĐT hoặc email.</p>
                 </div>
             )}
 
@@ -124,9 +124,15 @@ export default function BookingLookup() {
                                 {/* Details grid */}
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-gray-600">
                                     {booking.phone && (
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 hover:text-teal-600 transition-colors">
                                             <Phone className="w-3.5 h-3.5 text-gray-400" />
                                             <span>{booking.phone}</span>
+                                        </div>
+                                    )}
+                                    {booking.email && (
+                                        <div className="flex items-center gap-1.5 hover:text-teal-600 transition-colors col-span-2">
+                                            <Mail className="w-3.5 h-3.5 text-gray-400" />
+                                            <span className="truncate">{booking.email}</span>
                                         </div>
                                     )}
                                     <div className="flex items-center gap-1.5">
