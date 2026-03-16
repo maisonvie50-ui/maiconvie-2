@@ -120,28 +120,55 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     setIsOrderSent(true);
 
     try {
-      const itemsToCreate = orderItems.map(item => {
+      const itemsToCreate = orderItems.flatMap(item => {
         let finalCategory = item.category || 'Món chính';
         if (finalCategory === 'Rượu vang' || finalCategory.toLowerCase().includes('uống') || finalCategory.toLowerCase().includes('nước')) {
           finalCategory = 'Đồ uống';
-        } else if (!['Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'].includes(finalCategory)) {
+        } else if (!['Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống', 'Combo'].includes(finalCategory)) {
           finalCategory = 'Món chính'; // Fallback to avoid constraint error
         }
 
-        const finalNotes = [...(item.notes || [])];
         if (item.isSetMenu && item.selections) {
-          item.selections.forEach((sel: any) => {
-            finalNotes.push(`${sel.courseTitle.split('|')[0].trim()}: ${sel.option?.nameVn || sel.option?.nameEn}`);
+          // 1. The parent Combo item for billing
+          const comboItem = {
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price || 0,
+            notes: [],
+            category: 'Combo'
+          };
+
+          // 2. The individual course items for the kitchen
+          const courseItems = item.selections.map((sel: any) => {
+            const titleLower = sel.courseTitle.toLowerCase();
+            let courseCat = 'Món chính';
+            if (titleLower.includes('starter') || titleLower.includes('soup') || titleLower.includes('appetizer') || titleLower.includes('khai vị') || titleLower.includes('salad') || titleLower.includes('súp')) {
+              courseCat = 'Khai vị';
+            } else if (titleLower.includes('dessert') || titleLower.includes('tráng miệng')) {
+              courseCat = 'Tráng miệng';
+            }
+
+            const courseName = sel.option?.nameVn || sel.option?.nameEn || sel.courseTitle.split('|')[0].trim();
+
+            return {
+              name: courseName,
+              quantity: item.quantity,
+              price: 0, // 0 price because the set is billed on the Combo parent
+              notes: [`Thuộc ${item.name}`],
+              category: courseCat
+            };
           });
+
+          return [comboItem, ...courseItems];
         }
 
-        return {
+        return [{
           name: item.name,
           quantity: item.quantity,
           price: item.price || 0,
-          notes: finalNotes,
+          notes: [...(item.notes || [])],
           category: finalCategory
-        };
+        }];
       });
 
       await orderService.createOrder(

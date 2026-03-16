@@ -10,11 +10,12 @@ interface ContextType {
 type ItemStatus = 'pending' | 'cooking' | 'done';
 type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
 
-const categoryOrder: Record<ItemCategory, number> = {
+const categoryOrder: Record<string, number> = {
   'Khai vị': 1,
   'Món chính': 2,
   'Tráng miệng': 3,
-  'Đồ uống': 4
+  'Đồ uống': 4,
+  'Combo': 5
 };
 
 export default function KitchenDisplay() {
@@ -174,7 +175,8 @@ export default function KitchenDisplay() {
     })
     .map(order => ({
       ...order,
-      items: filterCategory === 'All' ? order.items : order.items.filter(i => i.category === filterCategory)
+      items: (filterCategory === 'All' ? order.items : order.items.filter(i => i.category === filterCategory))
+        .filter(i => i.category !== 'Combo')
     }))
     .filter(order => order.items.length > 0);
 

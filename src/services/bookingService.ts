@@ -159,17 +159,66 @@ export const bookingService = {
                         .eq('booking_id', id);
 
                     if (!existingOrders || existingOrders.length === 0) {
-                        const items = booking.selected_menus.map((menu: any) => {
+                        // Fetch all set and tour menus to get their courses
+                        const { data: setMenusData } = await supabase.from('set_menus').select('name, courses');
+                        const { data: tourMenusData } = await supabase.from('tour_menus').select('name, courses');
+
+                        const allSets = [...(setMenusData || []), ...(tourMenusData || [])];
+
+                        const items = booking.selected_menus.flatMap((menu: any) => {
                             let category = 'Món chính'; // Default fallback
+
                             if (menu.type === 'set' || menu.type === 'tour') {
-                                category = 'Món chính'; // We route Sets to principal cook
+                                // 1. Parent Combo item for billing
+                                const comboItem = {
+                                    name: menu.name,
+                                    quantity: menu.quantity,
+                                    price: menu.price || 0,
+                                    notes: ['Khách đặt trước (Web)'],
+                                    category: 'Combo'
+                                };
+
+                                // Find courses
+                                const matchedSet = allSets.find(s => s.name === menu.name);
+
+                                if (matchedSet && matchedSet.courses) {
+                                    // 2. Individual courses
+                                    const courseItems = matchedSet.courses.map((course: any) => {
+                                        const titleLower = course.title.toLowerCase();
+                                        let courseCat = 'Món chính';
+                                        if (titleLower.includes('starter') || titleLower.includes('soup') || titleLower.includes('appetizer') || titleLower.includes('khai vị') || titleLower.includes('salad') || titleLower.includes('súp')) {
+                                            courseCat = 'Khai vị';
+                                        } else if (titleLower.includes('dessert') || titleLower.includes('tráng miệng')) {
+                                            courseCat = 'Tráng miệng';
+                                        }
+
+                                        // Since they haven't explicitly chosen an option, we just use the first option
+                                        const firstOption = course.options && course.options.length > 0 ? course.options[0] : null;
+                                        const courseName = firstOption ? (firstOption.nameVn || firstOption.nameEn) : course.title.split('|')[0].trim();
+
+                                        const hasMultipleOptions = course.options && course.options.length > 1;
+
+                                        return {
+                                            name: courseName,
+                                            quantity: menu.quantity,
+                                            price: 0,
+                                            notes: [`Thuộc ${menu.name}`, hasMultipleOptions ? 'Khách chọn tại bàn' : 'Khách đặt trước (Web)'],
+                                            category: courseCat
+                                        };
+                                    });
+                                    return [comboItem, ...courseItems];
+                                }
+
+                                return [comboItem];
                             }
-                            return {
+
+                            return [{
                                 name: menu.name,
                                 quantity: menu.quantity,
+                                price: menu.price || 0,
                                 notes: ['Khách đặt trước (Web)'],
                                 category: category
-                            };
+                            }];
                         });
 
                         const tableName = booking.table_name || `Bàn đặt (${booking.customer_name})`;
