@@ -77,9 +77,10 @@ const boardColumns = [
 interface BookingKanbanProps {
   isModalOpen?: boolean;
   onToggleModal?: (isOpen: boolean) => void;
+  onAddBooking?: () => void;
 }
 
-export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKanbanProps) {
+export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking }: BookingKanbanProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<any>({});
@@ -1246,71 +1247,120 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 relative">
-      {/* Filter Bar (Shared) */}
-      <div className="hidden md:flex px-4 md:px-6 py-4 bg-white border-b border-gray-200 items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-bold text-gray-800 hidden md:block">Lịch Đặt Bàn</h2>
-          <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+      {/* Filter Bar (Shared - Merged Upper Action Bar & Filter Row) */}
+      <div className="hidden md:flex px-4 md:px-6 py-3 bg-white border-b border-gray-200 items-center justify-between flex-shrink-0 gap-4">
 
-          {/* Date Picker (Desktop) */}
-          <div className="hidden md:flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-            <CalendarIcon className="w-4 h-4 text-gray-500" />
+        {/* Left Side: Date & Shift Filters */}
+        <div className="flex items-center gap-4 border-r border-gray-100 pr-4">
+          <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors">
+            <CalendarIcon className="w-4 h-4 text-teal-600" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               title="Chọn ngày"
-              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-32 cursor-pointer"
+              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-28 cursor-pointer"
             />
           </div>
 
-          {/* Shift Filter (Desktop Only - Mobile has its own) */}
-          <div className="hidden md:flex bg-gray-100 p-1 rounded-lg">
+          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
             <button
               onClick={() => setFilterShift('all')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <LayoutGrid className="w-4 h-4" />
               Tất cả
             </button>
             <button
               onClick={() => setFilterShift('lunch')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-amber-600' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Sun className="w-4 h-4" />
+              <Sun className="w-3.5 h-3.5" />
               Ca Trưa
             </button>
             <button
               onClick={() => setFilterShift('dinner')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all ${filterShift === 'dinner' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                }`}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'dinner' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <Moon className="w-4 h-4" />
+              <Moon className="w-3.5 h-3.5" />
               Ca Tối
             </button>
           </div>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setViewMode('kanban')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-            title="Kanban"
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-            title="Bảng"
-          >
-            <List className="w-4 h-4" />
-          </button>
+        {/* Middle: Stats */}
+        <div className="flex-1 flex items-center gap-2 text-xs md:text-sm">
+          <div className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md font-medium border border-gray-200">
+            Sức chứa: {appSettings.restaurantCapacity || 250}
+          </div>
+          <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md font-medium border border-blue-100">
+            Đã đặt: {bookings.filter(b => statusGroups.action_needed.includes(b.status) || statusGroups.upcoming.includes(b.status) || statusGroups.active.includes(b.status)).reduce((acc, curr) => acc + (curr.pax || 0), 0)}
+          </div>
+          <div className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md font-medium border border-green-100">
+            Còn trống: {(appSettings.restaurantCapacity || 250) - bookings.filter(b => statusGroups.action_needed.includes(b.status) || statusGroups.upcoming.includes(b.status) || statusGroups.active.includes(b.status)).reduce((acc, curr) => acc + (curr.pax || 0), 0)}
+          </div>
         </div>
 
+        {/* Right Side: Actions & View Toggles */}
+        <div className="flex items-center gap-3">
+          {/* Search */}
+          <div className="relative min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Tìm tên, SĐT..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+            />
+          </div>
+
+          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+          {/* View Toggles */}
+          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Kanban"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Bảng"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+
+          {/* Add Button */}
+          <button
+            onClick={() => {
+              if (onAddBooking) {
+                onAddBooking();
+              } else {
+                setNewBooking({
+                  customerName: '',
+                  phone: '',
+                  time: '',
+                  bookingDate: selectedDate,
+                  pax: 2,
+                  status: 'new',
+                  source: 'walk_in',
+                  customerType: 'retail'
+                });
+                setShowModal(true);
+              }
+            }}
+            className="flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all transform active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Đặt bàn mới
+          </button>
+        </div>
       </div>
 
       {/* Desktop Status Filter Bar (Simplified 3 groups) */}
