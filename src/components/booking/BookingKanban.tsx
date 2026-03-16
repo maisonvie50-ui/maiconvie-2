@@ -1287,19 +1287,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           </div>
         </div>
 
-        {/* Middle: Stats */}
-        <div className="flex-1 flex items-center gap-2 text-xs md:text-sm">
-          <div className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-md font-medium border border-gray-200">
-            Sức chứa: {appSettings.restaurantCapacity || 250}
-          </div>
-          <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md font-medium border border-blue-100">
-            Đã đặt: {bookings.filter(b => statusGroups.action_needed.includes(b.status) || statusGroups.upcoming.includes(b.status) || statusGroups.active.includes(b.status)).reduce((acc, curr) => acc + (curr.pax || 0), 0)}
-          </div>
-          <div className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md font-medium border border-green-100">
-            Còn trống: {(appSettings.restaurantCapacity || 250) - bookings.filter(b => statusGroups.action_needed.includes(b.status) || statusGroups.upcoming.includes(b.status) || statusGroups.active.includes(b.status)).reduce((acc, curr) => acc + (curr.pax || 0), 0)}
-          </div>
-        </div>
-
         {/* Right Side: Actions & View Toggles */}
         <div className="flex items-center gap-3">
           {/* Search */}
