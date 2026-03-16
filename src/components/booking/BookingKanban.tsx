@@ -83,7 +83,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<any>({});
-  const [filterShift, setFilterShift] = useState<'lunch' | 'dinner'>('dinner');
+  const [filterShift, setFilterShift] = useState<'all' | 'lunch' | 'dinner'>('all');
   const [isMobile, setIsMobile] = useState(false);
 
   // View & Filter States
@@ -208,7 +208,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   };
 
   const getTabCount = (tab: 'action_needed' | 'upcoming' | 'active' | 'done') => {
-    return bookings.filter(b => statusGroups[tab].includes(b.status)).length;
+    return bookings.filter(b => statusGroups[tab].includes(b.status) && (!b.bookingDate || b.bookingDate === selectedDate)).length;
   };
 
   // Toggle status filter
@@ -222,6 +222,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
+    // 0. Filter by Date (Essential!)
+    if (b.bookingDate && b.bookingDate !== selectedDate) return false;
+
     // 1. Filter by Tab (Mobile only logic)
     if (isMobile && !statusGroups[activeStatusTab].includes(b.status)) return false;
 
@@ -232,15 +235,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchSearch =
-        b.customerName.toLowerCase().includes(query) ||
-        b.phone?.includes(query) ||
-        b.email?.toLowerCase().includes(query);
+        (b.customerName || '').toLowerCase().includes(query) ||
+        (b.phone || '').includes(query) ||
+        (b.email || '').toLowerCase().includes(query);
       if (!matchSearch) return false;
     }
 
     // 4. Filter by Shift (Ca trưa / Ca tối)
-    if (filterShift) {
-      const hour = parseInt(b.time.split(':')[0] || '0', 10);
+    if (filterShift && filterShift !== 'all') {
+      const hour = parseInt(b.time?.split(':')[0] || '0', 10);
 
       const lunchStart = appSettings?.lunchStart || 11;
       const lunchEnd = appSettings?.lunchEnd || 14;
@@ -446,6 +449,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           phone: newBooking.phone,
           email: newBooking.email,
           time: newBooking.time!,
+          bookingDate: newBooking.bookingDate!,
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
           area: newBooking.area,
@@ -459,6 +463,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           phone: newBooking.phone,
           email: newBooking.email,
           time: newBooking.time!,
+          bookingDate: newBooking.bookingDate!,
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
           area: newBooking.area,
@@ -473,6 +478,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           phone: newBooking.phone,
           email: newBooking.email,
           time: newBooking.time!,
+          bookingDate: newBooking.bookingDate!,
           pax: newBooking.pax || 2,
           status: 'new' as BookingStatus,
           notes: newBooking.notes,
@@ -561,12 +567,19 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
+              title="Chọn ngày"
               className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-28"
             />
           </div>
 
           <div className="flex items-center gap-2">
             <div className="flex bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setFilterShift('all')}
+                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+              >
+                Tất cả
+              </button>
               <button
                 onClick={() => setFilterShift('lunch')}
                 className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
@@ -1239,8 +1252,28 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           <h2 className="text-lg font-bold text-gray-800 hidden md:block">Lịch Đặt Bàn</h2>
           <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
 
+          {/* Date Picker (Desktop) */}
+          <div className="hidden md:flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+            <CalendarIcon className="w-4 h-4 text-gray-500" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              title="Chọn ngày"
+              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-32 cursor-pointer"
+            />
+          </div>
+
           {/* Shift Filter (Desktop Only - Mobile has its own) */}
           <div className="hidden md:flex bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setFilterShift('all')}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Tất cả
+            </button>
             <button
               onClick={() => setFilterShift('lunch')}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-medium transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'

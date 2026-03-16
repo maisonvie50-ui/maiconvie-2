@@ -8,7 +8,8 @@ import AdvancedAnalytics from '../analytics/AdvancedAnalytics';
 import MenuManagement from '../menu/MenuManagement';
 import KitchenDisplay from '../kitchen/KitchenDisplay';
 import { level1Tables, vipRooms, eventHall } from '../../data/mockTables';
-import { mobileMenuItems as menuItems } from '../../data/mockMenu';
+import type { Category, MenuItem } from '../../types';
+import { menuService } from '../../services/menuService';
 import {
   Menu,
   Search,
@@ -79,6 +80,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [activeCategory, setActiveCategory] = useState('All');
 
   // Real database states
+  const [menuCategories, setMenuCategories] = useState<Category[]>([]);
+  const [menuItemsList, setMenuItemsList] = useState<MenuItem[]>([]);
   const [tablesL1, setTablesL1] = useState<Table[]>([]);
   const [tablesL3, setTablesL3] = useState<Table[]>([]);
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
@@ -114,15 +117,34 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     }
   };
 
+  const fetchMenuData = async () => {
+    try {
+      const [categories, items] = await Promise.all([
+        menuService.getCategories(),
+        menuService.getMenuItems()
+      ]);
+      setMenuCategories(categories);
+      setMenuItemsList(items);
+    } catch (e) {
+      console.error('Failed to load menu data in mobile app', e);
+    }
+  };
+
   useEffect(() => {
     fetchTables();
+    fetchMenuData();
 
     const subscription = tableService.subscribeToTables(() => {
       fetchTables();
     });
 
+    const unsubscribeMenu = menuService.subscribeToMenuChanges(() => {
+      fetchMenuData();
+    });
+
     return () => {
       subscription.unsubscribe();
+      unsubscribeMenu();
     };
   }, []);
 
@@ -170,17 +192,18 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     }
   };
 
-  const filteredMenu = menuItems.filter(item =>
-    (activeCategory === 'All' || item.category === activeCategory) &&
+  const filteredMenu = menuItemsList.filter(item =>
+    (activeCategory === 'All' || item.categoryId === activeCategory) &&
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addToCart = (item: any) => {
+  const addToCart = (item: MenuItem) => {
     const existing = cart.find(i => i.id === item.id);
     if (existing) {
       setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
+      const catName = menuCategories.find(c => c.id === item.categoryId)?.name || 'Khác';
+      setCart([...cart, { ...item, quantity: 1, category: catName }]);
     }
   };
 
@@ -393,16 +416,25 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {['All', 'Khai vị', 'Món chính', 'Đồ uống'].map(cat => (
+          <button
+            onClick={() => setActiveCategory('All')}
+            className={`
+              px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors
+              ${activeCategory === 'All' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
+            `}
+          >
+            Tất cả
+          </button>
+          {menuCategories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
               className={`
                 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors
-                ${activeCategory === cat ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
+                ${activeCategory === cat.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
               `}
             >
-              {cat === 'All' ? 'Tất cả' : cat}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -414,9 +446,14 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           const inCart = cart.find(i => i.id === item.id);
           return (
             <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <div>
-                <h4 className="font-bold text-gray-800">{item.name}</h4>
-                <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
+              <div className="flex items-center gap-3">
+                {item.image && (
+                  <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow-sm shrink-0" />
+                )}
+                <div>
+                  <h4 className="font-bold text-gray-800 line-clamp-2">{item.name}</h4>
+                  <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
+                </div>
               </div>
               {inCart ? (
                 <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
