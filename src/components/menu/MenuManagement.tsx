@@ -561,24 +561,24 @@ export default function MenuManagement() {
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden relative">
 
       {/* Top Menu Type Bar */}
-      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center justify-between z-10 flex-shrink-0">
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center z-10 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex bg-gray-100 p-1 rounded-lg min-w-max">
           <button
             onClick={() => setMenuType('alacarte')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${menuType === 'alacarte' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${menuType === 'alacarte' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Món Lẻ (A La Carte)
           </button>
           <button
             onClick={() => setMenuType('set')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${menuType === 'set' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${menuType === 'set' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             <UtensilsCrossed className="w-4 h-4" />
             Thực đơn theo Set
           </button>
           <button
             onClick={() => setMenuType('tour')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${menuType === 'tour' ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${menuType === 'tour' ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             <Printer className="w-4 h-4" />
             Thực đơn Lữ hành
@@ -621,37 +621,64 @@ export default function MenuManagement() {
 
           {/* Main Content: Items */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Toolbar */}
-            <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
-              <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {categories.find(c => c.id === activeCategory)?.name}
-                  </h2>
-                  {/* Mobile Add Button (visible only on mobile next to title) */}
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="md:hidden flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Thêm
-                  </button>
-                </div>
+            <div className="px-4 md:px-6 py-3 bg-white border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
+              {/* Row 1/Col 1: Title and Desktop Add Button */}
+              <div className="flex items-center justify-between w-full md:w-auto">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                  {categories.find(c => c.id === activeCategory)?.name || 'Tất cả'}
+                </h2>
+                {/* Mobile Add Button */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="md:hidden flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Thêm
+                </button>
+              </div>
 
-                <div className="hidden md:block h-6 w-px bg-gray-200"></div>
+              {/* Row 2/Col 2: Search, Toggles & Desktop Add */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="hidden md:block h-6 w-px bg-gray-200 mr-2"></div>
 
-                <div className="relative w-full md:w-64">
+                {/* Search */}
+                <div className="relative flex-1 md:w-64 min-w-0">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Tìm món ăn..."
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50 focus:bg-white transition-colors h-[38px]"
                   />
                 </div>
+
+                {/* View Toggle */}
+                <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0 h-[38px]">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Desktop Add Button */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="hidden md:flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors h-[38px]"
+                >
+                  <Plus className="w-4 h-4" />
+                  Thêm món mới
+                </button>
               </div>
 
               {/* Mobile Categories (Horizontal Scroll) */}
-              <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-0.5 mt-1">
                 {categories.map(cat => {
                   const count = items.filter(i => i.categoryId === cat.id).length;
                   return (
@@ -668,32 +695,6 @@ export default function MenuManagement() {
                     </button>
                   )
                 })}
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-4">
-                {/* View Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="hidden md:flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm món mới
-                </button>
               </div>
             </div>
 
