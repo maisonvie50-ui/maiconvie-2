@@ -30,7 +30,8 @@ import {
   ChevronDown,
   Filter,
   MoreVertical,
-  Eye
+  Eye,
+  Mail
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
@@ -232,7 +233,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
       const query = searchQuery.toLowerCase();
       const matchSearch =
         b.customerName.toLowerCase().includes(query) ||
-        b.phone?.includes(query);
+        b.phone?.includes(query) ||
+        b.email?.toLowerCase().includes(query);
       if (!matchSearch) return false;
     }
 
@@ -258,6 +260,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   const [newBooking, setNewBooking] = useState<Partial<Booking>>({
     customerName: '',
     phone: '',
+    email: '',
     time: '',
     bookingDate: new Date().toISOString().split('T')[0],
     pax: 2,
@@ -306,7 +309,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
   useEffect(() => {
     if (!showModal) {
       setEditingId(null);
-      setNewBooking({ customerName: '', phone: '', time: '', bookingDate: selectedDate, pax: 2, notes: [], area: undefined, source: 'hotline' });
+      setNewBooking({ customerName: '', phone: '', email: '', time: '', bookingDate: selectedDate, pax: 2, notes: [], area: undefined, source: 'hotline' });
       setPendingStatusUpdate(null);
     }
   }, [showModal]);
@@ -441,6 +444,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
           ...b,
           customerName: newBooking.customerName!,
           phone: newBooking.phone,
+          email: newBooking.email,
           time: newBooking.time!,
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
@@ -453,6 +457,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
         await bookingService.updateBooking(editingId, {
           customerName: newBooking.customerName!,
           phone: newBooking.phone,
+          email: newBooking.email,
           time: newBooking.time!,
           pax: newBooking.pax || 2,
           notes: newBooking.notes,
@@ -466,6 +471,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
         const bookingData = {
           customerName: newBooking.customerName!,
           phone: newBooking.phone,
+          email: newBooking.email,
           time: newBooking.time!,
           pax: newBooking.pax || 2,
           status: 'new' as BookingStatus,
@@ -512,6 +518,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
     setNewBooking({
       customerName: booking.customerName,
       phone: booking.phone,
+      email: booking.email,
       time: booking.time,
       bookingDate: booking.bookingDate,
       pax: booking.pax,
@@ -586,7 +593,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
         <div className="relative">
           <input
             type="text"
-            placeholder="Tìm tên khách, SĐT..."
+            placeholder="Tìm tên khách, SĐT, Email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -736,7 +743,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                     <AlertCircle className="w-4 h-4" /> Đơn hàng bị thiếu thông tin (SĐT, Giờ, Pax...)
                   </div>
                 )}
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
                   <span>{selectedBooking.time || '--:--'} • {selectedBooking.pax || 0} Khách</span>
                   {selectedBooking.source && (
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[selectedBooking.source]}`}>
@@ -744,6 +751,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                     </span>
                   )}
                 </div>
+                {selectedBooking.email && (
+                  <div className="flex items-center gap-1.5 mt-1 text-sm text-gray-500">
+                    <Mail className="w-3.5 h-3.5" /> {selectedBooking.email}
+                  </div>
+                )}
               </div>
               <button onClick={() => setSelectedBooking(null)} className="p-2 bg-gray-100 rounded-full">
                 <X className="w-5 h-5 text-gray-500" />
@@ -892,7 +904,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
 
                       {/* SĐT */}
                       <td className="px-4 py-3 text-gray-600">
-                        {booking.phone || <span className="text-gray-300">—</span>}
+                        <div className="flex flex-col">
+                          <span>{booking.phone || <span className="text-gray-300">—</span>}</span>
+                          {booking.email && <span className="text-xs text-gray-400 mt-0.5">{booking.email}</span>}
+                        </div>
                       </td>
 
                       {/* Pax */}
@@ -1427,7 +1442,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
                   <input
                     type="text"
-                    value={newBooking.phone}
+                    value={newBooking.phone || ''}
                     onChange={(e) => setNewBooking({ ...newBooking, phone: e.target.value })}
                     placeholder="09..."
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${duplicateBooking ? 'border-orange-300 bg-orange-50' : 'border-gray-300'}`}
@@ -1450,7 +1465,19 @@ export default function BookingKanban({ isModalOpen, onToggleModal }: BookingKan
                     </div>
                   )}
                 </div>
+
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-gray-400 font-normal">(Tùy chọn)</span></label>
+                  <input
+                    type="email"
+                    value={newBooking.email || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, email: e.target.value })}
+                    placeholder="example@mail.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số khách (Pax)</label>
                   <input
                     type="number"
