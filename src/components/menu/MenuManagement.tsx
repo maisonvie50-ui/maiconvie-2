@@ -622,22 +622,14 @@ export default function MenuManagement() {
           {/* Main Content: Items */}
           <div className="flex-1 flex flex-col min-w-0">
             <div className="px-4 md:px-6 py-3 bg-white border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
-              {/* Row 1/Col 1: Title and Desktop Add Button */}
-              <div className="flex items-center justify-between w-full md:w-auto">
+              {/* Row 1/Col 1: Title (Desktop Only) */}
+              <div className="hidden md:flex items-center justify-between w-full md:w-auto">
                 <h2 className="text-lg md:text-xl font-bold text-gray-800">
                   {categories.find(c => c.id === activeCategory)?.name || 'Tất cả'}
                 </h2>
-                {/* Mobile Add Button */}
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="md:hidden flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm
-                </button>
               </div>
 
-              {/* Row 2/Col 2: Search, Toggles & Desktop Add */}
+              {/* Row 2/Col 2: Search, Toggles & Add */}
               <div className="flex items-center gap-2 w-full md:w-auto">
                 <div className="hidden md:block h-6 w-px bg-gray-200 mr-2"></div>
 
@@ -667,13 +659,13 @@ export default function MenuManagement() {
                   </button>
                 </div>
 
-                {/* Desktop Add Button */}
+                {/* Add Button (Icon on Mobile, Text on Desktop) */}
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="hidden md:flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors h-[38px]"
+                  className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors h-[38px] shrink-0"
                 >
                   <Plus className="w-4 h-4" />
-                  Thêm món mới
+                  <span className="hidden md:inline">Thêm món mới</span>
                 </button>
               </div>
 
