@@ -37,6 +37,7 @@ import {
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
 import { notificationService } from '../../services/notificationService';
+import { useAuth, UserRole } from '../../hooks/useAuth';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
 
@@ -71,6 +72,27 @@ interface MobileCaptainAppProps {
 }
 
 export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
+  const { user, userRole } = useAuth();
+
+  const roleLabels: Record<UserRole, string> = {
+    admin: 'Admin',
+    manager: 'Quản lý',
+    receptionist: 'Lễ tân',
+    kitchen: 'Bếp',
+    server: 'Phục vụ',
+  };
+
+  const roleColors: Record<UserRole, string> = {
+    admin: 'bg-red-500',
+    manager: 'bg-purple-500',
+    receptionist: 'bg-blue-500',
+    kitchen: 'bg-orange-500',
+    server: 'bg-teal-500',
+  };
+
+  const userInitials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : userRole[0].toUpperCase();
   const [view, setView] = useState<ViewState>('tables');
   const [activeZone, setActiveZone] = useState<'T1' | 'T2' | 'T3'>('T1');
   const [selectedTable, setSelectedTable] = useState<any>(null);
@@ -805,9 +827,20 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               )}
             </div>
           </div>
-          <div className="relative">
-            <Bell className="w-6 h-6 text-gray-400" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-full pl-1 pr-3 py-1 border border-gray-200">
+              <div className={`w-8 h-8 ${roleColors[userRole]} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                {userInitials}
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="text-[11px] font-bold text-gray-800 truncate max-w-[80px]">{user?.name || userRole}</span>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{roleLabels[userRole]}</span>
+              </div>
+            </div>
+            <div className="relative">
+              <Bell className="w-6 h-6 text-gray-400" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+            </div>
           </div>
         </div>
       )}
