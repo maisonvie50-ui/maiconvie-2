@@ -149,13 +149,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     fetchSettings();
 
     // Subscribe to realtime updates
-    const subscription = bookingService.subscribeToBookings((payload: any) => {
+    const subscription = bookingService.subscribeToBookings(async (payload: any) => {
       // Refresh data when a change occurs
       fetchBookings();
 
       if (payload && payload.eventType === 'INSERT') {
         const newDoc = payload.new;
-        if (newDoc && newDoc.status === 'new') {
+        if (newDoc) {
           // Play loud sound for new bookings
           notificationService.playNewBookingSound();
           // Show big alert
@@ -164,6 +164,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           setTimeout(() => {
             setNewBookingAlert({ visible: false, name: null });
           }, 6000);
+
+          // Auto-detect missing info and set status to 'waiting_info'
+          if (newDoc.status === 'new') {
+            const isMissingPhone = !newDoc.phone || newDoc.phone.trim() === '';
+            const isMissingEmail = !newDoc.email || newDoc.email.trim() === '';
+            const isMissingPax = !newDoc.pax || newDoc.pax <= 0;
+            const isMissingTime = !newDoc.time || newDoc.time.trim() === '';
+
+            if (isMissingPhone || isMissingEmail || isMissingPax || isMissingTime) {
+              try {
+                await bookingService.updateBookingStatus(newDoc.id, 'waiting_info');
+                console.log(`Auto-set booking ${newDoc.id} to waiting_info due to missing info`);
+              } catch (e) {
+                console.error('Failed to auto-update booking status', e);
+              }
+            }
+          }
         }
       }
     });
