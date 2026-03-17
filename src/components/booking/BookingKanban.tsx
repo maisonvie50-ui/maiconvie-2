@@ -151,8 +151,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       const sets = await menuService.getSetMenus();
       const tours = await menuService.getTourMenus();
       const items = await menuService.getMenuItems();
-      setAvailableSetMenus(sets.filter((m: any) => m.status === 'active'));
-      setAvailableTourMenus(tours.filter((m: any) => m.status === 'active'));
+      setAvailableSetMenus(sets.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
+      setAvailableTourMenus(tours.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
       setAvailableAlaCarteItems(items.filter((m: any) => m.inStock !== false));
     } catch (err) {
       console.error('Failed to load menus', err);
@@ -1634,8 +1634,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     type="button"
                     onClick={() => setNewBooking({ ...newBooking, customerType: 'retail' as any })}
                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border transition-all ${(!newBooking.customerType || newBooking.customerType === 'retail')
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                   >
                     🧑 Khách lẻ
@@ -1644,8 +1644,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     type="button"
                     onClick={() => setNewBooking({ ...newBooking, customerType: 'tour' as any })}
                     className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border transition-all ${newBooking.customerType === 'tour'
-                        ? 'bg-purple-600 text-white border-purple-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                      ? 'bg-purple-600 text-white border-purple-600'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                   >
                     🚌 Lữ hành
