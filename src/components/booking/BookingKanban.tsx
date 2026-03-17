@@ -1864,12 +1864,20 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-1">{viewingBooking.customerName || 'Không có tên'}</h2>
-                  {viewingBooking.phone && (
-                    <div className="flex items-center text-teal-600 font-medium">
-                      <Phone className="w-4 h-4 mr-1.5" />
-                      {viewingBooking.phone}
-                    </div>
-                  )}
+                  <div className="flex flex-col gap-1 mt-1">
+                    {viewingBooking.phone && (
+                      <div className="flex items-center text-teal-600 font-medium">
+                        <Phone className="w-4 h-4 mr-1.5" />
+                        <a href={`tel:${viewingBooking.phone}`} className="hover:underline">{viewingBooking.phone}</a>
+                      </div>
+                    )}
+                    {viewingBooking.email && (
+                      <div className="flex items-center text-gray-500 text-sm">
+                        <Mail className="w-4 h-4 mr-1.5" />
+                        <a href={`mailto:${viewingBooking.email}`} className="hover:text-teal-600 hover:underline">{viewingBooking.email}</a>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {viewingBooking.customerType && (
                   <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${viewingBooking.customerType === 'tour' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -1915,6 +1923,29 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   </p>
                 </div>
               </div>
+
+              {/* Menu block */}
+              {viewingBooking.selectedMenus && viewingBooking.selectedMenus.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <List className="w-4 h-4 text-emerald-500" />
+                    Thực đơn đã chọn
+                  </p>
+                  <div className="space-y-2">
+                    {viewingBooking.selectedMenus.map((menu: any, idx: number) => (
+                      <div key={idx} className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm p-3 rounded-lg flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 font-medium">
+                          <span className="w-6 h-6 bg-emerald-200 text-emerald-800 rounded-md flex items-center justify-center text-xs font-bold shrink-0">
+                            {menu.quantity}x
+                          </span>
+                          <span>{menu.name}</span>
+                        </div>
+                        {menu.price && <span className="text-emerald-600 font-semibold">{menu.price.toLocaleString('vi-VN')}đ</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Notes block */}
               {viewingBooking.notes && viewingBooking.notes.length > 0 && (
