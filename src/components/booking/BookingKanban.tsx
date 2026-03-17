@@ -34,6 +34,7 @@ import {
   Eye,
   Mail
 } from 'lucide-react';
+import { format, isSameDay, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, parseISO } from 'date-fns';
 import { Booking, BookingStatus } from '../../types';
 import { bookingService } from '../../services/bookingService';
 import CheckoutModal from './CheckoutModal'; // Added CheckoutModal import
@@ -100,6 +101,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // View & Filter States
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [dateFilterMode, setDateFilterMode] = useState<'day' | 'week' | 'month'>('day');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
@@ -285,8 +287,25 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
-    // 0. Filter by Date (Essential!)
-    if (b.bookingDate && b.bookingDate !== selectedDate) return false;
+    // 0. Filter by Date
+    if (b.bookingDate) {
+      if (viewMode === 'kanban' || dateFilterMode === 'day') {
+        if (b.bookingDate !== selectedDate) return false;
+      } else {
+        const bDate = parseISO(b.bookingDate);
+        const sDate = parseISO(selectedDate);
+
+        if (dateFilterMode === 'week') {
+          const start = startOfWeek(sDate, { weekStartsOn: 1 });
+          const end = endOfWeek(sDate, { weekStartsOn: 1 });
+          if (!isWithinInterval(bDate, { start, end })) return false;
+        } else if (dateFilterMode === 'month') {
+          const start = startOfMonth(sDate);
+          const end = endOfMonth(sDate);
+          if (!isWithinInterval(bDate, { start, end })) return false;
+        }
+      }
+    }
 
     // 1. Filter by Tab (Mobile only logic)
     if (isMobile && !statusGroups[activeStatusTab].includes(b.status)) return false;
@@ -1355,15 +1374,60 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
         {/* Left Side: Date & Shift Filters */}
         <div className="flex items-center gap-4 border-r border-gray-100 pr-4">
-          <div className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors">
-            <CalendarIcon className="w-4 h-4 text-teal-600" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              title="Chọn ngày"
-              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-28 cursor-pointer"
-            />
+          <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors p-1 gap-1">
+            <button
+              onClick={() => {
+                const date = new Date(selectedDate);
+                const nextDate = viewMode === 'kanban' || dateFilterMode === 'day' ? subDays(date, 1)
+                  : dateFilterMode === 'week' ? subWeeks(date, 1)
+                    : subMonths(date, 1);
+                setSelectedDate(format(nextDate, 'yyyy-MM-dd'));
+              }}
+              className="p-1 text-gray-500 hover:text-teal-600 hover:bg-white rounded transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-1.5 px-2">
+              <CalendarIcon className="w-4 h-4 text-teal-600" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                title="Chọn ngày"
+                className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-[115px] cursor-pointer"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                const date = new Date(selectedDate);
+                const nextDate = viewMode === 'kanban' || dateFilterMode === 'day' ? addDays(date, 1)
+                  : dateFilterMode === 'week' ? addWeeks(date, 1)
+                    : addMonths(date, 1);
+                setSelectedDate(format(nextDate, 'yyyy-MM-dd'));
+              }}
+              className="p-1 text-gray-500 hover:text-teal-600 hover:bg-white rounded transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+
+            {viewMode === 'table' && (
+              <>
+                <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                <select
+                  value={dateFilterMode}
+                  onChange={(e) => setDateFilterMode(e.target.value as any)}
+                  title="Chế độ xem"
+                  className="bg-transparent border-none text-xs font-bold text-gray-600 focus:ring-0 p-1 pl-2 pr-6 appearance-none cursor-pointer hover:text-teal-600 outline-none"
+                  style={{ backgroundPosition: 'right 0.2rem center', backgroundSize: '1.2em' }}
+                >
+                  <option value="day">Theo Ngày</option>
+                  <option value="week">Theo Tuần</option>
+                  <option value="month">Theo Tháng</option>
+                </select>
+              </>
+            )}
           </div>
 
           <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
@@ -1953,10 +2017,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                   type="button"
                                   onClick={() => setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name })}
                                   className={`relative px-2.5 py-2 rounded-lg text-left border-2 transition-all text-xs ${isSelected
-                                      ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200 shadow-sm'
-                                      : isEmpty
-                                        ? 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
-                                        : 'border-orange-200 bg-orange-50/50 opacity-70'
+                                    ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200 shadow-sm'
+                                    : isEmpty
+                                      ? 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
+                                      : 'border-orange-200 bg-orange-50/50 opacity-70'
                                     }`}
                                 >
                                   <div className="flex items-center justify-between">
