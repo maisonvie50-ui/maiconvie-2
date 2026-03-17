@@ -172,24 +172,30 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       fetchMenuData();
     });
 
-    const unsubscribeKitchen = notificationService.subscribeToKitchenCalls((payload) => {
-      if (payload && payload.tableNames && payload.tableNames.length > 0) {
-        setKitchenAlert({
-          visible: true,
-          tables: payload.tableNames,
-          orderId: payload.orderId,
-          readyItems: payload.readyItems
-        });
+    const unsubscribeKitchen = notificationService.subscribeToKitchenCalls(
+      (payload) => {
+        if (payload && payload.tableNames && payload.tableNames.length > 0) {
+          setKitchenAlert({
+            visible: true,
+            tables: payload.tableNames,
+            orderId: payload.orderId,
+            readyItems: payload.readyItems
+          });
 
-        const itemsText = payload.readyItems?.length
-          ? payload.readyItems.join(', ')
-          : 'Vui lòng đến lấy món';
-        notificationService.showBrowserNotification(`Món cho ${payload.tableNames.join(', ')} đã xong!`, {
-          body: itemsText,
-          requireInteraction: true
-        });
+          const itemsText = payload.readyItems?.length
+            ? payload.readyItems.join(', ')
+            : 'Vui lòng đến lấy món';
+          notificationService.showBrowserNotification(`Món cho ${payload.tableNames.join(', ')} đã xong!`, {
+            body: itemsText,
+            requireInteraction: true
+          });
+        }
+      },
+      // When another device dismisses the alert
+      () => {
+        setKitchenAlert(null);
       }
-    });
+    );
 
     return () => {
       subscription.unsubscribe();
@@ -874,7 +880,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             )}
 
             <button
-              onClick={() => setKitchenAlert(null)}
+              onClick={() => {
+                setKitchenAlert(null);
+                notificationService.broadcastDismissAlert();
+              }}
               className="w-full py-5 bg-white text-red-600 text-xl flex items-center gap-3 justify-center rounded-2xl font-black shadow-[0_8px_30px_rgb(0,0,0,0.2)] active:scale-95 transition-transform"
             >
               <CheckCircle className="w-8 h-8" />

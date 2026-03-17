@@ -101,7 +101,10 @@ class NotificationService {
     private isSubscribed = false;
 
     // Setup broadcast subscription
-    subscribeToKitchenCalls(callback: (payload: { tableNames: string[], orderId: string, readyItems?: string[] }) => void) {
+    subscribeToKitchenCalls(
+        onCall: (payload: { tableNames: string[], orderId: string, readyItems?: string[] }) => void,
+        onDismiss?: () => void
+    ) {
         if (!this.isSubscribed) {
             this.channel
                 .on(
@@ -109,7 +112,15 @@ class NotificationService {
                     { event: 'call-server' },
                     (payload) => {
                         console.log('Received kitchen call:', payload);
-                        callback(payload.payload as any);
+                        onCall(payload.payload as any);
+                    }
+                )
+                .on(
+                    'broadcast',
+                    { event: 'dismiss-alert' },
+                    () => {
+                        console.log('Alert dismissed by another device');
+                        if (onDismiss) onDismiss();
                     }
                 )
                 .subscribe((status) => {
@@ -144,6 +155,16 @@ class NotificationService {
             type: 'broadcast',
             event: 'call-server',
             payload: { tableNames, orderId, readyItems, timestamp: new Date().toISOString() },
+        });
+    }
+
+    // Broadcast dismiss alert to all devices
+    async broadcastDismissAlert() {
+        if (!this.isSubscribed) return;
+        return this.channel.send({
+            type: 'broadcast',
+            event: 'dismiss-alert',
+            payload: {},
         });
     }
 
