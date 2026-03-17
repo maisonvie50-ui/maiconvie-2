@@ -621,42 +621,42 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       {/* Mobile Filter Header */}
       <div className="bg-white px-4 py-3 border-b border-gray-200 shadow-sm flex flex-col gap-3">
         {/* Row 1: Date & Shift & Add */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-            <CalendarIcon className="w-4 h-4 text-gray-500" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 bg-gray-100 px-2 py-1.5 rounded-lg shrink-0">
+            <CalendarIcon className="w-4 h-4 text-gray-500 shrink-0" />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               title="Chọn ngày"
-              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-28"
+              className="bg-transparent border-none text-sm font-bold text-gray-800 focus:ring-0 p-0 w-[110px]"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex bg-gray-100 p-1 rounded-lg">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex bg-gray-100 p-0.5 rounded-lg">
               <button
                 onClick={() => setFilterShift('all')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+                className={`px-2 py-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${filterShift === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               >
                 Tất cả
               </button>
               <button
                 onClick={() => setFilterShift('lunch')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+                className={`px-2 py-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${filterShift === 'lunch' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               >
                 Trưa
               </button>
               <button
                 onClick={() => setFilterShift('dinner')}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'dinner' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+                className={`px-2 py-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${filterShift === 'dinner' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
               >
                 Tối
               </button>
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="p-1.5 bg-teal-600 text-white rounded-lg shadow-sm active:scale-95 transition-transform"
+              className="p-1.5 bg-teal-600 text-white rounded-lg shadow-sm active:scale-95 transition-transform shrink-0"
             >
               <Plus className="w-5 h-5" />
             </button>
