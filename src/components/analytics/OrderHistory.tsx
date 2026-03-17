@@ -110,34 +110,34 @@ export default function OrderHistory() {
 
             {/* Stats & Filters */}
             <div className="p-3 md:p-6 shrink-0 space-y-4">
-                <div className="grid grid-cols-3 gap-3 md:gap-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 shrink-0">
-                            <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+                <div className="grid grid-cols-3 gap-2 md:gap-6">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                        <div className="hidden md:flex w-12 h-12 rounded-full bg-teal-100 items-center justify-center text-teal-600 shrink-0">
+                            <TrendingUp className="w-6 h-6" />
                         </div>
                         <div className="min-w-0">
-                            <div className="text-xs md:text-sm font-medium text-gray-500 truncate">Tổng doanh thu</div>
-                            <div className="text-base md:text-2xl font-bold text-gray-900 truncate" title={`${totalRevenue.toLocaleString('vi-VN')}đ`}>
+                            <div className="text-[10px] md:text-sm font-medium text-gray-500 truncate">Doanh thu</div>
+                            <div className="text-sm md:text-2xl font-bold text-gray-900 truncate" title={`${totalRevenue.toLocaleString('vi-VN')}đ`}>
                                 {totalRevenue > 1000000 ? `${(totalRevenue / 1000000).toFixed(1)}Tr` : `${totalRevenue.toLocaleString('vi-VN')}đ`}
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                            <Receipt className="w-5 h-5 md:w-6 md:h-6" />
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                        <div className="hidden md:flex w-12 h-12 rounded-full bg-blue-100 items-center justify-center text-blue-600 shrink-0">
+                            <Receipt className="w-6 h-6" />
                         </div>
                         <div>
-                            <div className="text-xs md:text-sm font-medium text-gray-500">Tổng số đơn</div>
-                            <div className="text-base md:text-2xl font-bold text-gray-900">{filteredOrders.length}</div>
+                            <div className="text-[10px] md:text-sm font-medium text-gray-500">Số đơn</div>
+                            <div className="text-sm md:text-2xl font-bold text-gray-900">{filteredOrders.length}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                            <DollarSign className="w-5 h-5 md:w-6 md:h-6" />
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                        <div className="hidden md:flex w-12 h-12 rounded-full bg-amber-100 items-center justify-center text-amber-600 shrink-0">
+                            <DollarSign className="w-6 h-6" />
                         </div>
                         <div className="min-w-0">
-                            <div className="text-xs md:text-sm font-medium text-gray-500 truncate">TB/đơn</div>
-                            <div className="text-base md:text-2xl font-bold text-gray-900 truncate" title={`${averagePerOrder.toLocaleString('vi-VN')}đ`}>
+                            <div className="text-[10px] md:text-sm font-medium text-gray-500 truncate">TB/đơn</div>
+                            <div className="text-sm md:text-2xl font-bold text-gray-900 truncate" title={`${averagePerOrder.toLocaleString('vi-VN')}đ`}>
                                 {averagePerOrder > 1000000 ? `${(averagePerOrder / 1000000).toFixed(1)}Tr` : `${averagePerOrder.toLocaleString('vi-VN')}đ`}
                             </div>
                         </div>
@@ -184,12 +184,12 @@ export default function OrderHistory() {
                 </form>
 
                 {/* Floor Filter */}
-                <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => setFloorFilter(null)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${!floorFilter ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
-                        Tất cả tầng
+                <div className="flex gap-1.5 md:gap-2 overflow-x-auto no-scrollbar">
+                    <button onClick={() => setFloorFilter(null)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${!floorFilter ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                        Tất cả
                     </button>
                     {[1, 2, 3].map(f => (
-                        <button key={f} onClick={() => setFloorFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${floorFilter === f ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                        <button key={f} onClick={() => setFloorFilter(f)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${floorFilter === f ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
                             {FLOOR_LABELS[f]}
                         </button>
                     ))}
@@ -256,31 +256,32 @@ export default function OrderHistory() {
                         ) : filteredOrders.length === 0 ? (
                             <div className="p-6 text-center text-sm text-gray-500 bg-white rounded-xl shadow-sm border border-gray-100">Không có đơn hàng nào.</div>
                         ) : (
-                            <div className="space-y-2.5">
+                            <div className="space-y-2">
                                 {filteredOrders.map(order => (
                                     <div key={order.id} className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm active:scale-[0.98] transition-transform" onClick={() => setSelectedOrder(order)}>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
+                                        {/* Row 1: Table + Amount */}
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-2 min-w-0">
                                                 <div className="font-bold text-gray-900 text-sm">{order.table || 'Mang đi'}</div>
                                                 {order.customerName && (
-                                                    <div className="text-xs text-teal-700 font-medium mt-0.5">
+                                                    <div className="text-[11px] text-teal-700 font-medium truncate max-w-[120px]">
                                                         {order.customerName}
                                                     </div>
                                                 )}
-                                                <div className="text-[11px] text-gray-400 font-mono mt-0.5">#{order.id.slice(0, 8)}</div>
                                             </div>
-                                            <div className="flex flex-col items-end gap-1">
-                                                {getPaymentBadge(order.paymentMethod)}
-                                                {getSourceBadge(order.source)}
+                                            <div className="font-bold text-teal-600 text-sm whitespace-nowrap">
+                                                {calculateOrderTotal(order).toLocaleString('vi-VN')}đ
                                             </div>
                                         </div>
-                                        <div className="flex justify-between items-end mt-2">
-                                            <div className="text-[11px] text-gray-500 flex items-center gap-1">
+                                        {/* Row 2: Time + Badges */}
+                                        <div className="flex justify-between items-center mt-1.5">
+                                            <div className="text-[10px] text-gray-400 flex items-center gap-1">
                                                 <Clock className="w-3 h-3" />
                                                 {order.orderTime.toLocaleString('vi-VN')}
                                             </div>
-                                            <div className="font-bold text-teal-600 text-base">
-                                                {calculateOrderTotal(order).toLocaleString('vi-VN')}đ
+                                            <div className="flex items-center gap-1">
+                                                {order.paymentMethod && getPaymentBadge(order.paymentMethod)}
+                                                {order.source && getSourceBadge(order.source)}
                                             </div>
                                         </div>
                                     </div>
