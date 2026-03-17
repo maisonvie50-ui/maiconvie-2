@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Users, Phone, User, Mail, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Users, Phone, User, Mail, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search, AlertCircle } from 'lucide-react';
 import BookingLookup from './BookingLookup';
 import { bookingService } from '../../services/bookingService';
 import { menuService } from '../../services/menuService';
+import { settingsService } from '../../services/settingsService';
 import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
 
 export default function PublicBookingForm() {
@@ -49,30 +50,63 @@ export default function PublicBookingForm() {
     // Order summary step
     const [showSummary, setShowSummary] = useState(false);
 
+    // Availability state
+    const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+    const [suggestedSlots, setSuggestedSlots] = useState<string[]>([]);
+    const [isChecking, setIsChecking] = useState(false);
+    const [appSettings, setAppSettings] = useState<any>(null);
+
     const toggleMenuExpand = (id: string) => {
         setExpandedMenus(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
     useEffect(() => {
-        const fetchMenus = async () => {
+        const fetchData = async () => {
             setIsLoadingMenus(true);
             try {
-                const [alacarteRes, setRes, tourRes] = await Promise.all([
+                const [alacarteRes, setRes, tourRes, settingsRes] = await Promise.all([
                     menuService.getMenuItems(),
                     menuService.getSetMenus(),
-                    menuService.getTourMenus()
+                    menuService.getTourMenus(),
+                    settingsService.getAppSettings()
                 ]);
                 setMenuItems(alacarteRes.filter(item => item.inStock));
                 setSetMenus(setRes.filter(s => s.status === 'available'));
                 setTourMenus(tourRes.filter(t => t.status === 'available'));
+                setAppSettings(settingsRes);
             } catch (err) {
-                console.error("Error fetching menus:", err);
+                console.error("Error fetching data:", err);
             } finally {
                 setIsLoadingMenus(false);
             }
         };
-        fetchMenus();
+        fetchData();
     }, []);
+
+    // Check availability when core fields change
+    useEffect(() => {
+        const checkSlot = async () => {
+            if (!formData.date || !formData.time || !formData.pax) return;
+            setIsChecking(true);
+            try {
+                const result = await bookingService.checkAvailability(formData.date, formData.time, Number(formData.pax));
+                setIsAvailable(result.isAvailable);
+                setSuggestedSlots(result.suggestedSlots);
+            } catch (error) {
+                console.error("Error checking availability:", error);
+                setIsAvailable(true); // Don't block if error occurs
+                setSuggestedSlots([]);
+            } finally {
+                setIsChecking(false);
+            }
+        };
+
+        const timeoutId = setTimeout(() => {
+            checkSlot();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [formData.date, formData.time, formData.pax]);
 
     const handleQuantityChange = (item: any, type: 'alacarte' | 'set' | 'tour', delta: number) => {
         setSelectedMenus(prev => {
@@ -347,6 +381,38 @@ export default function PublicBookingForm() {
                                     </select>
                                 </div>
                             </div>
+
+                            {/* Hiển thị check availability */}
+                            {isChecking ? (
+                                <p className="text-sm text-gray-500 mt-2 italic">Đang kiểm tra chỗ trống...</p>
+                            ) : isAvailable === false ? (
+                                <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                                    <div className="text-orange-800 font-bold mb-2 flex items-start gap-2">
+                                        <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            Rất tiếc, khung giờ này đã kín bàn.
+                                            {!appSettings?.strictMode && <div className="font-normal text-sm mt-1">(Bạn vẫn có thể đặt, nhưng có thể phải đợi bàn)</div>}
+                                        </div>
+                                    </div>
+                                    {suggestedSlots.length > 0 && (
+                                        <>
+                                            <p className="text-sm text-orange-700 mb-3 font-medium">Vui lòng chọn một trong các khung giờ gần nhất còn trống:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {suggestedSlots.map(slot => (
+                                                    <button
+                                                        key={slot}
+                                                        type="button"
+                                                        onClick={() => setFormData({ ...formData, time: slot })}
+                                                        className="px-4 py-2 bg-white border border-orange-200 text-orange-700 font-semibold rounded-lg hover:bg-orange-100 hover:border-orange-300 transition-colors shadow-sm"
+                                                    >
+                                                        {slot}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ) : null}
                         </div>
 
                         {/* CHỌN THỰC ĐƠN TRƯỚC */}
@@ -447,7 +513,8 @@ export default function PublicBookingForm() {
                         <button
                             type="button"
                             onClick={() => setShowSummary(true)}
-                            className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 shadow-lg shadow-teal-500/30 transition-all bg-teal-600 hover:bg-teal-700 active:scale-[0.98]`}
+                            disabled={isChecking || (isAvailable === false && appSettings?.strictMode)}
+                            className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 transition-all ${(isChecking || (isAvailable === false && appSettings?.strictMode)) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.98] shadow-lg shadow-teal-500/30'}`}
                         >
                             Tiếp tục
                             <ArrowRight className="w-5 h-5" />

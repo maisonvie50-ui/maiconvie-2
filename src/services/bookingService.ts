@@ -3,7 +3,7 @@ import { Booking, BookingStatus } from '../types/booking';
 import { customerService } from './customerService';
 import { orderService } from './orderService';
 import { tableService } from './tableService';
-
+import { settingsService } from './settingsService';
 export const bookingService = {
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
     async getBookings() {
@@ -375,5 +375,98 @@ export const bookingService = {
             tableName: b.table_name,
             createdAt: b.created_at
         })) as (Booking & { createdAt?: string })[];
+    },
+
+    // 6. Kiểm tra chỗ trống và gợi ý giờ
+    async checkAvailability(date: string, time: string, pax: number): Promise<{ isAvailable: boolean, suggestedSlots: string[] }> {
+        try {
+            // Lấy danh sách booking trong ngày (chưa hủy)
+            const { data: bookings, error: bookingsError } = await supabase
+                .from('bookings')
+                .select('*')
+                .eq('booking_date', date)
+                .neq('status', 'cancelled')
+                .neq('status', 'no_show');
+
+            if (bookingsError) throw bookingsError;
+
+            // Lấy settings để biết sức chứa và thời lượng mặc định
+            const settings = await settingsService.getAppSettings();
+            const totalCapacity = settings?.areas?.reduce((sum: number, area: any) => sum + area.capacity, 0) || 150; // Fallback
+            const defaultDuration = settings?.defaultDuration || 120; // phút
+
+            // Hàm chuyển đổi giờ "HH:mm" sang số phút từ 00:00
+            const timeToMinutes = (t: string) => {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const reqStart = timeToMinutes(time);
+            const reqEnd = reqStart + defaultDuration;
+
+            // Tính tổng số khách đang chiếm chỗ tại thời điểm yêu cầu
+            let occupiedPaxAtReqTime = 0;
+            (bookings || []).forEach(b => {
+                const bStart = timeToMinutes(b.time);
+                const bEnd = bStart + defaultDuration;
+                // Kiểm tra xem thời gian có giao nhau không
+                if (reqStart < bEnd && reqEnd > bStart) {
+                    occupiedPaxAtReqTime += b.pax;
+                }
+            });
+
+            if (occupiedPaxAtReqTime + pax <= totalCapacity) {
+                return { isAvailable: true, suggestedSlots: [] };
+            }
+
+            // Nếu hết chỗ, tìm các slot gần nhất
+            // Khởi tạo các slot hợp lệ trong ngày (VD: 11:00 đến 22:00, mỗi 30 phút)
+            const allSlots = [];
+            for (let i = 11; i <= 22; i++) {
+                allSlots.push(`${i}:00`);
+                if (i !== 22) allSlots.push(`${i}:30`);
+            }
+
+            const getOccupiedAtTime = (testTimeMinutes: number) => {
+                const testEnd = testTimeMinutes + defaultDuration;
+                let occ = 0;
+                (bookings || []).forEach(b => {
+                    const bStart = timeToMinutes(b.time);
+                    const bEnd = bStart + defaultDuration;
+                    if (testTimeMinutes < bEnd && testEnd > bStart) {
+                        occ += b.pax;
+                    }
+                });
+                return occ;
+            };
+
+            const availableSlots = allSlots.filter(slot => {
+                const slotMins = timeToMinutes(slot);
+                // Bỏ qua thời gian trong quá khứ nếu là hôm nay
+                if (date === new Date().toISOString().split('T')[0]) {
+                    const now = new Date();
+                    const nowMins = now.getHours() * 60 + now.getMinutes();
+                    if (slotMins <= nowMins) return false;
+                }
+                const occ = getOccupiedAtTime(slotMins);
+                return occ + pax <= totalCapacity;
+            });
+
+            // Tìm 3 slot gần với thời gian yêu cầu nhất
+            availableSlots.sort((a, b) => {
+                const distA = Math.abs(timeToMinutes(a) - reqStart);
+                const distB = Math.abs(timeToMinutes(b) - reqStart);
+                return distA - distB;
+            });
+
+            const topSuggestions = availableSlots.slice(0, 3).sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+
+            return { isAvailable: false, suggestedSlots: topSuggestions };
+
+        } catch (error) {
+            console.error('Error checking availability:', error);
+            // Default to true if calculation fails to not block users, but log error
+            return { isAvailable: true, suggestedSlots: [] };
+        }
     }
 };

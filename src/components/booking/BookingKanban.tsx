@@ -288,6 +288,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [duplicateBooking, setDuplicateBooking] = useState<Booking | null>(null);
   // Slot Suggestion Logic
   const [suggestedSlots, setSuggestedSlots] = useState<string[]>([]);
+  const [isCheckingSlot, setIsCheckingSlot] = useState(false);
 
   useEffect(() => {
     if (newBooking.phone && newBooking.phone.length > 3) {
@@ -301,14 +302,36 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   }, [newBooking.phone, bookings, editingId]);
 
-  // Mock Slot Availability Check
+  // Real Slot Availability Check
   useEffect(() => {
-    if (newBooking.time === '19:00') {
-      setSuggestedSlots(['18:30', '19:30', '20:00']);
-    } else {
-      setSuggestedSlots([]);
-    }
-  }, [newBooking.time]);
+    const checkSlot = async () => {
+      if (!newBooking.bookingDate || !newBooking.time || !newBooking.pax) return;
+      setIsCheckingSlot(true);
+      try {
+        const result = await bookingService.checkAvailability(
+          newBooking.bookingDate,
+          newBooking.time,
+          Number(newBooking.pax)
+        );
+        if (!result.isAvailable) {
+          setSuggestedSlots(result.suggestedSlots);
+        } else {
+          setSuggestedSlots([]);
+        }
+      } catch (error) {
+        console.error("Error checking slot:", error);
+        setSuggestedSlots([]);
+      } finally {
+        setIsCheckingSlot(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      checkSlot();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [newBooking.bookingDate, newBooking.time, newBooking.pax]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
