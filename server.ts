@@ -22,46 +22,6 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Booking Sync Endpoint from Google Sheets
-  app.post("/api/booking-sync", async (req, res) => {
-    try {
-      const payload = req.body;
-      console.log("Received booking sync:", payload);
-
-      if (!payload.customerName) {
-        return res.status(400).json({ error: "Missing customerName" });
-      }
-
-      // Convert time from "18:30" string to proper format if needed, but the DB likely accepts texts
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert({
-          customer_name: payload.customerName,
-          phone: payload.phone || null,
-          email: payload.email || null,
-          pax: payload.pax || 2,
-          booking_date: payload.bookingDate || new Date().toISOString().split("T")[0],
-          time: payload.time || "18:00",
-          status: payload.status || "new",
-          source: payload.source || "email",
-          customer_type: payload.customerType || "retail",
-          notes: payload.notes || [],
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Supabase Error inserting booking:", error);
-        return res.status(500).json({ error: error.message });
-      }
-
-      res.status(200).json({ success: true, booking: data });
-    } catch (err: any) {
-      console.error("Error in booking-sync endpoint:", err);
-      res.status(500).json({ error: "Internal Server Error", details: err.message });
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
