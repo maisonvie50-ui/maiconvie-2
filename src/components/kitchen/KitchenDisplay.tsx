@@ -434,7 +434,7 @@ export default function KitchenDisplay() {
                               {/* Item Details */}
                               <div className={`flex-1 p-2 flex flex-col justify-center relative min-w-0 w-full overflow-hidden rounded-r-xl ${isDone ? 'bg-emerald-50/30' : 'bg-white'}`}>
                                 <div className="pr-6 w-full">
-                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight ${isMobile ? 'break-words' : 'truncate'} ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
+                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight break-words ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
                                     {item.name}
                                   </div>
 
