@@ -851,10 +851,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 <Edit className="w-5 h-5 text-gray-400" />
                 Chỉnh sửa thông tin
               </button>
-              <button className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg text-gray-700 font-medium">
-                <Phone className="w-5 h-5 text-gray-400" />
-                Gọi điện thoại
-              </button>
+              {selectedBooking.phone ? (
+                <a href={`tel:${selectedBooking.phone}`} className="w-full flex items-center gap-3 p-3 text-left hover:bg-green-50 rounded-lg text-green-700 font-medium">
+                  <Phone className="w-5 h-5 text-green-500" />
+                  Gọi điện thoại ({selectedBooking.phone})
+                </a>
+              ) : (
+                <div className="w-full flex items-center gap-3 p-3 text-left rounded-lg text-gray-400 font-medium cursor-not-allowed">
+                  <Phone className="w-5 h-5" />
+                  Gọi điện thoại (chưa có SĐT)
+                </div>
+              )}
               <div className="h-px bg-gray-100 my-2"></div>
               <button onClick={() => handleStatusChange(selectedBooking.id, 'no_show')} className="w-full flex items-center gap-3 p-3 text-left hover:bg-red-50 rounded-lg text-red-600 font-medium">
                 <UserX className="w-5 h-5" />
