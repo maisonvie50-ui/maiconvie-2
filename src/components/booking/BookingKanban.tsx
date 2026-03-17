@@ -1866,30 +1866,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Khu vực mong muốn</label>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                  {[
-                    { id: 'indoor', label: 'Trong nhà' },
-                    { id: 'outdoor', label: 'Ngoài trời' },
-                    { id: 'vip', label: 'Phòng VIP' },
-                    { id: 'rooftop', label: 'Sân thượng' }
-                  ].map((area) => (
-                    <button
-                      key={area.id}
-                      onClick={() => setNewBooking({ ...newBooking, area: area.id as any })}
-                      className={`
-                        px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all
-                        ${newBooking.area === area.id
-                          ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}
-                      `}
-                    >
-                      {area.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1933,21 +1909,78 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
               )}
 
+              {/* Xếp bàn - Floor-grouped visual picker */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Xếp bàn</label>
-                <select
-                  title="Chọn bàn"
-                  value={newBooking.tableId || ''}
-                  onChange={(e) => setNewBooking({ ...newBooking, tableId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
-                >
-                  <option value="">-- Chưa xếp bàn --</option>
-                  {tables.map(table => (
-                    <option key={table.id} value={table.id}>
-                      {table.name} ({table.pax} chỗ) - {table.status === 'empty' ? 'Trống' : 'Có khách/Đặt trước'}
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">🪑 Xếp bàn</label>
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                    {/* Nút bỏ chọn */}
+                    <button
+                      type="button"
+                      onClick={() => setNewBooking({ ...newBooking, tableId: '', tableName: '' })}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm border-b border-gray-100 transition-colors ${!newBooking.tableId ? 'bg-gray-100 text-gray-800 font-bold' : 'text-gray-500 hover:bg-gray-50'
+                        }`}
+                    >
+                      <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-300 text-[10px]">
+                        {!newBooking.tableId && '✓'}
+                      </span>
+                      Chưa xếp bàn
+                    </button>
+
+                    {/* Group by floor */}
+                    {[1, 2, 3].map(floor => {
+                      const floorTables = tables.filter(t => t.floor === floor);
+                      if (floorTables.length === 0) return null;
+
+                      const floorColors = {
+                        1: { bg: 'bg-sky-50', border: 'border-sky-100', text: 'text-sky-700', label: '🏠 Tầng 1' },
+                        2: { bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700', label: '🏢 Tầng 2' },
+                        3: { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', label: '🌟 Tầng 3' },
+                      }[floor]!;
+
+                      return (
+                        <div key={floor}>
+                          <div className={`px-3 py-1.5 ${floorColors.bg} border-b ${floorColors.border} sticky top-0 z-10`}>
+                            <span className={`text-xs font-bold ${floorColors.text} uppercase tracking-wide`}>{floorColors.label} ({floorTables.length} bàn)</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-1.5 p-2">
+                            {floorTables.map(table => {
+                              const isSelected = newBooking.tableId === table.id;
+                              const isEmpty = table.status === 'empty';
+                              return (
+                                <button
+                                  key={table.id}
+                                  type="button"
+                                  onClick={() => setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name })}
+                                  className={`relative px-2.5 py-2 rounded-lg text-left border-2 transition-all text-xs ${isSelected
+                                      ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200 shadow-sm'
+                                      : isEmpty
+                                        ? 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
+                                        : 'border-orange-200 bg-orange-50/50 opacity-70'
+                                    }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className={`font-bold ${isSelected ? 'text-teal-700' : 'text-gray-800'}`}>{table.name}</span>
+                                    {isSelected && (
+                                      <span className="w-4 h-4 bg-teal-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold">✓</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center justify-between mt-0.5">
+                                    <span className="text-gray-400">{table.pax} chỗ</span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isEmpty ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600'
+                                      }`}>
+                                      {isEmpty ? 'Trống' : 'Đã đặt'}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div>
