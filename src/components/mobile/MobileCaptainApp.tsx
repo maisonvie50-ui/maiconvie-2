@@ -98,6 +98,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [selectedTable, setSelectedTable] = useState<any>(null);
   const [tableActionTarget, setTableActionTarget] = useState<Table | VipRoom | null>(null);
   const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
+  const [openTableTarget, setOpenTableTarget] = useState<any>(null);
+  const [openTableCustomerName, setOpenTableCustomerName] = useState('');
+  const [openTablePax, setOpenTablePax] = useState('');
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -292,6 +295,43 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const [isSendingOrder, setIsSendingOrder] = useState(false);
 
+  // Unified table click handler
+  const handleTableClick = (table: any) => {
+    const status = table.status;
+    if (status === 'occupied' || status === 'in-use') {
+      setTableActionTarget(table);
+    } else if (status === 'reserved') {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName(table.customerName || '');
+      setOpenTablePax(table.pax?.toString() || '');
+    } else {
+      // empty
+      setOpenTableTarget(table);
+      setOpenTableCustomerName('');
+      setOpenTablePax('');
+    }
+  };
+
+  const handleConfirmOpenTable = async () => {
+    if (!openTableTarget) return;
+    try {
+      await tableService.updateTableStatus(openTableTarget.id, {
+        status: 'occupied' as any,
+        customerName: openTableCustomerName || 'Khách vãng lai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      });
+      setSelectedTable({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
+      setOpenTableTarget(null);
+      setOpenTableCustomerName('');
+      setOpenTablePax('');
+      handleSetView('menu');
+      fetchTables();
+    } catch (err) {
+      console.error('Failed to open table', err);
+      alert('Lỗi: Không thể mở bàn.');
+    }
+  };
+
   const handleSendOrder = async () => {
     if (!selectedTable || cart.length === 0) return;
 
@@ -359,14 +399,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             {tablesL1.map(table => (
               <div
                 key={table.id}
-                onClick={() => {
-                  if (table.status === 'occupied') {
-                    setTableActionTarget(table);
-                  } else {
-                    setSelectedTable(table);
-                    handleSetView('menu');
-                  }
-                }}
+                onClick={() => handleTableClick(table)}
                 className={`
                   relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
                   ${getStatusColor(table.status)}
@@ -397,14 +430,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             {vipRoomsList.map(room => (
               <div
                 key={room.id}
-                onClick={() => {
-                  if (room.status === 'in-use') {
-                    setTableActionTarget(room);
-                  } else {
-                    setSelectedTable(room);
-                    handleSetView('menu');
-                  }
-                }}
+                onClick={() => handleTableClick(room)}
                 className={`
                   relative p-4 rounded-2xl border-2 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform
                   ${getStatusColor(room.status)}
@@ -435,14 +461,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             {tablesL3.map(table => (
               <div
                 key={table.id}
-                onClick={() => {
-                  if (table.status === 'occupied') {
-                    setTableActionTarget(table);
-                  } else {
-                    setSelectedTable(table);
-                    handleSetView('menu');
-                  }
-                }}
+                onClick={() => handleTableClick(table)}
                 className={`
                   relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
                   ${getStatusColor(table.status)}
@@ -1069,6 +1088,54 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               >
                 <Receipt className="w-5 h-5" />
                 Thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open Table Popup - for empty/reserved tables */}
+      {openTableTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{openTableTarget.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {openTableTarget.status === 'reserved' ? '⏰ Bàn đã đặt trước' : '🪑 Bàn đang trống'}
+                </p>
+              </div>
+              <button title="Đóng" onClick={() => setOpenTableTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="text-center mb-2">
+                <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Users className="w-7 h-7" />
+                </div>
+                <p className="text-sm font-bold text-gray-800">
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận khách đến?' : 'Mở bàn & Gọi món'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Nhập thông tin khách để tiếp tục gọi món</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Tên khách</label>
+                <input
+                  type="text"
+                  value={openTableCustomerName}
+                  onChange={(e) => setOpenTableCustomerName(e.target.value)}
+                  placeholder="VD: Anh Minh, Ms. Linh..."
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={handleConfirmOpenTable}
+                className={`w-full py-3.5 rounded-xl font-bold text-white shadow-md transition flex items-center justify-center gap-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}
+              >
+                <Utensils className="w-5 h-5" />
+                {openTableTarget.status === 'reserved' ? 'Xác nhận & Gọi món' : 'Mở bàn & Gọi món'}
               </button>
             </div>
           </div>
