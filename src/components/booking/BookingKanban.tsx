@@ -662,13 +662,40 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   const renderMobileList = () => (
     <div className="h-full flex flex-col relative bg-gray-50/30 overflow-hidden">
-      {/* New Booking Alert Banner */}
+      {/* New Booking Alert - Premium Fullscreen Overlay */}
       {newBookingAlert.visible && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 bg-teal-600 text-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce">
-          <BellRing className="w-8 h-8 animate-pulse text-yellow-300" />
-          <div>
-            <div className="text-xl font-black tracking-widest text-yellow-300 drop-shadow-md">ĐƠN MỚI!</div>
-            <div className="text-sm font-medium">Khách hàng: {newBookingAlert.name || 'Khách mới'}</div>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md animate-[fadeIn_0.3s_ease-out]"
+          onClick={() => setNewBookingAlert({ visible: false, name: null })}
+        >
+          <div
+            className="relative flex flex-col items-center gap-4 px-10 py-8 rounded-3xl bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 shadow-2xl border border-white/10 animate-[popIn_0.4s_cubic-bezier(0.34,1.56,0.64,1)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Glow ring */}
+            <div className="absolute inset-0 rounded-3xl border-2 border-yellow-300/40 animate-ping pointer-events-none [animation-duration:1.5s]"></div>
+
+            {/* Icon */}
+            <div className="relative w-20 h-20 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
+              <BellRing className="w-10 h-10 text-yellow-300 animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center border-2 border-white">
+                <span className="text-[9px] font-black text-white">1</span>
+              </div>
+            </div>
+
+            {/* Text */}
+            <div className="text-center">
+              <h2 className="text-2xl font-black text-yellow-300 tracking-wider drop-shadow-lg mb-1">🔔 ĐƠN MỚI!</h2>
+              <p className="text-white/90 text-sm font-medium">{newBookingAlert.name ? `Khách hàng: ${newBookingAlert.name}` : 'Có đơn đặt bàn mới'}</p>
+            </div>
+
+            {/* Dismiss button */}
+            <button
+              onClick={() => setNewBookingAlert({ visible: false, name: null })}
+              className="mt-2 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-full text-white text-sm font-bold backdrop-blur-sm transition-all active:scale-95 border border-white/20"
+            >
+              Đã biết
+            </button>
           </div>
         </div>
       )}
