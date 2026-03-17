@@ -13,63 +13,78 @@ const createSound = (type: 'newBooking' | 'callServer' | 'callServer2' | 'callSe
         const now = audioCtx.currentTime;
 
         if (type === 'newBooking') {
-            // 3 quick high-pitched beeps
-            oscillator.type = 'sine';
+            // 3 quick high-pitched beeps - LOUDEST (Square wave + High gain)
+            oscillator.type = 'square';
             oscillator.frequency.setValueAtTime(880, now); // A5
 
             gainNode.gain.setValueAtTime(0, now);
 
             // Beep 1
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.05);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.02);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
             // Beep 2
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.3);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.3);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
 
             // Beep 3
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.55);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.55);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
 
             oscillator.start(now);
             oscillator.stop(now + 0.8);
 
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
         } else if (type === 'callServer') {
-            // Attention grabbing double chime (Din-Dong)
-            oscillator.type = 'triangle';
+            // Attention grabbing double chime (Din-Dong) - LOUDEST
+            oscillator.type = 'square';
 
             // First note (higher)
             oscillator.frequency.setValueAtTime(987.77, now); // B5
             gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.05);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.05);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
 
             // Second note (lower)
             oscillator.frequency.setValueAtTime(783.99, now + 0.5); // G5
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.55);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.55);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
 
             oscillator.start(now);
             oscillator.stop(now + 1.5);
+
+            if (navigator.vibrate) {
+                navigator.vibrate([500, 200, 500]);
+            }
         } else if (type === 'callServer2') {
-            // Classic bell
-            oscillator.type = 'sine';
+            // Classic bell - LOUDEST
+            oscillator.type = 'square';
             oscillator.frequency.setValueAtTime(1046.50, now); // C6
             gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(1, now + 0.05);
+            gainNode.gain.linearRampToValueAtTime(4, now + 0.05);
             gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
 
             oscillator.start(now);
             oscillator.stop(now + 1.6);
+
+            if (navigator.vibrate) {
+                navigator.vibrate([1000]);
+            }
         } else if (type === 'callServer3') {
-            // Urgent ringing
+            // Urgent ringing - LOUDEST
             oscillator.type = 'square';
             oscillator.frequency.setValueAtTime(800, now);
             gainNode.gain.setValueAtTime(0, now);
 
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200, 100, 200]);
+            }
+
             for (let i = 0; i < 5; i++) {
                 const time = now + (i * 0.2);
-                gainNode.gain.linearRampToValueAtTime(0.8, time);
+                gainNode.gain.linearRampToValueAtTime(4, time);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
             }
 
