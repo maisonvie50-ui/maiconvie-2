@@ -406,10 +406,16 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                   ${table.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}
                 `}
               >
-                <span className="text-lg font-bold mb-1">{table.name.replace('Bàn ', '')}</span>
-                <div className="flex items-center gap-1 text-[10px] font-medium opacity-80">
-                  <Users className="w-3 h-3" /> {table.pax}
-                </div>
+                <span className="text-lg font-bold leading-tight">{table.name.replace('Bàn ', '')}</span>
+                {(table.status === 'occupied' || table.status === 'reserved') && table.customerName ? (
+                  <div className="text-[9px] font-bold truncate w-full text-center px-1 leading-tight opacity-90">
+                    {table.customerName.length > 10 ? table.customerName.slice(0, 10) + '…' : table.customerName}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-[10px] font-medium opacity-80">
+                    <Users className="w-3 h-3" /> {table.pax}
+                  </div>
+                )}
                 {table.status === 'occupied' && (
                   <div className="absolute -top-2 -right-2 bg-white border border-green-200 px-1.5 py-0.5 rounded-full text-[10px] font-bold flex items-center shadow-sm text-green-700 z-10">
                     {table.duration}
@@ -439,6 +445,11 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                 <div>
                   <span className="text-lg font-bold block">{room.name.split('(')[0]}</span>
                   <span className="text-xs opacity-70 block">{room.name.split('(')[1]?.replace(')', '')}</span>
+                  {room.status === 'in-use' && room.customerName && (
+                    <div className="text-[10px] font-bold mt-1 truncate text-green-800 bg-white/50 px-1.5 py-0.5 rounded">
+                      {room.customerName.length > 14 ? room.customerName.slice(0, 14) + '…' : room.customerName}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-end mt-2">
@@ -469,17 +480,23 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                 `}
               >
                 <div className="text-center">
-                  <span className="text-base font-bold block">{table.name.replace('Bàn ', '')}</span>
-                  <div className="flex items-center justify-center gap-1 text-[10px] font-medium opacity-80">
-                    <Users className="w-3 h-3" /> {table.pax}
-                  </div>
+                  <span className="text-base font-bold block leading-tight">{table.name.replace('Bàn ', '')}</span>
+                  {(table.status === 'occupied' || table.status === 'reserved') && table.customerName ? (
+                    <div className="text-[8px] font-bold truncate w-full text-center px-0.5 leading-tight opacity-90">
+                      {table.customerName.length > 8 ? table.customerName.slice(0, 8) + '…' : table.customerName}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1 text-[10px] font-medium opacity-80">
+                      <Users className="w-3 h-3" /> {table.pax}
+                    </div>
+                  )}
                   {table.status === 'occupied' && (
-                    <div className="text-[9px] mt-1 font-bold text-green-700 bg-white/50 px-1 rounded">
+                    <div className="text-[9px] mt-0.5 font-bold text-green-700 bg-white/50 px-1 rounded">
                       {table.duration}
                     </div>
                   )}
                   {table.status === 'reserved' && (
-                    <div className="text-[9px] mt-1 font-bold text-yellow-700 bg-white/50 px-1 rounded">
+                    <div className="text-[9px] mt-0.5 font-bold text-yellow-700 bg-white/50 px-1 rounded">
                       {table.time}
                     </div>
                   )}
