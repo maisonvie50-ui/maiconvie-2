@@ -7,6 +7,8 @@ import {
 
 import { settingsService, Employee, ActivityLog, Station, AppSettings } from '../../services/settingsService';
 import { trainingService, TrainingModule } from '../../services/trainingService';
+import { tableService } from '../../services/tableService';
+import { Table } from '../../types';
 
 interface Area {
     id: string;
@@ -55,6 +57,7 @@ export default function Settings() {
     const [isAddStationModalOpen, setIsAddStationModalOpen] = useState(false);
     const [editingStationId, setEditingStationId] = useState<string | null>(null);
     const [isEditStationTablesModalOpen, setIsEditStationTablesModalOpen] = useState(false);
+    const [allTables, setAllTables] = useState<Table[]>([]);
 
     const [trainingUrl, setTrainingUrl] = useState('');
     const [trainingTitle, setTrainingTitle] = useState('');
@@ -85,18 +88,20 @@ export default function Settings() {
     }, []);
 
     const loadData = async () => {
-        const [empData, stData, trData, cfgData, logData] = await Promise.all([
+        const [empData, stData, trData, cfgData, logData, tblData] = await Promise.all([
             settingsService.getEmployees(),
             settingsService.getStations(),
             trainingService.getModulesForAdmin(),
             settingsService.getAppSettings(),
-            settingsService.getActivityLogs()
+            settingsService.getActivityLogs(),
+            tableService.getTables()
         ]);
 
         setEmployees(empData);
         setStations(stData);
         setManagedCourses(trData);
         setActivityLogs(logData);
+        setAllTables(tblData);
 
         if (cfgData) {
             setAppSettings(cfgData);
@@ -955,12 +960,24 @@ export default function Settings() {
                         <div className="space-y-5">
                             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Tên Station / Khu vực</label><input type="text" value={newStationName} onChange={(e) => setNewStationName(e.target.value)} placeholder="VD: Station Cửa Sổ, Station VIP..." className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" /></div>
                             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Chọn bàn phụ trách</label>
-                                <div className="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto grid grid-cols-3 gap-2">
-                                    {['Bàn 1', 'Bàn 2', 'Bàn 3', 'Bàn 4', 'Bàn 5', 'Bàn 6', 'Bàn 7', 'Bàn 8', 'VIP 1', 'VIP 2'].map(table => (
-                                        <label key={table} className={`flex items-center justify-center px-2 py-2 rounded border cursor-pointer text-sm transition-all ${selectedTablesForStation.includes(table) ? 'bg-teal-50 border-teal-500 text-teal-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                                            <input type="checkbox" className="hidden" checked={selectedTablesForStation.includes(table)} onChange={(e) => { if (e.target.checked) { setSelectedTablesForStation([...selectedTablesForStation, table]); } else { setSelectedTablesForStation(selectedTablesForStation.filter(t => t !== table)); } }} />{table}
-                                        </label>
-                                    ))}
+                                <div className="border border-gray-200 rounded-lg p-3 max-h-60 overflow-y-auto space-y-3">
+                                    {[1, 2, 3].map(floor => {
+                                        const floorTables = allTables.filter(t => t.floor === floor);
+                                        if (floorTables.length === 0) return null;
+                                        const floorLabels: Record<number, string> = { 1: 'Tầng 1 (Sảnh)', 2: 'Tầng 2 (VIP)', 3: 'Tầng 3 (Sự kiện)' };
+                                        return (
+                                            <div key={floor}>
+                                                <div className="text-xs font-bold text-gray-400 uppercase mb-1.5">{floorLabels[floor] || `Tầng ${floor}`}</div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {floorTables.map(table => (
+                                                        <label key={table.name} className={`flex items-center justify-center px-2 py-2 rounded border cursor-pointer text-sm transition-all ${selectedTablesForStation.includes(table.name) ? 'bg-teal-50 border-teal-500 text-teal-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                                            <input type="checkbox" className="hidden" checked={selectedTablesForStation.includes(table.name)} onChange={(e) => { if (e.target.checked) { setSelectedTablesForStation([...selectedTablesForStation, table.name]); } else { setSelectedTablesForStation(selectedTablesForStation.filter(t => t !== table.name)); } }} />{table.name}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div className="pt-2"><button onClick={() => { if (newStationName) { handleAddStation(newStationName, selectedTablesForStation); } }} disabled={!newStationName} className="w-full bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Tạo Station</button></div>
@@ -974,12 +991,24 @@ export default function Settings() {
                         <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-gray-900">Cập nhật bàn cho {stations.find(s => s.id === editingStationId)?.name}</h3><button onClick={() => setIsEditStationTablesModalOpen(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"><X className="w-5 h-5" /></button></div>
                         <div className="space-y-5">
                             <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Chọn bàn phụ trách</label>
-                                <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto grid grid-cols-3 gap-2">
-                                    {['Bàn 1', 'Bàn 2', 'Bàn 3', 'Bàn 4', 'Bàn 5', 'Bàn 6', 'Bàn 7', 'Bàn 8', 'VIP 1', 'VIP 2'].map(table => (
-                                        <label key={table} className={`flex items-center justify-center px-2 py-2 rounded border cursor-pointer text-sm transition-all ${selectedTablesForStation.includes(table) ? 'bg-teal-50 border-teal-500 text-teal-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                                            <input type="checkbox" className="hidden" checked={selectedTablesForStation.includes(table)} onChange={(e) => { if (e.target.checked) { setSelectedTablesForStation([...selectedTablesForStation, table]); } else { setSelectedTablesForStation(selectedTablesForStation.filter(t => t !== table)); } }} />{table}
-                                        </label>
-                                    ))}
+                                <div className="border border-gray-200 rounded-lg p-3 max-h-72 overflow-y-auto space-y-3">
+                                    {[1, 2, 3].map(floor => {
+                                        const floorTables = allTables.filter(t => t.floor === floor);
+                                        if (floorTables.length === 0) return null;
+                                        const floorLabels: Record<number, string> = { 1: 'Tầng 1 (Sảnh)', 2: 'Tầng 2 (VIP)', 3: 'Tầng 3 (Sự kiện)' };
+                                        return (
+                                            <div key={floor}>
+                                                <div className="text-xs font-bold text-gray-400 uppercase mb-1.5">{floorLabels[floor] || `Tầng ${floor}`}</div>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {floorTables.map(table => (
+                                                        <label key={table.name} className={`flex items-center justify-center px-2 py-2 rounded border cursor-pointer text-sm transition-all ${selectedTablesForStation.includes(table.name) ? 'bg-teal-50 border-teal-500 text-teal-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                                                            <input type="checkbox" className="hidden" checked={selectedTablesForStation.includes(table.name)} onChange={(e) => { if (e.target.checked) { setSelectedTablesForStation([...selectedTablesForStation, table.name]); } else { setSelectedTablesForStation(selectedTablesForStation.filter(t => t !== table.name)); } }} />{table.name}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div className="pt-2"><button onClick={handleSaveStationTables} className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold text-lg shadow-lg shadow-teal-100 hover:shadow-teal-200 transition-all">Lưu thay đổi</button></div>
