@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Ban,
   UserX,
+  BellRing,
   RefreshCw,
   HelpCircle,
   Edit,
@@ -38,6 +39,7 @@ import { bookingService } from '../../services/bookingService';
 import CheckoutModal from './CheckoutModal'; // Added CheckoutModal import
 import { settingsService } from '../../services/settingsService';
 import { tableService } from '../../services/tableService';
+import { notificationService } from '../../services/notificationService';
 import { Table } from '../../types';
 
 const sourceLabels: Record<string, string> = {
@@ -139,15 +141,31 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   };
 
+  const [newBookingAlert, setNewBookingAlert] = useState<{ visible: boolean, name: string | null }>({ visible: false, name: null });
+
   useEffect(() => {
     fetchBookings();
     fetchTables();
     fetchSettings();
 
     // Subscribe to realtime updates
-    const subscription = bookingService.subscribeToBookings(() => {
+    const subscription = bookingService.subscribeToBookings((payload: any) => {
       // Refresh data when a change occurs
       fetchBookings();
+
+      if (payload && payload.eventType === 'INSERT') {
+        const newDoc = payload.new;
+        if (newDoc && newDoc.status === 'new') {
+          // Play loud sound for new bookings
+          notificationService.playNewBookingSound();
+          // Show big alert
+          setNewBookingAlert({ visible: true, name: newDoc.customer_name });
+          // Auto hide after 6 seconds
+          setTimeout(() => {
+            setNewBookingAlert({ visible: false, name: null });
+          }, 6000);
+        }
+      }
     });
 
     return () => {
@@ -588,7 +606,18 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   // --- Mobile View Components ---
 
   const renderMobileList = () => (
-    <div className="h-full bg-gray-50 overflow-y-auto pb-24">
+    <div className="h-full flex flex-col relative bg-gray-50/30 overflow-hidden">
+      {/* New Booking Alert Banner */}
+      {newBookingAlert.visible && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 bg-teal-600 text-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 animate-bounce">
+          <BellRing className="w-8 h-8 animate-pulse text-yellow-300" />
+          <div>
+            <div className="text-xl font-black tracking-widest text-yellow-300 drop-shadow-md">ĐƠN MỚI!</div>
+            <div className="text-sm font-medium">Khách hàng: {newBookingAlert.name || 'Khách mới'}</div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Filter Header */}
       <div className="bg-white px-4 py-3 border-b border-gray-200 shadow-sm flex flex-col gap-3">
         {/* Row 1: Date & Shift & Add */}

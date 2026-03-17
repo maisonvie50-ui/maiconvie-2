@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Clock, AlertTriangle, CheckCircle, Flame, Check, ChefHat, BellRing, Filter, X, LayoutGrid, List, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
 import { orderService, OrderTicket, OrderItem } from '../../services/orderService';
+import { notificationService } from '../../services/notificationService';
 
 interface ContextType {
   isSidebarCollapsed: boolean;
@@ -110,11 +111,19 @@ export default function KitchenDisplay() {
   };
 
   const completeOrder = async (orderId: string) => {
+    // Find the order to get the table name before removing it
+    const order = orders.find(o => o.id === orderId);
+
     // Optimistic UI
     setOrders(prev => prev.filter(o => o.id !== orderId));
-    showNotification('Đã hoàn thành đơn hàng!');
+    showNotification('Đã gọi phục vụ!');
 
     try {
+      // Broadcast to servers
+      if (order && order.table) {
+        await notificationService.broadcastCallServer([order.table], orderId);
+      }
+      // Update DB
       await orderService.completeOrder(orderId);
     } catch (error) {
       console.error('Failed to complete order', error);

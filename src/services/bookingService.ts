@@ -322,7 +322,7 @@ export const bookingService = {
     },
 
     // 5. Nghe sự kiện thay đổi Realtime
-    subscribeToBookings(callback: () => void) {
+    subscribeToBookings(callback: (payload: any) => void) {
         return supabase
             .channel('public:bookings')
             .on(
@@ -330,7 +330,7 @@ export const bookingService = {
                 { event: '*', schema: 'public', table: 'bookings' },
                 (payload) => {
                     console.log('Realtime change received!', payload);
-                    callback();
+                    callback(payload);
                 }
             )
             .subscribe((status, err) => {

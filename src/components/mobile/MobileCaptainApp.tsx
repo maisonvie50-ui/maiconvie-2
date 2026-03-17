@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
+import { notificationService } from '../../services/notificationService';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
 
@@ -87,6 +88,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [tablesL3, setTablesL3] = useState<Table[]>([]);
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
 
+  // Kitchen Notification State
+  const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string } | null>(null);
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -136,6 +140,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   useEffect(() => {
     fetchTables();
     fetchMenuData();
+    notificationService.requestNotificationPermission();
 
     const subscription = tableService.subscribeToTables(() => {
       fetchTables();
@@ -145,11 +150,43 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       fetchMenuData();
     });
 
+    const unsubscribeKitchen = notificationService.subscribeToKitchenCalls((payload) => {
+      if (payload && payload.tableNames && payload.tableNames.length > 0) {
+        setKitchenAlert({
+          visible: true,
+          tables: payload.tableNames,
+          orderId: payload.orderId
+        });
+
+        notificationService.showBrowserNotification(`Món cho ${payload.tableNames.join(', ')} đã xong!`, {
+          body: 'Bếp đã nấu xong, vui lòng đến lấy món.',
+          requireInteraction: true
+        });
+      }
+    });
+
     return () => {
       subscription.unsubscribe();
       unsubscribeMenu();
+      if (unsubscribeKitchen) unsubscribeKitchen();
     };
   }, []);
+
+  // Active ringing loop when alert is shown
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (kitchenAlert?.visible) {
+      // Play immediately
+      notificationService.playCallServerSound('1');
+      // Then loop every 2.5s until dismissed
+      interval = setInterval(() => {
+        notificationService.playCallServerSound('1');
+      }, 2500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [kitchenAlert?.visible]);
 
   // Sync URL with View
   useEffect(() => {
@@ -773,6 +810,31 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden relative">
+        {/* Full-screen Kitchen Call Alert */}
+        {kitchenAlert?.visible && (
+          <div className="absolute inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <ChefHat className="w-12 h-12 text-white" />
+            </div>
+
+            <h2 className="text-3xl font-black text-white mb-2 text-center drop-shadow-md tracking-wider">
+              MÓN ĐÃ XONG!
+            </h2>
+
+            <div className="text-xl font-medium text-white/90 text-center mb-10 bg-black/20 px-6 py-3 rounded-2xl w-full">
+              Bàn: <span className="font-bold text-2xl text-yellow-300">{kitchenAlert.tables.join(', ')}</span>
+            </div>
+
+            <button
+              onClick={() => setKitchenAlert(null)}
+              className="w-full py-5 bg-white text-red-600 text-xl flex items-center gap-3 justify-center rounded-2xl font-black shadow-[0_8px_30px_rgb(0,0,0,0.2)] active:scale-95 transition-transform"
+            >
+              <CheckCircle className="w-8 h-8" />
+              ĐÃ HIỂU & BƯNG MÓN
+            </button>
+          </div>
+        )}
+
         {view === 'tables' && renderTables()}
         {view === 'menu' && renderMenu()}
         {view === 'cart' && renderCart()}
