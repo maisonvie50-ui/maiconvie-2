@@ -239,8 +239,13 @@ export default function KitchenDisplay() {
       .sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]);
   }, [filteredOrders]);
 
-  const handleCompleteAggregatedItem = async (originalItems: { orderId: string, itemId: string }[], isDone: boolean) => {
+  const handleCompleteAggregatedItem = async (originalItems: { orderId: string, itemId: string }[], isDone: boolean, itemName?: string) => {
     const targetStatus = isDone ? 'pending' : 'done';
+
+    // Collect table names for broadcast
+    const tableNames = targetStatus === 'done'
+      ? [...new Set(originalItems.map(oi => orders.find(o => o.id === oi.orderId)?.table).filter(Boolean) as string[])]
+      : [];
 
     // Optimistic UI Update
     setOrders(orders.map(order => {
@@ -263,6 +268,13 @@ export default function KitchenDisplay() {
       await Promise.all(
         originalItems.map((item) => orderService.updateItemStatus(item.itemId, targetStatus))
       );
+
+      // Broadcast to servers when items are marked DONE
+      if (targetStatus === 'done' && tableNames.length > 0) {
+        const readyItems = itemName ? [itemName] : [];
+        await notificationService.broadcastCallServer(tableNames, originalItems[0].orderId, readyItems);
+        showNotification(`Đã báo phục vụ: ${itemName || 'Món đã xong'}`);
+      }
     } catch (error) {
       console.error('Failed to update aggregated item status', error);
       loadOrders(); // fallback
@@ -534,7 +546,7 @@ export default function KitchenDisplay() {
                 return (
                   <div key={`agg-${index}`} className="h-full w-full">
                     <div
-                      onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone)}
+                      onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone, `${isDone ? item.doneQuantity : item.pendingQuantity}x ${item.name}`)}
                       className={`
                         h-full w-full relative group flex flex-col p-3 rounded-xl cursor-pointer 
                         transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] 
