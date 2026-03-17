@@ -179,15 +179,15 @@ export default function CheckoutModal({ booking, table, onClose, onSuccess }: Ch
                         <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phương thức thanh toán</div>
                         <div className="grid grid-cols-3 gap-2">
                             {[
-                                { value: 'cash', label: '💵 Tiền mặt' },
-                                { value: 'transfer', label: '🏦 Chuyển khoản' },
+                                { value: 'cash', label: '💵 TM' },
+                                { value: 'transfer', label: '🏦 CK' },
                                 { value: 'card', label: '💳 Thẻ' },
                             ].map(m => (
                                 <button
                                     key={m.value}
                                     type="button"
                                     onClick={() => setPaymentMethod(m.value)}
-                                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all border-2 ${paymentMethod === m.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all border-2 whitespace-nowrap ${paymentMethod === m.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                                 >
                                     {m.label}
                                 </button>

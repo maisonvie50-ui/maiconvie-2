@@ -3,8 +3,8 @@ import { Search, Calendar as CalendarIcon, Receipt, TrendingUp, Clock, Users, X,
 import { orderService, OrderTicket } from '../../services/orderService';
 
 const PAYMENT_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
-    cash: { label: 'Tiền mặt', emoji: '💵', color: 'bg-green-100 text-green-700' },
-    transfer: { label: 'Chuyển khoản', emoji: '🏦', color: 'bg-blue-100 text-blue-700' },
+    cash: { label: 'TM', emoji: '💵', color: 'bg-green-100 text-green-700' },
+    transfer: { label: 'CK', emoji: '🏦', color: 'bg-blue-100 text-blue-700' },
     card: { label: 'Thẻ', emoji: '💳', color: 'bg-purple-100 text-purple-700' },
 };
 
