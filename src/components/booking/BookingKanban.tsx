@@ -40,6 +40,7 @@ import CheckoutModal from './CheckoutModal'; // Added CheckoutModal import
 import { settingsService } from '../../services/settingsService';
 import { tableService } from '../../services/tableService';
 import { notificationService } from '../../services/notificationService';
+import { menuService } from '../../services/menuService';
 import { Table } from '../../types';
 
 const sourceLabels: Record<string, string> = {
@@ -141,12 +142,28 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   };
 
+  const [availableMenus, setAvailableMenus] = useState<any[]>([]);
+
+  const fetchMenus = async () => {
+    try {
+      const sets = await menuService.getSetMenus();
+      const tours = await menuService.getTourMenus();
+      setAvailableMenus([
+        ...sets.filter((m: any) => m.status === 'active'),
+        ...tours.filter((m: any) => m.status === 'active')
+      ]);
+    } catch (err) {
+      console.error('Failed to load menus', err);
+    }
+  };
+
   const [newBookingAlert, setNewBookingAlert] = useState<{ visible: boolean, name: string | null }>({ visible: false, name: null });
 
   useEffect(() => {
     fetchBookings();
     fetchTables();
     fetchSettings();
+    fetchMenus();
 
     // Subscribe to realtime updates
     const subscription = bookingService.subscribeToBookings(async (payload: any) => {
@@ -1564,7 +1581,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               </div>
 
               {newBooking.selectedMenus && newBooking.selectedMenus.length > 0 && (
-                <div>
+                <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
                     <span>Thực đơn khách đã chọn</span>
                     {newBooking.customerType ? (
@@ -1574,10 +1591,26 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
                     {newBooking.selectedMenus.map((menu: any, index: number) => (
                       <div key={index} className="flex justify-between items-center text-sm border-b border-gray-200/60 pb-2 last:border-0 last:pb-0">
-                        <div className="font-medium text-gray-700"><span className="text-teal-600 font-bold mr-2 bg-white px-1.5 py-0.5 rounded shadow-sm">{menu.quantity}x</span>{menu.name}</div>
-                        <div className="text-gray-600 flex flex-col items-end">
-                          <span className="font-semibold text-gray-800">{(menu.price * menu.quantity).toLocaleString()} ₫</span>
-                          {menu.price > 0 && <span className="text-[10px] text-gray-400">{menu.price.toLocaleString()} ₫/pax</span>}
+                        <div className="font-medium text-gray-700 flex items-center gap-2">
+                          <span className="text-teal-600 font-bold bg-white px-1.5 py-0.5 rounded shadow-sm">{menu.quantity}x</span>
+                          {menu.name}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-gray-600 flex flex-col items-end">
+                            <span className="font-semibold text-gray-800">{(menu.price * menu.quantity).toLocaleString()} ₫</span>
+                            {menu.price > 0 && <span className="text-[10px] text-gray-400">{menu.price.toLocaleString()} ₫/pax</span>}
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newMenus = [...newBooking.selectedMenus];
+                              newMenus.splice(index, 1);
+                              setNewBooking({ ...newBooking, selectedMenus: newMenus });
+                            }}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            title="Xóa món"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1590,6 +1623,49 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   </div>
                 </div>
               )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Thêm Set Menu / Tour Menu</label>
+                <select
+                  title="Chọn menu"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+
+                    const menuToAdd = availableMenus.find(m => m.id === selectedId);
+                    if (menuToAdd) {
+                      const currentMenus = newBooking.selectedMenus || [];
+                      const existingIndex = currentMenus.findIndex((m: any) => m.name === menuToAdd.name);
+
+                      let updatedMenus = [...currentMenus];
+                      if (existingIndex >= 0) {
+                        updatedMenus[existingIndex] = {
+                          ...updatedMenus[existingIndex],
+                          quantity: updatedMenus[existingIndex].quantity + 1
+                        };
+                      } else {
+                        updatedMenus.push({
+                          name: menuToAdd.name,
+                          quantity: 1,
+                          price: menuToAdd.price || 0,
+                          type: menuToAdd.netPrice !== undefined ? 'tour' : 'set' // basic heuristic
+                        });
+                      }
+                      setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
+                    }
+                    e.target.value = ''; // Reset select
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>-- Chọn menu để thêm vào đơn --</option>
+                  {availableMenus.map(menu => (
+                    <option key={menu.id} value={menu.id}>
+                      {menu.name} - {menu.price?.toLocaleString()} ₫
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
