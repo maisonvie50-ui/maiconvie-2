@@ -824,11 +824,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           {sourceLabels[booking.source] || booking.source}
                         </span>
                       )}
-                      {booking.area && !booking.tableName && (
-                        <span className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] font-medium uppercase text-gray-600">
-                          {booking.area === 'indoor' ? 'Trong nhà' : booking.area === 'outdoor' ? 'Ngoài trời' : booking.area === 'vip' ? 'VIP' : 'Sân thượng'}
-                        </span>
-                      )}
+
                     </div>
 
                     {/* Row 3: Table + Notes (compact) */}
