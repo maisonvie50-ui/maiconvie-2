@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft, Receipt } from 'lucide-react';
+import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft, Receipt, Utensils } from 'lucide-react';
 import OrderPad from './OrderPad';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
@@ -55,6 +55,8 @@ export default function RestaurantMap() {
   const [isPartitionMenuOpen, setIsPartitionMenuOpen] = useState(false);
   const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | VipRoom | null>(null);
   const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
+  const [openTableTarget, setOpenTableTarget] = useState<any>(null);
+  const [openTableCustomerName, setOpenTableCustomerName] = useState('');
 
   const fetchTables = async () => {
     try {
@@ -136,6 +138,38 @@ export default function RestaurantMap() {
       case 'occupied': return 'bg-green-100 border-green-500 text-green-700';
       case 'reserved': return 'bg-yellow-50 border-yellow-400 text-yellow-700';
       default: return 'bg-white border-gray-200 text-gray-500 hover:border-gray-300';
+    }
+  };
+
+  // Unified desktop table click handler
+  const handleDesktopTableClick = (table: any) => {
+    const status = table.status;
+    if (status === 'occupied' || status === 'in-use') {
+      setSelectedTableForOrder(table);
+    } else if (status === 'reserved') {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName(table.customerName || '');
+    } else {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName('');
+    }
+  };
+
+  const handleConfirmOpenTableDesktop = async () => {
+    if (!openTableTarget) return;
+    try {
+      await tableService.updateTableStatus(openTableTarget.id, {
+        status: 'occupied' as any,
+        customerName: openTableCustomerName || 'Khách vãng lai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      });
+      setSelectedTableForOrder({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
+      setOpenTableTarget(null);
+      setOpenTableCustomerName('');
+      fetchTables();
+    } catch (err) {
+      console.error('Failed to open table', err);
+      alert('Lỗi: Không thể mở bàn.');
     }
   };
 
@@ -466,7 +500,7 @@ export default function RestaurantMap() {
                 `}
                   onClick={() => {
                     if (!isEditing && !movingTableId) {
-                      setSelectedTableForOrder(table);
+                      handleDesktopTableClick(table);
                     } else if (movingTableId && table.status === 'empty') {
                       handleMoveTable(movingTableId, table.id);
                     }
@@ -707,7 +741,7 @@ export default function RestaurantMap() {
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => {
                   if (!isEditing) {
-                    setSelectedTableForOrder(room);
+                    handleDesktopTableClick(room);
                   }
                 }}
               >
@@ -906,7 +940,7 @@ export default function RestaurantMap() {
                  `}
                   onClick={() => {
                     if (!isEditing && !movingTableId) {
-                      setSelectedTableForOrder(table);
+                      handleDesktopTableClick(table);
                     } else if (movingTableId && table.status === 'empty') {
                       handleMoveTable(movingTableId, table.id);
                     }
@@ -1014,6 +1048,62 @@ export default function RestaurantMap() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Open Table Popup - for empty/reserved tables */}
+      {openTableTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{openTableTarget.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {openTableTarget.status === 'reserved' ? '⏰ Bàn đã đặt trước' : '🪑 Bàn đang trống'}
+                </p>
+              </div>
+              <button onClick={() => setOpenTableTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 ${openTableTarget.status === 'reserved' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Users className="w-8 h-8" />
+                </div>
+                <p className="font-bold text-gray-800">
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận khách đến?' : 'Mở bàn & Gọi món'}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">Nhập thông tin khách để tiếp tục gọi món</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">Tên khách</label>
+                <input
+                  type="text"
+                  value={openTableCustomerName}
+                  onChange={(e) => setOpenTableCustomerName(e.target.value)}
+                  placeholder="VD: Anh Minh, Ms. Linh..."
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setOpenTableTarget(null)}
+                  className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmOpenTableDesktop}
+                  className={`flex-1 py-3 rounded-xl font-bold text-white shadow-md transition flex items-center justify-center gap-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}
+                >
+                  <Utensils className="w-5 h-5" />
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận' : 'Mở bàn'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Order Pad Modal */}
