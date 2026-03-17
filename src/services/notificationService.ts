@@ -101,7 +101,7 @@ class NotificationService {
     private isSubscribed = false;
 
     // Setup broadcast subscription
-    subscribeToKitchenCalls(callback: (payload: { tableNames: string[], orderId: string }) => void) {
+    subscribeToKitchenCalls(callback: (payload: { tableNames: string[], orderId: string, readyItems?: string[] }) => void) {
         if (!this.isSubscribed) {
             this.channel
                 .on(
@@ -127,7 +127,7 @@ class NotificationService {
     }
 
     // Send a broadcast from kitchen to servers
-    async broadcastCallServer(tableNames: string[], orderId: string) {
+    async broadcastCallServer(tableNames: string[], orderId: string, readyItems?: string[]) {
         if (!this.isSubscribed) {
             // Need to subscribe first to broadcast
             await new Promise<void>((resolve) => {
@@ -143,7 +143,7 @@ class NotificationService {
         return this.channel.send({
             type: 'broadcast',
             event: 'call-server',
-            payload: { tableNames, orderId, timestamp: new Date().toISOString() },
+            payload: { tableNames, orderId, readyItems, timestamp: new Date().toISOString() },
         });
     }
 

@@ -89,6 +89,13 @@ export default function KitchenDisplay() {
 
     try {
       await orderService.updateItemStatus(itemId, targetStatus);
+
+      // Broadcast to servers when item is marked DONE
+      if (targetStatus === 'done' && order.table) {
+        const itemName = `${item.quantity}x ${item.name}`;
+        await notificationService.broadcastCallServer([order.table], orderId, [itemName]);
+        showNotification(`Đã báo phục vụ: ${item.name}`);
+      }
     } catch (error) {
       console.error('Failed to update status', error);
       loadOrders(); // fallback

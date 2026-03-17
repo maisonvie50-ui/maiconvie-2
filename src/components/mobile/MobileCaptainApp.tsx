@@ -89,7 +89,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
 
   // Kitchen Notification State
-  const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string } | null>(null);
+  const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string, readyItems?: string[] } | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -155,11 +155,15 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         setKitchenAlert({
           visible: true,
           tables: payload.tableNames,
-          orderId: payload.orderId
+          orderId: payload.orderId,
+          readyItems: payload.readyItems
         });
 
+        const itemsText = payload.readyItems?.length
+          ? payload.readyItems.join(', ')
+          : 'Vui lòng đến lấy món';
         notificationService.showBrowserNotification(`Món cho ${payload.tableNames.join(', ')} đã xong!`, {
-          body: 'Bếp đã nấu xong, vui lòng đến lấy món.',
+          body: itemsText,
           requireInteraction: true
         });
       }
@@ -821,9 +825,20 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               MÓN ĐÃ XONG!
             </h2>
 
-            <div className="text-xl font-medium text-white/90 text-center mb-10 bg-black/20 px-6 py-3 rounded-2xl w-full">
+            <div className="text-xl font-medium text-white/90 text-center mb-4 bg-black/20 px-6 py-3 rounded-2xl w-full">
               Bàn: <span className="font-bold text-2xl text-yellow-300">{kitchenAlert.tables.join(', ')}</span>
             </div>
+
+            {kitchenAlert.readyItems && kitchenAlert.readyItems.length > 0 && (
+              <div className="w-full mb-6 bg-white/15 rounded-xl px-5 py-3">
+                {kitchenAlert.readyItems.map((item, idx) => (
+                  <div key={idx} className="text-lg font-bold text-white py-1 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-yellow-300 shrink-0" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={() => setKitchenAlert(null)}
