@@ -770,7 +770,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       </div>
 
       {/* Booking List */}
-      <div className="p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filteredBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400 mt-10">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
