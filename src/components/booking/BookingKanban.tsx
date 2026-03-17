@@ -142,16 +142,18 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   };
 
-  const [availableMenus, setAvailableMenus] = useState<any[]>([]);
+  const [availableSetMenus, setAvailableSetMenus] = useState<any[]>([]);
+  const [availableTourMenus, setAvailableTourMenus] = useState<any[]>([]);
+  const [availableAlaCarteItems, setAvailableAlaCarteItems] = useState<any[]>([]);
 
   const fetchMenus = async () => {
     try {
       const sets = await menuService.getSetMenus();
       const tours = await menuService.getTourMenus();
-      setAvailableMenus([
-        ...sets.filter((m: any) => m.status === 'active'),
-        ...tours.filter((m: any) => m.status === 'active')
-      ]);
+      const items = await menuService.getMenuItems();
+      setAvailableSetMenus(sets.filter((m: any) => m.status === 'active'));
+      setAvailableTourMenus(tours.filter((m: any) => m.status === 'active'));
+      setAvailableAlaCarteItems(items.filter((m: any) => m.inStock !== false));
     } catch (err) {
       console.error('Failed to load menus', err);
     }
@@ -1624,16 +1626,56 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
               )}
 
+              {/* Loại khách */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thêm Set Menu / Tour Menu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Loại khách</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewBooking({ ...newBooking, customerType: 'retail' as any })}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border transition-all ${(!newBooking.customerType || newBooking.customerType === 'retail')
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                      }`}
+                  >
+                    🧑 Khách lẻ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewBooking({ ...newBooking, customerType: 'tour' as any })}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-bold border transition-all ${newBooking.customerType === 'tour'
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                      }`}
+                  >
+                    🚌 Lữ hành
+                  </button>
+                </div>
+              </div>
+
+              {/* Chọn thực đơn */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {newBooking.customerType === 'tour' ? 'Thêm Tour Menu' : 'Thêm món / Set Menu'}
+                </label>
                 <select
                   title="Chọn menu"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   onChange={(e) => {
-                    const selectedId = e.target.value;
-                    if (!selectedId) return;
+                    const selectedValue = e.target.value;
+                    if (!selectedValue) return;
 
-                    const menuToAdd = availableMenus.find(m => m.id === selectedId);
+                    const [menuType, menuId] = selectedValue.split('::');
+                    let menuToAdd: any = null;
+
+                    if (menuType === 'alacarte') {
+                      menuToAdd = availableAlaCarteItems.find(m => m.id === menuId);
+                    } else if (menuType === 'set') {
+                      menuToAdd = availableSetMenus.find(m => m.id === menuId);
+                    } else if (menuType === 'tour') {
+                      menuToAdd = availableTourMenus.find(m => m.id === menuId);
+                    }
+
                     if (menuToAdd) {
                       const currentMenus = newBooking.selectedMenus || [];
                       const existingIndex = currentMenus.findIndex((m: any) => m.name === menuToAdd.name);
@@ -1649,21 +1691,44 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           name: menuToAdd.name,
                           quantity: 1,
                           price: menuToAdd.price || 0,
-                          type: menuToAdd.netPrice !== undefined ? 'tour' : 'set' // basic heuristic
+                          type: menuType
                         });
                       }
                       setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
                     }
-                    e.target.value = ''; // Reset select
+                    e.target.value = '';
                   }}
                   defaultValue=""
                 >
-                  <option value="" disabled>-- Chọn menu để thêm vào đơn --</option>
-                  {availableMenus.map(menu => (
-                    <option key={menu.id} value={menu.id}>
-                      {menu.name} - {menu.price?.toLocaleString()} ₫
-                    </option>
-                  ))}
+                  <option value="" disabled>-- Chọn thực đơn để thêm --</option>
+                  {newBooking.customerType === 'tour' ? (
+                    <>
+                      <optgroup label="🚌 Tour Menu">
+                        {availableTourMenus.map(menu => (
+                          <option key={menu.id} value={`tour::${menu.id}`}>
+                            {menu.name} - {menu.price?.toLocaleString()} ₫
+                          </option>
+                        ))}
+                      </optgroup>
+                    </>
+                  ) : (
+                    <>
+                      <optgroup label="📋 Set Menu">
+                        {availableSetMenus.map(menu => (
+                          <option key={menu.id} value={`set::${menu.id}`}>
+                            {menu.name} - {menu.price?.toLocaleString()} ₫
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🍽️ Món lẻ (À la carte)">
+                        {availableAlaCarteItems.map(item => (
+                          <option key={item.id} value={`alacarte::${item.id}`}>
+                            {item.name} - {item.price?.toLocaleString()} ₫
+                          </option>
+                        ))}
+                      </optgroup>
+                    </>
+                  )}
                 </select>
               </div>
 
