@@ -1653,83 +1653,146 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
               </div>
 
-              {/* Chọn thực đơn */}
+              {/* Chọn thực đơn - Visual Card Picker */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {newBooking.customerType === 'tour' ? 'Thêm Tour Menu' : 'Thêm món / Set Menu'}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {newBooking.customerType === 'tour' ? '🚌 Thêm Tour Menu' : '🍽️ Thêm món / Set Menu'}
                 </label>
-                <select
-                  title="Chọn menu"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  onChange={(e) => {
-                    const selectedValue = e.target.value;
-                    if (!selectedValue) return;
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                  <div className="max-h-[240px] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
 
-                    const [menuType, menuId] = selectedValue.split('::');
-                    let menuToAdd: any = null;
+                    {/* Set Menus (for retail) */}
+                    {newBooking.customerType !== 'tour' && availableSetMenus.length > 0 && (
+                      <div>
+                        <div className="px-3 py-2 bg-blue-50 border-b border-blue-100 sticky top-0 z-10">
+                          <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">📋 Set Menu ({availableSetMenus.length})</span>
+                        </div>
+                        {availableSetMenus.map(menu => {
+                          const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === menu.name);
+                          return (
+                            <button
+                              key={menu.id}
+                              type="button"
+                              onClick={() => {
+                                const currentMenus = newBooking.selectedMenus || [];
+                                const existingIndex = currentMenus.findIndex((m: any) => m.name === menu.name);
+                                let updatedMenus = [...currentMenus];
+                                if (existingIndex >= 0) {
+                                  updatedMenus[existingIndex] = { ...updatedMenus[existingIndex], quantity: updatedMenus[existingIndex].quantity + 1 };
+                                } else {
+                                  updatedMenus.push({ name: menu.name, quantity: 1, price: menu.price || 0, type: 'set' });
+                                }
+                                setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-blue-50/50 active:bg-blue-100 transition-colors text-left group"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-800 truncate">{menu.name}</div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                {existing && (
+                                  <span className="px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded">×{existing.quantity}</span>
+                                )}
+                                <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{menu.price?.toLocaleString()}₫</span>
+                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-teal-500 group-hover:text-white text-gray-400 text-sm font-bold transition-colors">+</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                    if (menuType === 'alacarte') {
-                      menuToAdd = availableAlaCarteItems.find(m => m.id === menuId);
-                    } else if (menuType === 'set') {
-                      menuToAdd = availableSetMenus.find(m => m.id === menuId);
-                    } else if (menuType === 'tour') {
-                      menuToAdd = availableTourMenus.find(m => m.id === menuId);
-                    }
+                    {/* Tour Menus (for tour) */}
+                    {newBooking.customerType === 'tour' && availableTourMenus.length > 0 && (
+                      <div>
+                        <div className="px-3 py-2 bg-purple-50 border-b border-purple-100 sticky top-0 z-10">
+                          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">🚌 Tour Menu ({availableTourMenus.length})</span>
+                        </div>
+                        {availableTourMenus.map(menu => {
+                          const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === menu.name);
+                          return (
+                            <button
+                              key={menu.id}
+                              type="button"
+                              onClick={() => {
+                                const currentMenus = newBooking.selectedMenus || [];
+                                const existingIndex = currentMenus.findIndex((m: any) => m.name === menu.name);
+                                let updatedMenus = [...currentMenus];
+                                if (existingIndex >= 0) {
+                                  updatedMenus[existingIndex] = { ...updatedMenus[existingIndex], quantity: updatedMenus[existingIndex].quantity + 1 };
+                                } else {
+                                  updatedMenus.push({ name: menu.name, quantity: 1, price: menu.price || 0, type: 'tour' });
+                                }
+                                setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-purple-50/50 active:bg-purple-100 transition-colors text-left group"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-800 truncate">{menu.name}</div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                {existing && (
+                                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded">×{existing.quantity}</span>
+                                )}
+                                <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{menu.price?.toLocaleString()}₫</span>
+                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-purple-500 group-hover:text-white text-gray-400 text-sm font-bold transition-colors">+</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                    if (menuToAdd) {
-                      const currentMenus = newBooking.selectedMenus || [];
-                      const existingIndex = currentMenus.findIndex((m: any) => m.name === menuToAdd.name);
+                    {/* A La Carte (for retail) */}
+                    {newBooking.customerType !== 'tour' && availableAlaCarteItems.length > 0 && (
+                      <div>
+                        <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 sticky top-0 z-10">
+                          <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">🍽️ Món lẻ ({availableAlaCarteItems.length})</span>
+                        </div>
+                        {availableAlaCarteItems.map(item => {
+                          const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === item.name);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                const currentMenus = newBooking.selectedMenus || [];
+                                const existingIndex = currentMenus.findIndex((m: any) => m.name === item.name);
+                                let updatedMenus = [...currentMenus];
+                                if (existingIndex >= 0) {
+                                  updatedMenus[existingIndex] = { ...updatedMenus[existingIndex], quantity: updatedMenus[existingIndex].quantity + 1 };
+                                } else {
+                                  updatedMenus.push({ name: item.name, quantity: 1, price: item.price || 0, type: 'alacarte' });
+                                }
+                                setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-amber-50/50 active:bg-amber-100 transition-colors text-left group"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-800 truncate">{item.name}</div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                {existing && (
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">×{existing.quantity}</span>
+                                )}
+                                <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{item.price?.toLocaleString()}₫</span>
+                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-amber-500 group-hover:text-white text-gray-400 text-sm font-bold transition-colors">+</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                      let updatedMenus = [...currentMenus];
-                      if (existingIndex >= 0) {
-                        updatedMenus[existingIndex] = {
-                          ...updatedMenus[existingIndex],
-                          quantity: updatedMenus[existingIndex].quantity + 1
-                        };
-                      } else {
-                        updatedMenus.push({
-                          name: menuToAdd.name,
-                          quantity: 1,
-                          price: menuToAdd.price || 0,
-                          type: menuType
-                        });
-                      }
-                      setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
-                    }
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>-- Chọn thực đơn để thêm --</option>
-                  {newBooking.customerType === 'tour' ? (
-                    <>
-                      <optgroup label="🚌 Tour Menu">
-                        {availableTourMenus.map(menu => (
-                          <option key={menu.id} value={`tour::${menu.id}`}>
-                            {menu.name} - {menu.price?.toLocaleString()} ₫
-                          </option>
-                        ))}
-                      </optgroup>
-                    </>
-                  ) : (
-                    <>
-                      <optgroup label="📋 Set Menu">
-                        {availableSetMenus.map(menu => (
-                          <option key={menu.id} value={`set::${menu.id}`}>
-                            {menu.name} - {menu.price?.toLocaleString()} ₫
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="🍽️ Món lẻ (À la carte)">
-                        {availableAlaCarteItems.map(item => (
-                          <option key={item.id} value={`alacarte::${item.id}`}>
-                            {item.name} - {item.price?.toLocaleString()} ₫
-                          </option>
-                        ))}
-                      </optgroup>
-                    </>
-                  )}
-                </select>
+                    {/* Empty state */}
+                    {((newBooking.customerType === 'tour' && availableTourMenus.length === 0) ||
+                      (newBooking.customerType !== 'tour' && availableSetMenus.length === 0 && availableAlaCarteItems.length === 0)) && (
+                        <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                          Chưa có thực đơn nào. Vui lòng thêm trong phần Quản lý thực đơn.
+                        </div>
+                      )}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
