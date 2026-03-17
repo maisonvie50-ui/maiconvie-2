@@ -53,7 +53,8 @@ const sourceLabels: Record<string, string> = {
   zalo: 'Zalo',
   hotline: 'Hotline',
   walk_in: 'Walk-in',
-  ota: 'OTA'
+  ota: 'OTA',
+  email: 'Email'
 };
 
 const sourceColors: Record<string, string> = {
@@ -65,7 +66,8 @@ const sourceColors: Record<string, string> = {
   zalo: 'bg-blue-100 text-blue-700',
   hotline: 'bg-green-100 text-green-700',
   walk_in: 'bg-orange-100 text-orange-700',
-  ota: 'bg-purple-100 text-purple-700'
+  ota: 'bg-purple-100 text-purple-700',
+  email: 'bg-rose-100 text-rose-700'
 };
 
 const columns: { id: BookingStatus; label: string; color: string; borderColor: string; icon?: any }[] = [
