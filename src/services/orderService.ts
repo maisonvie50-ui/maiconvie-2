@@ -24,6 +24,9 @@ export interface OrderTicket {
     items: OrderItem[];
     status: 'pending' | 'completed' | 'cancelled';
     bookingStatus: 'confirmed' | 'pending' | 'new' | 'arrived';
+    paymentMethod?: string;
+    source?: string;
+    floor?: number;
 }
 
 export const orderService = {
@@ -202,10 +205,13 @@ export const orderService = {
     },
 
     // 4. Complete an order
-    async completeOrder(orderId: string) {
+    async completeOrder(orderId: string, paymentMethod?: string) {
+        const updates: any = { status: 'completed', updated_at: new Date().toISOString() };
+        if (paymentMethod) updates.payment_method = paymentMethod;
+
         const { error } = await supabase
             .from('orders')
-            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .update(updates)
             .eq('id', orderId);
 
         if (error) {
@@ -301,7 +307,11 @@ export const orderService = {
                 *,
                 bookings:booking_id (
                     customer_name,
-                    phone
+                    phone,
+                    source
+                ),
+                tables:table_id (
+                    floor
                 )
             `)
             .eq('status', 'completed')
@@ -350,6 +360,9 @@ export const orderService = {
             orderTime: new Date(order.order_time),
             status: order.status,
             bookingStatus: order.booking_status || 'confirmed',
+            paymentMethod: order.payment_method || undefined,
+            source: order.bookings?.source || undefined,
+            floor: order.tables?.floor || undefined,
             items: (items || [])
                 .filter(item => item.order_id === order.id)
                 .map(item => ({

@@ -17,6 +17,7 @@ export default function CheckoutModal({ booking, table, onClose, onSuccess }: Ch
     const [orders, setOrders] = useState<OrderTicket[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<string>('cash');
 
     useEffect(() => {
         let mounted = true;
@@ -52,7 +53,7 @@ export default function CheckoutModal({ booking, table, onClose, onSuccess }: Ch
         try {
             // 1. Complete all orders related to this bill
             for (const order of orders) {
-                await orderService.completeOrder(order.id);
+                await orderService.completeOrder(order.id, paymentMethod);
             }
 
             // 2. Update booking status to completed
@@ -166,12 +167,32 @@ export default function CheckoutModal({ booking, table, onClose, onSuccess }: Ch
                 </div>
 
                 {/* Footer / Total */}
-                <div className="p-4 border-t bg-white shrink-0">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="p-4 border-t bg-white shrink-0 space-y-4">
+                    <div className="flex justify-between items-center">
                         <span className="text-gray-600 font-bold text-lg">TỔNG CỘNG:</span>
                         <span className="text-2xl font-bold text-teal-600">
                             {totalAmount.toLocaleString('vi-VN')}đ
                         </span>
+                    </div>
+
+                    <div>
+                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Phương thức thanh toán</div>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { value: 'cash', label: '💵 Tiền mặt' },
+                                { value: 'transfer', label: '🏦 Chuyển khoản' },
+                                { value: 'card', label: '💳 Thẻ' },
+                            ].map(m => (
+                                <button
+                                    key={m.value}
+                                    type="button"
+                                    onClick={() => setPaymentMethod(m.value)}
+                                    className={`py-2 px-2 rounded-lg text-xs font-bold transition-all border-2 ${paymentMethod === m.value ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    {m.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="flex gap-3">
