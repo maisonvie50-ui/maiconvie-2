@@ -373,6 +373,61 @@ export default function Settings() {
                         <button className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-200">Lưu cấu hình</button>
                     </div>
                 )}
+                {activeTab === 'training' && (
+                    <div className="space-y-6">
+                        {/* Add new course form */}
+                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Youtube className="w-5 h-5 text-red-500" />Thêm khóa học mới</h3>
+                            <div className="space-y-4">
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Tên khóa học</label><input type="text" value={trainingTitle} onChange={(e) => setTrainingTitle(e.target.value)} placeholder="VD: Quy trình phục vụ" className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500" /></div>
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1">Cấp độ</label><select value={trainingLevel} onChange={(e) => setTrainingLevel(Number(e.target.value))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"><option value={1}>Level 1: Nhập môn</option><option value={2}>Level 2: Cơ bản</option><option value={3}>Level 3: Nâng cao</option><option value={4}>Level 4: Chuyên sâu</option><option value={5}>Level 5: Quản lý</option></select></div>
+                                <div><label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1"><Link className="w-3.5 h-3.5" />Link YouTube</label><input type="text" value={trainingUrl} onChange={(e) => setTrainingUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500" /></div>
+                                {previewId && (
+                                    <div className="w-full aspect-video bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                                        <img src={`https://img.youtube.com/vi/${previewId}/hqdefault.jpg`} alt="Preview" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+                                <button onClick={handleAddCourse} disabled={!previewId || !trainingTitle} className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"><Plus className="w-4 h-4" />Thêm khóa học</button>
+                            </div>
+                        </div>
+                        {/* Course list */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                                <h3 className="font-bold text-gray-800">Danh sách khóa học</h3>
+                                <span className="text-sm text-gray-500">{managedCourses.length} khóa</span>
+                            </div>
+                            <div className="divide-y divide-gray-100">
+                                {managedCourses.length === 0 && (
+                                    <div className="p-8 text-center text-gray-400">
+                                        <PlaySquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                        <p className="text-sm">Chưa có khóa học nào</p>
+                                    </div>
+                                )}
+                                {managedCourses.map((course) => (
+                                    <div key={course.id} className={`p-4 flex items-start gap-3 ${!course.active ? 'opacity-50 grayscale-[0.5]' : ''}`}>
+                                        <div className="relative w-20 aspect-video bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                                            <img src={`https://img.youtube.com/vi/${course.youtubeId}/hqdefault.jpg`} alt={course.title} className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><PlaySquare className="w-4 h-4 text-white opacity-80" /></div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-gray-900 text-sm line-clamp-2">{course.title}</div>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-bold">Lvl {course.level}</span>
+                                                <div onClick={() => toggleCourseActive(course.id)} className={`w-8 h-4 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${course.active ? 'bg-teal-500' : 'bg-gray-300'}`}>
+                                                    <div className={`bg-white w-3 h-3 rounded-full shadow-sm transform duration-300 ease-in-out ${course.active ? 'translate-x-3.5' : ''}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                            <button onClick={() => handleEditCourse(course)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => deleteCourse(course.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {activeTab === 'operations' && (
                     <div className="space-y-6">
                         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
