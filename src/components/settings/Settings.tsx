@@ -292,10 +292,12 @@ export default function Settings() {
 
             await settingsService.updateEmployeeCredentials(viewingEmployee.id, updates);
             await loadData();
+            // Refresh viewingEmployee with updated data
+            const refreshed = (await settingsService.getEmployees()).find(e => e.id === viewingEmployee.id);
+            if (refreshed) setViewingEmployee(refreshed);
             setEditMode(false);
             setEditPassword('');
             alert('Cập nhật thành công!');
-            setUserDetailModalOpen(false);
         } catch (error: any) {
             alert(error.message || 'Có lỗi xảy ra khi cập nhật');
         } finally {
@@ -869,6 +871,13 @@ export default function Settings() {
                                                 {viewingEmployee.roles.reception && <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">Lễ tân</span>}
                                                 {viewingEmployee.roles.kitchen && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">Bếp</span>}
                                                 {viewingEmployee.roles.server && <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-xs font-bold">Phục vụ</span>}
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                                            <h5 className="font-bold text-gray-800 text-sm mb-3">Thông tin đăng nhập</h5>
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex justify-between"><span className="text-gray-500">Tên đăng nhập</span><span className="font-medium text-gray-900 break-all">{viewingEmployee.email}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">Mật khẩu</span><span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{viewingEmployee.password || '***'}</span></div>
                                             </div>
                                         </div>
                                         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
