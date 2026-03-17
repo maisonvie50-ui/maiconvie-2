@@ -118,7 +118,7 @@ export default function PublicBookingForm() {
                 status: 'new' as BookingStatus,
                 area: formData.area as any,
                 notes: formData.notes ? [formData.notes] : [],
-                source: 'website' as const,
+                source: new URLSearchParams(window.location.search).get('source') || 'website',
                 customerType: formData.customerType,
                 selectedMenus: selectedMenus
             };

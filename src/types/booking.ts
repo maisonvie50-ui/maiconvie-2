@@ -11,7 +11,7 @@ export interface Booking {
   phone?: string;
   email?: string;
   area?: 'indoor' | 'outdoor' | 'vip' | 'rooftop';
-  source?: 'website' | 'facebook' | 'hotline' | 'walk_in' | 'ota';
+  source?: string;
   customerType?: 'retail' | 'tour';
   selectedMenus?: any[];
   tableId?: string;

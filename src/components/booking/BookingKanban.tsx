@@ -42,7 +42,11 @@ import { Table } from '../../types';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
+  web: 'Website',
   facebook: 'Fanpage',
+  fb: 'Facebook',
+  whatsapp: 'WhatsApp',
+  zalo: 'Zalo',
   hotline: 'Hotline',
   walk_in: 'Walk-in',
   ota: 'OTA'
@@ -50,7 +54,11 @@ const sourceLabels: Record<string, string> = {
 
 const sourceColors: Record<string, string> = {
   website: 'bg-blue-100 text-blue-700',
+  web: 'bg-blue-100 text-blue-700',
   facebook: 'bg-indigo-100 text-indigo-700',
+  fb: 'bg-indigo-100 text-indigo-700',
+  whatsapp: 'bg-green-100 text-green-700',
+  zalo: 'bg-blue-100 text-blue-700',
   hotline: 'bg-green-100 text-green-700',
   walk_in: 'bg-orange-100 text-orange-700',
   ota: 'bg-purple-100 text-purple-700'
@@ -760,8 +768,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 <div className="flex items-center gap-2 text-sm text-gray-500 mt-0.5">
                   <span>{selectedBooking.time || '--:--'} • {selectedBooking.pax || 0} Khách</span>
                   {selectedBooking.source && (
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[selectedBooking.source]}`}>
-                      {sourceLabels[selectedBooking.source]}
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[selectedBooking.source] || 'bg-gray-100 text-gray-600'}`}>
+                      {sourceLabels[selectedBooking.source] || selectedBooking.source}
                     </span>
                   )}
                 </div>
