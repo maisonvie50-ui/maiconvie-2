@@ -25,23 +25,7 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       let loginUsername = username.trim().toLowerCase();
-
-      // Temporary fallback for the mock accounts for smooth transition during dev
-      if (username === 'admin' || username === 'quanly' || username === 'letan' || username === 'bep' || username === 'phucvu') {
-        let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
-        if (username === 'admin') role = 'admin';
-        else if (username === 'quanly') role = 'manager';
-        else if (username === 'letan') role = 'receptionist';
-        else if (username === 'bep') role = 'kitchen';
-
-        // If they use mock accounts without a strong password or we aren't found in DB, just mock login for them
-        if (password === '123') {
-          onLogin(role, undefined, undefined);
-          return;
-        }
-      }
-
-      await onLogin('server', loginUsername, password);
+      await onLogin(undefined, loginUsername, password);
     } catch (err: any) {
       setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
     } finally {
@@ -105,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                placeholder="admin"
+                placeholder="Nhập email đăng nhập"
               />
             </div>
           </div>
@@ -134,16 +118,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          <div className="text-xs text-slate-400 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 mt-4">
-            <p className="font-semibold text-slate-300 mb-1">Tài khoản thử nghiệm (Mật khẩu: 123)</p>
-            <ul className="list-disc list-inside mt-1 space-y-0.5">
-              <li><span className="text-teal-400">admin</span>: Quản trị viên (Toàn quyền)</li>
-              <li><span className="text-teal-400">quanly</span>: Quản lý</li>
-              <li><span className="text-teal-400">letan</span>: Lễ tân</li>
-              <li><span className="text-teal-400">bep</span>: Bếp trưởng</li>
-              <li><span className="text-teal-400">phucvu</span>: Phục vụ</li>
-            </ul>
-          </div>
+
 
           <div className="flex items-center justify-between mt-4">
             <label className="flex items-center">

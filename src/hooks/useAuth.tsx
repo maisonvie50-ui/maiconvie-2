@@ -47,60 +47,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
     }, []);
 
-    const handleLogin = useCallback(async (role: UserRole = 'admin', email?: string, password?: string) => {
+    const handleLogin = useCallback(async (_role?: UserRole, email?: string, password?: string) => {
         setIsLoading(true);
         try {
-            if (email && password) {
-                // Query employees table to verify credentials
-                const { data: employee, error } = await supabase
-                    .from('employees')
-                    .select('*')
-                    .eq('email', email)
-                    .eq('password', password)
-                    .eq('active', true)
-                    .single();
-
-                if (error || !employee) {
-                    throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
-                }
-
-                // Determine role from employee flags
-                let detectedRole: UserRole = 'server';
-                if (employee.role_manager) detectedRole = 'manager';
-                else if (employee.role_reception) detectedRole = 'receptionist';
-                else if (employee.role_kitchen) detectedRole = 'kitchen';
-                else if (employee.role_server) detectedRole = 'server';
-
-                const authUser: AuthUser = {
-                    id: employee.id,
-                    name: employee.name,
-                    email: employee.email,
-                    role: detectedRole,
-                };
-
-                setUser(authUser);
-                setUserRole(detectedRole);
-                setIsAuthenticated(true);
-                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
-
-                // Update last_active
-                await supabase
-                    .from('employees')
-                    .update({ last_active: new Date().toISOString() })
-                    .eq('id', employee.id);
-            } else {
-                // Mock login (for test accounts without DB check)
-                const mockUser: AuthUser = {
-                    id: 'mock-' + role,
-                    name: role.charAt(0).toUpperCase() + role.slice(1),
-                    email: role,
-                    role: role,
-                };
-                setUser(mockUser);
-                setIsAuthenticated(true);
-                setUserRole(role);
-                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(mockUser));
+            if (!email || !password) {
+                throw new Error('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu');
             }
+
+            // Query employees table to verify credentials
+            const { data: employee, error } = await supabase
+                .from('employees')
+                .select('*')
+                .eq('email', email)
+                .eq('password', password)
+                .eq('active', true)
+                .single();
+
+            if (error || !employee) {
+                throw new Error('Tên đăng nhập hoặc mật khẩu không đúng');
+            }
+
+            // Determine role from employee flags
+            let detectedRole: UserRole = 'server';
+            if (employee.role_manager) detectedRole = 'admin';
+            else if (employee.role_reception) detectedRole = 'receptionist';
+            else if (employee.role_kitchen) detectedRole = 'kitchen';
+            else if (employee.role_server) detectedRole = 'server';
+
+            const authUser: AuthUser = {
+                id: employee.id,
+                name: employee.name,
+                email: employee.email,
+                role: detectedRole,
+            };
+
+            setUser(authUser);
+            setUserRole(detectedRole);
+            setIsAuthenticated(true);
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+
+            // Also store as currentEmployee for training portal & other features
+            localStorage.setItem('currentEmployee', JSON.stringify({
+                id: employee.id,
+                name: employee.name,
+                email: employee.email,
+                role_manager: employee.role_manager,
+                role_reception: employee.role_reception,
+                role_kitchen: employee.role_kitchen,
+                role_server: employee.role_server,
+            }));
+
+            // Update last_active
+            await supabase
+                .from('employees')
+                .update({ last_active: new Date().toISOString() })
+                .eq('id', employee.id);
         } catch (error) {
             console.error('Error logging in:', error);
             throw error;
@@ -114,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setUserRole('server');
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem('currentEmployee');
     }, []);
 
     return (
