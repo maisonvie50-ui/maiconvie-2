@@ -335,7 +335,7 @@ export default function Settings() {
                 <button onClick={() => setActiveTrainingTab('levels')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'levels' ? 'bg-white text-teal-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
                     <Star className="w-4 h-4" /> Cấp độ & Đánh giá
                 </button>
-                <button onClick={() => setActiveTrainingTab('advanced')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'advanced' ? 'bg-white text-amber-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
+                <button onClick={() => setActiveTrainingTab('advanced')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'advanced' ? 'bg-white text-teal-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
                     <SettingsIcon className="w-4 h-4" /> Nâng cao
                 </button>
             </div>
@@ -468,33 +468,33 @@ export default function Settings() {
 
             {activeTrainingTab === 'advanced' && (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 max-w-2xl mx-auto mt-8">
-                    <div className="bg-gradient-to-br from-white to-amber-50/30 p-8 rounded-3xl shadow-lg border border-amber-200/60 relative overflow-hidden">
-                        <div className="absolute -right-10 -top-10 text-amber-500 opacity-5 object-cover rotate-12 scale-150 pointer-events-none"><AlertTriangle className="w-64 h-64" /></div>
+                    <div className="bg-gradient-to-br from-white to-teal-50/30 p-8 rounded-3xl shadow-lg border border-teal-200/60 relative overflow-hidden">
+                        <div className="absolute -right-10 -top-10 text-teal-500 opacity-5 object-cover rotate-12 scale-150 pointer-events-none"><ArrowUp className="w-64 h-64" /></div>
 
                         <div className="relative z-10">
                             <div className="flex flex-col items-center text-center mb-8">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30 mb-4 text-white transform rotate-3">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/30 mb-4 text-white transform rotate-3">
                                     <ArrowUp className="w-8 h-8" />
                                 </div>
                                 <h4 className="font-black text-gray-900 text-2xl tracking-tight">Thăng cấp thủ công</h4>
                                 <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto leading-relaxed">Ghi đè hệ thống - Cập nhật trực tiếp Level cho nhân viên bỏ qua điều kiện video và ngày chờ.</p>
                             </div>
 
-                            <div className="space-y-5 bg-white/80 backdrop-blur p-6 rounded-2xl border border-amber-100 shadow-sm">
+                            <div className="space-y-5 bg-white/80 backdrop-blur p-6 rounded-2xl border border-teal-100 shadow-sm">
                                 <div>
                                     <label className="block text-xs font-black text-gray-700 uppercase tracking-widest mb-2 ml-1">👤 Chọn Nhân viên</label>
-                                    <select value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-4 py-3.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-amber-500 shadow-sm transition-shadow">
+                                    <select title="Chọn nhân viên" value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-4 py-3.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-teal-500 shadow-sm transition-shadow">
                                         <option value="" className="font-normal">-- Danh sách nhân sự --</option>
                                         {employees.filter(e => e.active).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black text-gray-700 uppercase tracking-widest mb-2 ml-1">⭐ Đích đến (Level mới)</label>
-                                    <select value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-4 py-3.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-amber-500 shadow-sm transition-shadow">
+                                    <select title="Chọn level" value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-4 py-3.5 border border-gray-200 bg-white rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-teal-500 shadow-sm transition-shadow">
                                         {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
                                     </select>
                                 </div>
-                                <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} disabled={!promotionEmployeeId} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-sm transition-all shadow-lg hover:shadow-orange-500/25 mt-4 flex items-center justify-center gap-2 uppercase tracking-wide"><Check className="w-5 h-5" /> Thực hiện Thăng cấp</button>
+                                <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} disabled={!promotionEmployeeId} className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-sm transition-all shadow-lg hover:shadow-teal-500/25 mt-4 flex items-center justify-center gap-2 uppercase tracking-wide"><Check className="w-5 h-5" /> Thực hiện Thăng cấp</button>
                             </div>
                         </div>
                     </div>
