@@ -446,9 +446,14 @@ export default function Settings() {
                             </div>
                         </div>
 
+                        {/* Section Divider - Hệ thống Level */}
+                        <div className="pt-4 pb-2 border-b border-gray-200">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg"><Shield className="w-5 h-5 text-purple-500" />Hệ thống Cấp độ</h3>
+                        </div>
+
                         {/* Level Config */}
                         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Shield className="w-5 h-5 text-purple-500" />Cấu hình Level</h3>
+                            <h4 className="font-bold text-gray-800 mb-4">Cấu hình Level</h4>
                             <div className="space-y-3">
                                 {levelConfigs.map(cfg => (
                                     <div key={cfg.level} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -471,44 +476,52 @@ export default function Settings() {
                         </div>
 
                         {/* Checklist Management */}
-                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Check className="w-5 h-5 text-green-500" />Checklist đánh giá</h3>
+                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                            <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Check className="w-5 h-5 text-green-500" />Checklist đánh giá (Điều kiện đủ)</h4>
                             <div className="flex gap-2 mb-4">
-                                <select value={newChecklistLevel} onChange={(e) => setNewChecklistLevel(Number(e.target.value))} className="px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                                <select value={newChecklistLevel} onChange={(e) => setNewChecklistLevel(Number(e.target.value))} className="px-2 py-2 border border-gray-300 rounded-lg text-sm bg-white">
                                     {[2, 3, 4, 5].map(l => <option key={l} value={l}>Lv{l}</option>)}
                                 </select>
-                                <input type="text" value={newChecklistText} onChange={(e) => setNewChecklistText(e.target.value)} placeholder="Tiêu chí đánh giá..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                                <input type="text" value={newChecklistText} onChange={(e) => setNewChecklistText(e.target.value)} placeholder="Thêm tiêu chí..." className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
                                 <button onClick={async () => { if (!newChecklistText) return; await trainingService.addChecklistItem(newChecklistLevel, newChecklistText, checklistItems.filter(c => c.level === newChecklistLevel).length + 1); setNewChecklistText(''); await loadData(); }} className="bg-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium"><Plus className="w-4 h-4" /></button>
                             </div>
-                            {[2, 3, 4, 5].map(lvl => {
-                                const items = checklistItems.filter(c => c.level === lvl);
-                                if (items.length === 0) return null;
-                                return (
-                                    <div key={lvl} className="mb-3">
-                                        <div className="text-xs font-bold text-gray-400 uppercase mb-1">Level {lvl}</div>
-                                        {items.map(item => (
-                                            <div key={item.id} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded mb-1 text-sm">
-                                                <span className="text-gray-700">{item.itemText}</span>
-                                                <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            })}
+                            <div className="flex-1 pr-1">
+                                {[2, 3, 4, 5].map(lvl => {
+                                    const items = checklistItems.filter(c => c.level === lvl);
+                                    if (items.length === 0) return null;
+                                    return (
+                                        <div key={lvl} className="mb-4">
+                                            <div className="text-xs font-bold text-gray-400 uppercase mb-2">Level {lvl}</div>
+                                            {items.map(item => (
+                                                <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-100 rounded-lg mb-1.5 text-sm">
+                                                    <span className="text-gray-700">{item.itemText}</span>
+                                                    <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Section Divider - Admin Tools */}
+                        <div className="pt-4 pb-2 border-b border-gray-200">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg"><AlertTriangle className="w-5 h-5 text-amber-500" />Quản trị viên</h3>
                         </div>
 
                         {/* Manual Promotion */}
-                        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><ArrowUp className="w-5 h-5 text-amber-500" />Thăng cấp thủ công</h3>
+                        <div className="bg-amber-50/50 p-5 rounded-xl shadow-sm border border-amber-200">
+                            <h4 className="font-bold text-amber-800 mb-2 flex items-center gap-2"><ArrowUp className="w-4 h-4" />Thăng cấp thủ công</h4>
+                            <p className="text-xs text-amber-700/70 mb-4 leading-relaxed">Ghi đè hệ thống - Cập nhật level nhân viên trực tiếp không qua quy trình.</p>
                             <div className="space-y-3">
-                                <select value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                                <select value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border border-amber-200 bg-white rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-amber-500">
                                     <option value="">Chọn nhân viên...</option>
                                     {employees.filter(e => e.active).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                                 </select>
-                                <select value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm">
+                                <select value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-3 py-2.5 border border-amber-200 bg-white rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-amber-500">
                                     {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
                                 </select>
-                                <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white py-2.5 rounded-lg font-bold text-sm">Thăng cấp</button>
+                                <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm">Thực hiện thăng cấp</button>
                             </div>
                         </div>
                     </div>
@@ -845,23 +858,33 @@ export default function Settings() {
                                 </div>
                             </div>
 
-                            {/* Level Config (Desktop) */}
-                            <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-2">
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Shield className="w-5 h-5 text-purple-500" />Cấu hình Level</h3>
-                                    <div className="space-y-3">
+                            {/* Section Divider - Hệ thống Level */}
+                            <div className="lg:col-span-3 mt-4 pt-4 pb-2 border-b border-gray-200">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg"><Shield className="w-5 h-5 text-purple-500" />Hệ thống Cấp độ & Đánh giá</h3>
+                            </div>
+
+                            {/* Level Config & Checklist (Desktop) */}
+                            <div className="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="lg:col-span-1 bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
+                                    <h4 className="font-bold text-gray-800 mb-4">Cấu hình Level</h4>
+                                    <div className="space-y-3 flex-1 overflow-y-auto pr-1">
                                         {levelConfigs.map(cfg => (
-                                            <div key={cfg.level} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                                <div className="font-medium text-sm text-gray-800 mb-2">{cfg.name}</div>
-                                                <div className="grid grid-cols-2 gap-3">
+                                            <div key={cfg.level} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                                <div className="font-medium text-sm text-gray-800 mb-3">{cfg.name}</div>
+                                                <div className="grid grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="text-[10px] text-gray-500">Chờ tối thiểu (ngày)</label>
-                                                        <input type="number" value={cfg.minDaysFromPrev} onChange={async (e) => { const val = parseInt(e.target.value) || 0; await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c)); }} className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm text-center" />
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Chờ tối thiểu</label>
+                                                        <div className="relative">
+                                                            <input type="number" value={cfg.minDaysFromPrev} onChange={async (e) => { const val = parseInt(e.target.value) || 0; await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c)); }} className="w-full pl-3 pr-8 py-2 border border-gray-300 rounded font-medium text-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500" />
+                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">ngày</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-end">
-                                                        <label className="flex items-center gap-2 cursor-pointer">
-                                                            <input type="checkbox" checked={cfg.requiresEvaluation} onChange={async (e) => { await trainingService.updateLevelConfig(cfg.level, { requires_evaluation: e.target.checked }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, requiresEvaluation: e.target.checked } : c)); }} className="w-4 h-4 text-teal-600 rounded" />
-                                                            <span className="text-xs text-gray-600">Cần đánh giá</span>
+                                                    <div className="flex items-end pb-1">
+                                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                                            <div className="relative flex items-center">
+                                                                <input type="checkbox" checked={cfg.requiresEvaluation} onChange={async (e) => { await trainingService.updateLevelConfig(cfg.level, { requires_evaluation: e.target.checked }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, requiresEvaluation: e.target.checked } : c)); }} className="peer w-5 h-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500 cursor-pointer" />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700 group-hover:text-teal-700 transition-colors">Cần đánh giá</span>
                                                         </label>
                                                     </div>
                                                 </div>
@@ -870,46 +893,69 @@ export default function Settings() {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Check className="w-5 h-5 text-green-500" />Checklist đánh giá</h3>
-                                    <div className="flex gap-2 mb-4">
-                                        <select value={newChecklistLevel} onChange={(e) => setNewChecklistLevel(Number(e.target.value))} className="px-2 py-1.5 border border-gray-300 rounded text-sm">
-                                            {[2, 3, 4, 5].map(l => <option key={l} value={l}>Lv{l}</option>)}
+                                <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
+                                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Check className="w-5 h-5 text-green-500" />Checklist đánh giá (Điều kiện đủ)</h4>
+                                    <div className="flex gap-3 mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <select value={newChecklistLevel} onChange={(e) => setNewChecklistLevel(Number(e.target.value))} className="px-3 py-2 border border-gray-300 bg-white rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500">
+                                            {[2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
                                         </select>
-                                        <input type="text" value={newChecklistText} onChange={(e) => setNewChecklistText(e.target.value)} placeholder="Tiêu chí..." className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm" />
-                                        <button onClick={async () => { if (!newChecklistText) return; await trainingService.addChecklistItem(newChecklistLevel, newChecklistText, checklistItems.filter(c => c.level === newChecklistLevel).length + 1); setNewChecklistText(''); await loadData(); }} className="bg-teal-600 text-white px-2 py-1.5 rounded text-sm"><Plus className="w-4 h-4" /></button>
+                                        <div className="relative flex-1">
+                                            <input type="text" value={newChecklistText} onChange={(e) => setNewChecklistText(e.target.value)} onKeyDown={async (e) => { if (e.key === 'Enter' && newChecklistText) { await trainingService.addChecklistItem(newChecklistLevel, newChecklistText, checklistItems.filter(c => c.level === newChecklistLevel).length + 1); setNewChecklistText(''); await loadData(); } }} placeholder="Thêm tiêu chí đánh giá mới..." className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 shadow-sm" />
+                                        </div>
+                                        <button onClick={async () => { if (!newChecklistText) return; await trainingService.addChecklistItem(newChecklistLevel, newChecklistText, checklistItems.filter(c => c.level === newChecklistLevel).length + 1); setNewChecklistText(''); await loadData(); }} className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"><Plus className="w-4 h-4" />Thêm</button>
                                     </div>
-                                    <div className="max-h-64 overflow-y-auto">
-                                        {[2, 3, 4, 5].map(lvl => {
-                                            const items = checklistItems.filter(c => c.level === lvl);
-                                            if (items.length === 0) return null;
-                                            return (
-                                                <div key={lvl} className="mb-3">
-                                                    <div className="text-xs font-bold text-gray-400 uppercase mb-1">Level {lvl}</div>
-                                                    {items.map(item => (
-                                                        <div key={item.id} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 rounded mb-1">
-                                                            <span className="text-sm text-gray-700">{item.itemText}</span>
-                                                            <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    <div className="flex-1 min-h-[16rem] overflow-y-auto pr-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                                            {[2, 3, 4, 5].map(lvl => {
+                                                const items = checklistItems.filter(c => c.level === lvl);
+                                                if (items.length === 0) return null;
+                                                return (
+                                                    <div key={lvl} className="mb-2">
+                                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 border-b border-gray-100 pb-1">Đánh giá Level {lvl}</div>
+                                                        <div className="space-y-2">
+                                                            {items.map(item => (
+                                                                <div key={item.id} className="flex items-start justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-teal-200 hover:shadow transition-all group">
+                                                                    <div className="flex items-start gap-2">
+                                                                        <Check className="w-4 h-4 text-teal-500 mt-0.5 flex-shrink-0" />
+                                                                        <span className="text-sm text-gray-700 leading-relaxed">{item.itemText}</span>
+                                                                    </div>
+                                                                    <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-all bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            );
-                                        })}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                                    <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><ArrowUp className="w-5 h-5 text-amber-500" />Thăng cấp thủ công</h3>
-                                    <p className="text-xs text-gray-500 mb-4">Override hệ thống: thăng hoặc hạ cấp nhân viên trực tiếp.</p>
-                                    <div className="space-y-3">
-                                        <select value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                            <option value="">Chọn nhân viên...</option>
-                                            {employees.filter(e => e.active).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                                        </select>
-                                        <select value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                                            {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
-                                        </select>
-                                        <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-lg font-medium text-sm">Thăng cấp</button>
+                            {/* Section Divider - Admin Tools */}
+                            <div className="lg:col-span-3 mt-4 pt-4 pb-2 border-b border-gray-200">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2 text-lg"><AlertTriangle className="w-5 h-5 text-amber-500" />Công cụ Quản trị viên</h3>
+                            </div>
+
+                            {/* Manual Promotion (Desktop) */}
+                            <div className="lg:col-span-3">
+                                <div className="bg-amber-50/50 rounded-xl border border-amber-200 shadow-sm p-6 w-full lg:w-1/3">
+                                    <h4 className="font-bold text-amber-800 mb-2 flex items-center gap-2"><ArrowUp className="w-5 h-5" />Thăng cấp thủ công</h4>
+                                    <p className="text-xs text-amber-700/70 mb-5 leading-relaxed">Ghi đè hệ thống - Cập nhật trực tiếp cấp độ của nhân viên mà không cần quy trình phê duyệt hay thời gian chờ.</p>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-amber-800/70 uppercase mb-1">Nhân viên</label>
+                                            <select value={promotionEmployeeId} onChange={(e) => setPromotionEmployeeId(e.target.value)} className="w-full px-3 py-2.5 border border-amber-200 bg-white rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-sm">
+                                                <option value="">-- Chọn nhân viên --</option>
+                                                {employees.filter(e => e.active).map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-amber-800/70 uppercase mb-1">Level mới</label>
+                                            <select value={promotionLevel} onChange={(e) => setPromotionLevel(Number(e.target.value))} className="w-full px-3 py-2.5 border border-amber-200 bg-white rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-sm">
+                                                {[1, 2, 3, 4, 5].map(l => <option key={l} value={l}>Level {l}</option>)}
+                                            </select>
+                                        </div>
+                                        <button onClick={async () => { if (!promotionEmployeeId) return; await trainingService.setEmployeeLevel(promotionEmployeeId, promotionLevel); alert('Đã thăng cấp thành công!'); setPromotionEmployeeId(''); }} className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-3 rounded-lg font-bold text-sm transition-colors shadow-sm mt-2 flex items-center justify-center gap-2"><ArrowUp className="w-4 h-4" /> Xác nhận Thăng cấp</button>
                                     </div>
                                 </div>
                             </div>
