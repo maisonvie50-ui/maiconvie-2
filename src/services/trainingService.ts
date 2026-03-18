@@ -376,7 +376,10 @@ export const trainingService = {
                 { employee_id: employeeId, module_id: moduleId, progress, updated_at: new Date().toISOString() },
                 { onConflict: 'employee_id, module_id' }
             );
-        if (error) console.error('Error updating progress:', error);
+        if (error) {
+            console.error('Error updating progress:', error);
+            throw new Error(`Failed to save progress: ${error.message}`);
+        }
     },
 
     // === ADMIN: Get ALL modules (including inactive) ===

@@ -84,16 +84,22 @@ export default function TrainingPortal() {
 
     const handleCompleteVideo = async () => {
         if (playingCourse) {
-            setCourses(courses.map(c => c.id === playingCourse.id ? { ...c, progress: 100 } : c));
+            if (!currentEmployeeId) {
+                alert('Lỗi: Không xác định được nhân viên. Vui lòng đăng nhập lại.');
+                setPlayingCourse(null);
+                return;
+            }
             try {
-                await trainingService.updateProgress(currentEmployeeId || 'current-user-id', playingCourse.id, 100);
+                await trainingService.updateProgress(currentEmployeeId, playingCourse.id, 100);
+                // Reload modules to get updated progress from DB
+                const updatedModules = await trainingService.getModules(currentEmployeeId);
+                setCourses(updatedModules as ExtendedModule[]);
                 // Re-check eligibility after completing a video
-                if (currentEmployeeId) {
-                    const elig = await trainingService.checkLevelUpEligibility(currentEmployeeId);
-                    setEligibility(elig);
-                }
+                const elig = await trainingService.checkLevelUpEligibility(currentEmployeeId);
+                setEligibility(elig);
             } catch (error) {
                 console.error('Failed to update progress', error);
+                alert('Lỗi khi lưu tiến độ. Vui lòng thử lại.');
             }
             setPlayingCourse(null);
         }
