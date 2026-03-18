@@ -332,7 +332,7 @@ export default function Settings() {
                 <button onClick={() => setActiveTrainingTab('courses')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'courses' ? 'bg-white text-teal-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
                     <BookOpen className="w-4 h-4" /> Quản lý Khóa học
                 </button>
-                <button onClick={() => setActiveTrainingTab('levels')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'levels' ? 'bg-white text-purple-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
+                <button onClick={() => setActiveTrainingTab('levels')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'levels' ? 'bg-white text-teal-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
                     <Star className="w-4 h-4" /> Cấp độ & Đánh giá
                 </button>
                 <button onClick={() => setActiveTrainingTab('advanced')} className={`flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-shrink-0 snap-center ${activeTrainingTab === 'advanced' ? 'bg-white text-amber-600 shadow-sm border border-gray-200/50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'}`}>
@@ -406,30 +406,30 @@ export default function Settings() {
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {levelConfigs.map(cfg => (
                         <div key={cfg.level} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col group/card hover:shadow-md transition-all">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-purple-500 to-indigo-400"></div>
+                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-teal-500 to-teal-400"></div>
 
                             <div className="p-5 border-b border-gray-100 bg-gradient-to-br from-white to-gray-50/50">
                                 <div className="flex justify-between items-start mb-5">
                                     <div>
                                         <h4 className="font-bold text-gray-800 text-lg mb-1.5">{cfg.name}</h4>
-                                        <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100/50 px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">Level {cfg.level}</span>
+                                        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100/50 px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">Level {cfg.level}</span>
                                     </div>
 
                                     {cfg.level > 1 && (
-                                        <label className="flex items-center gap-2 cursor-pointer group bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:border-purple-300 transition-colors">
-                                            <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-purple-700 tracking-wider transition-colors">Đánh Giá</span>
+                                        <label className="flex items-center gap-2 cursor-pointer group bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:border-teal-300 transition-colors">
+                                            <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-teal-700 tracking-wider transition-colors">Đánh Giá</span>
                                             <div className="relative flex items-center h-5">
                                                 <input type="checkbox" checked={cfg.requiresEvaluation} onChange={async (e) => { await trainingService.updateLevelConfig(cfg.level, { requires_evaluation: e.target.checked }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, requiresEvaluation: e.target.checked } : c)); }} className="peer sr-only" />
-                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500 shadow-inner"></div>
+                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500 shadow-inner"></div>
                                             </div>
                                         </label>
                                     )}
                                 </div>
 
                                 <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-widest flex items-center gap-1.5 mb-1"><Clock className="w-3.5 h-3.5 text-purple-400" />Điều kiện Cần: Thời gian</div>
+                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-widest flex items-center gap-1.5 mb-1"><Clock className="w-3.5 h-3.5 text-teal-500" />Điều kiện Cần: Thời gian</div>
                                     <div className="flex items-baseline gap-2">
-                                        <input type="number" value={cfg.minDaysFromPrev} onChange={async (e) => { const val = parseInt(e.target.value) || 0; await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c)); }} className="w-14 px-2 py-1 text-lg font-black text-purple-700 bg-purple-50 border border-purple-100 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-center transition-all shadow-inner" />
+                                        <input type="number" value={cfg.minDaysFromPrev} onChange={async (e) => { const val = parseInt(e.target.value) || 0; await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c)); }} className="w-14 px-2 py-1 text-lg font-black text-teal-700 bg-teal-50 border border-teal-100 rounded-lg focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-center transition-all shadow-inner" />
                                         <span className="text-xs text-gray-500 font-medium">ngày kể từ Level {cfg.level - 1}</span>
                                     </div>
                                 </div>
@@ -438,16 +438,16 @@ export default function Settings() {
                             {cfg.level > 1 && cfg.requiresEvaluation && (
                                 <div className="p-5 flex-1 flex flex-col bg-gray-50/30">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h5 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-green-500" /> Tiêu chí đánh giá (ĐK Đủ)</h5>
+                                        <h5 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-teal-500" /> Tiêu chí đánh giá (ĐK Đủ)</h5>
                                         <span className="text-[10px] font-bold text-gray-400 bg-white border border-gray-200 shadow-sm px-2 py-0.5 rounded-md">{checklistItems.filter(c => c.level === cfg.level).length} mục</span>
                                     </div>
 
                                     <div className="space-y-2 mb-4 flex-1">
                                         {checklistItems.filter(c => c.level === cfg.level).map(item => (
-                                            <div key={item.id} className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-purple-200 hover:shadow transition-all group/chk">
-                                                <div className="mt-1 w-3.5 h-3.5 rounded-sm border-2 border-gray-300 flex-shrink-0 group-hover/chk:border-purple-500 transition-colors"></div>
+                                            <div key={item.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-teal-200 hover:shadow transition-all group/chk">
+                                                <div className="w-6 h-6 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center flex-shrink-0"><span className="text-[10px] font-black text-teal-600">{checklistItems.filter(c => c.level === cfg.level).indexOf(item) + 1}</span></div>
                                                 <span className="text-sm font-medium text-gray-700 flex-1 leading-snug">{item.itemText}</span>
-                                                <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-gray-300 hover:text-red-500 opacity-0 group-hover/chk:opacity-100 transition-all p-1.5 bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-all" title="Xóa tiêu chí"><Trash2 className="w-4 h-4" /></button>
                                             </div>
                                         ))}
                                         {checklistItems.filter(c => c.level === cfg.level).length === 0 && (
@@ -456,8 +456,8 @@ export default function Settings() {
                                     </div>
 
                                     <div className="flex items-center gap-2 mt-auto">
-                                        <input type="text" id={`checklist-input-${cfg.level}`} placeholder="Nhập tiêu chí đánh giá mới..." onKeyDown={async (e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { const text = e.currentTarget.value.trim(); e.currentTarget.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="flex-1 pl-4 pr-3 py-3 text-sm font-medium border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm hover:shadow transition-all" />
-                                        <button onClick={async () => { const input = document.getElementById(`checklist-input-${cfg.level}`) as HTMLInputElement; if (input && input.value.trim()) { const text = input.value.trim(); input.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="px-4 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold text-sm transition-colors shadow-sm flex-shrink-0 flex items-center gap-1"><Plus className="w-4 h-4" />Thêm</button>
+                                        <input type="text" id={`checklist-input-${cfg.level}`} placeholder="Nhập tiêu chí đánh giá mới..." onKeyDown={async (e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { const text = e.currentTarget.value.trim(); e.currentTarget.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="flex-1 pl-4 pr-3 py-3 text-sm font-medium border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-sm hover:shadow transition-all" />
+                                        <button onClick={async () => { const input = document.getElementById(`checklist-input-${cfg.level}`) as HTMLInputElement; if (input && input.value.trim()) { const text = input.value.trim(); input.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm flex-shrink-0 flex items-center gap-1"><Plus className="w-4 h-4" />Thêm</button>
                                     </div>
                                 </div>
                             )}
