@@ -507,7 +507,7 @@ export default function TrainingPortal() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`${isMobile ? 'flex-1' : 'px-4'} py-1.5 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 relative ${activeTab === tab.id ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}
+                                    className={`${isMobile ? 'flex-1 px-2 text-xs' : 'px-4 text-sm'} py-1.5 rounded-md font-medium transition-all flex items-center justify-center gap-1.5 relative whitespace-nowrap ${activeTab === tab.id ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     {tab.icon}
                                     {tab.label}
