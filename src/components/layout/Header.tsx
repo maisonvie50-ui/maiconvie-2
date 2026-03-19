@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, Search, ChevronLeft, ChevronRight, Plus, Menu, LogOut, User } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 interface HeaderProps {
   onAddBooking?: () => void;
@@ -23,6 +24,7 @@ const VIEW_TITLES: Record<string, string> = {
 export default function Header({ onAddBooking, onMenuClick }: HeaderProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const currentPath = location.pathname;
   const title = VIEW_TITLES[currentPath] || (currentPath === '/' ? 'Sơ đồ nhà hàng' : 'Maison Vie');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -71,8 +73,8 @@ export default function Header({ onAddBooking, onMenuClick }: HeaderProps) {
                 ></div>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-200">
                   <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-sm font-bold text-gray-900">Nguyễn Văn A</p>
-                    <p className="text-xs text-gray-500 truncate">a.nguyen@maisonvie.com</p>
+                    <p className="text-sm font-bold text-gray-900">{user?.name || 'Nhân viên'}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
                   </div>
                   <button
                     onClick={() => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   CalendarDays,
   Map,
@@ -24,6 +25,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout, userRole = 'admin' }: SidebarProps) {
   const location = useLocation();
+  const { user } = useAuth();
   const currentPath = location.pathname;
 
   const allMenuItems = [
@@ -97,7 +99,7 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-gray-900 font-bold text-sm truncate">Nguyễn Văn A</div>
+                <div className="text-gray-900 font-bold text-sm truncate">{user?.name || 'Nhân viên'}</div>
                 <div className="text-xs text-gray-500 truncate mt-0.5">{getRoleDisplay(userRole)}</div>
               </div>
             )}
