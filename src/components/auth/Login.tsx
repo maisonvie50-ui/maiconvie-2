@@ -24,23 +24,8 @@ export default function Login({ onLogin }: LoginProps) {
     setIsLoading(true);
 
     try {
-      // Gọi lên onLogin của App.tsx, ở đó sẽ xử lý supabase.auth.signInWithPassword
-      // Thay đổi tham số truyền vào onLogin từ role -> email, password
-
-      // Fallback for mock accounts (development use cases)
-      if (!username.includes('@')) {
-        let role: 'admin' | 'manager' | 'receptionist' | 'kitchen' | 'server' = 'server';
-        if (username === 'admin') role = 'admin';
-        else if (username === 'quanly') role = 'manager';
-        else if (username === 'letan') role = 'receptionist';
-        else if (username === 'bep') role = 'kitchen';
-        else if (username === 'phucvu') role = 'server';
-
-        onLogin(role, undefined, undefined);
-        return;
-      }
-
-      await onLogin('server', username, password); // Thực tế là email/password
+      let loginUsername = username.trim().toLowerCase();
+      await onLogin(undefined, loginUsername, password);
     } catch (err: any) {
       setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
     } finally {
@@ -55,10 +40,9 @@ export default function Login({ onLogin }: LoginProps) {
     setIsResetting(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: window.location.origin,
-      });
-      if (error) throw error;
+      // Vì đã bỏ Supabase Auth nên tính năng gửi link qua email cần làm qua Backend hoặc Mailer riêng.
+      // Hiện tại sẽ chuyển thành popup thông báo liên hệ quản lý.
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate loading
       setResetSent(true);
     } catch (err: any) {
       console.error('Lỗi reset mật khẩu:', err);
@@ -105,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                placeholder="admin"
+                placeholder="Nhập email đăng nhập"
               />
             </div>
           </div>
@@ -134,16 +118,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          <div className="text-xs text-slate-400 p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 mt-4">
-            <p className="font-semibold text-slate-300 mb-1">Tài khoản thử nghiệm (Mật khẩu: 123)</p>
-            <ul className="list-disc list-inside mt-1 space-y-0.5">
-              <li><span className="text-teal-400">admin</span>: Quản trị viên (Toàn quyền)</li>
-              <li><span className="text-teal-400">quanly</span>: Quản lý</li>
-              <li><span className="text-teal-400">letan</span>: Lễ tân</li>
-              <li><span className="text-teal-400">bep</span>: Bếp trưởng</li>
-              <li><span className="text-teal-400">phucvu</span>: Phục vụ</li>
-            </ul>
-          </div>
+
 
           <div className="flex items-center justify-between mt-4">
             <label className="flex items-center">
@@ -195,12 +170,10 @@ export default function Login({ onLogin }: LoginProps) {
               {resetSent ? (
                 <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-4 text-center">
                   <div className="w-12 h-12 bg-teal-500/20 text-teal-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Lock className="w-6 h-6" />
                   </div>
-                  <h4 className="text-teal-400 font-bold mb-1">Đã gửi email khôi phục!</h4>
-                  <p className="text-teal-200/70 text-sm">Vui lòng kiểm tra hộp thư đến của bạn.</p>
+                  <h4 className="text-teal-400 font-bold mb-1">Liên hệ Quản lý</h4>
+                  <p className="text-teal-200/70 text-sm">Do hệ thống sử dụng đăng nhập nội bộ, vui lòng liên hệ Quản lý để được cấp lại mật khẩu.</p>
                   <button
                     onClick={() => { setShowForgotPassword(false); setResetSent(false); }}
                     className="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -211,9 +184,9 @@ export default function Login({ onLogin }: LoginProps) {
               ) : (
                 <form onSubmit={handleResetPassword}>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Địa chỉ Email</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Tên đăng nhập</label>
                     <input
-                      type="email"
+                      type="text"
                       required
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}

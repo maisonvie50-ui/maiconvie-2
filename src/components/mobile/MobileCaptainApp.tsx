@@ -8,7 +8,8 @@ import AdvancedAnalytics from '../analytics/AdvancedAnalytics';
 import MenuManagement from '../menu/MenuManagement';
 import KitchenDisplay from '../kitchen/KitchenDisplay';
 import { level1Tables, vipRooms, eventHall } from '../../data/mockTables';
-import { mobileMenuItems as menuItems } from '../../data/mockMenu';
+import type { Category, MenuItem, SetMenu } from '../../types';
+import { menuService } from '../../services/menuService';
 import {
   Menu,
   Search,
@@ -29,26 +30,198 @@ import {
   Settings as SettingsIcon,
   BarChart3,
   ChefHat,
-  LogOut
+  LogOut,
+  Receipt,
+  X
 } from 'lucide-react';
+import { tableService } from '../../services/tableService';
+import { orderService } from '../../services/orderService';
+import { notificationService } from '../../services/notificationService';
+import { useAuth, UserRole } from '../../hooks/useAuth';
+import CheckoutModal from '../booking/CheckoutModal';
+import OrderHistory from '../analytics/OrderHistory';
 
+type TableStatus = 'empty' | 'occupied' | 'reserved';
+interface Table {
+  id: string;
+  name: string;
+  type: 'circle' | 'square';
+  status: TableStatus;
+  pax: number;
+  customerName?: string;
+  time?: string;
+  duration?: string;
+  notes?: string;
+  floor?: number;
+}
 
-type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen';
+interface VipRoom {
+  id: string;
+  name: string;
+  capacity: number;
+  status: 'empty' | 'in-use';
+  customerName?: string;
+  time?: string;
+  notes?: string;
+}
+
+type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen' | 'order-history';
 
 interface MobileCaptainAppProps {
   onLogout?: () => void;
 }
 
 export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
+  const { user, userRole } = useAuth();
+
+  const roleLabels: Record<UserRole, string> = {
+    admin: 'Admin',
+    manager: 'Quản lý',
+    receptionist: 'Lễ tân',
+    kitchen: 'Bếp',
+    server: 'Phục vụ',
+  };
+
+  const roleColors: Record<UserRole, string> = {
+    admin: 'bg-red-500',
+    manager: 'bg-purple-500',
+    receptionist: 'bg-blue-500',
+    kitchen: 'bg-orange-500',
+    server: 'bg-teal-500',
+  };
+
+  const userInitials = user?.name
+    ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : userRole[0].toUpperCase();
   const [view, setView] = useState<ViewState>('tables');
   const [activeZone, setActiveZone] = useState<'T1' | 'T2' | 'T3'>('T1');
   const [selectedTable, setSelectedTable] = useState<any>(null);
+  const [tableActionTarget, setTableActionTarget] = useState<Table | VipRoom | null>(null);
+  const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
+  const [openTableTarget, setOpenTableTarget] = useState<any>(null);
+  const [openTableCustomerName, setOpenTableCustomerName] = useState('');
+  const [openTablePax, setOpenTablePax] = useState('');
   const [cart, setCart] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
+  // Real database states
+  const [menuCategories, setMenuCategories] = useState<Category[]>([]);
+  const [menuItemsList, setMenuItemsList] = useState<MenuItem[]>([]);
+  const [setMenusList, setSetMenusList] = useState<SetMenu[]>([]);
+  const [tablesL1, setTablesL1] = useState<Table[]>([]);
+  const [tablesL3, setTablesL3] = useState<Table[]>([]);
+  const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
+
+  // Kitchen Notification State
+  const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string, readyItems?: string[] } | null>(null);
+
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Load tables from Supabase
+  const fetchTables = async () => {
+    try {
+      const allTables = await tableService.getTables();
+      setTablesL1(allTables.filter(t => t.floor === 1));
+
+      // Map floor 2 to vipRooms
+      const vip = allTables.filter(t => t.floor === 2).map(t => ({
+        id: t.id,
+        name: t.name,
+        capacity: t.pax,
+        status: (t.status === 'occupied' || t.status === 'reserved') ? 'in-use' : 'empty',
+        customerName: t.customerName,
+        time: t.time || undefined,
+        notes: t.notes || undefined
+      } as VipRoom));
+      setVipRoomsList(vip);
+
+      setTablesL3(allTables.filter(t => t.floor === 3));
+    } catch (e) {
+      console.error('Failed to load tables in mobile app', e);
+      // Fallback to mock data if needed
+      setTablesL1(level1Tables as any);
+      setVipRoomsList(vipRooms as any);
+      setTablesL3(eventHall as any); // Type assertion hack for fallback
+    }
+  };
+
+  const fetchMenuData = async () => {
+    try {
+      const [categories, items, setMenus] = await Promise.all([
+        menuService.getCategories(),
+        menuService.getMenuItems(),
+        menuService.getSetMenus()
+      ]);
+      setMenuCategories(categories);
+      setMenuItemsList(items);
+      setSetMenusList(setMenus);
+    } catch (e) {
+      console.error('Failed to load menu data in mobile app', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchTables();
+    fetchMenuData();
+    notificationService.requestNotificationPermission();
+
+    const subscription = tableService.subscribeToTables(() => {
+      fetchTables();
+    });
+
+    const unsubscribeMenu = menuService.subscribeToMenuChanges(() => {
+      fetchMenuData();
+    });
+
+    const unsubscribeKitchen = notificationService.subscribeToKitchenCalls(
+      (payload) => {
+        if (payload && payload.tableNames && payload.tableNames.length > 0) {
+          setKitchenAlert({
+            visible: true,
+            tables: payload.tableNames,
+            orderId: payload.orderId,
+            readyItems: payload.readyItems
+          });
+
+          const itemsText = payload.readyItems?.length
+            ? payload.readyItems.join(', ')
+            : 'Vui lòng đến lấy món';
+          notificationService.showBrowserNotification(`Món cho ${payload.tableNames.join(', ')} đã xong!`, {
+            body: itemsText,
+            requireInteraction: true
+          });
+        }
+      },
+      // When another device dismisses the alert
+      () => {
+        setKitchenAlert(null);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+      unsubscribeMenu();
+      if (unsubscribeKitchen) unsubscribeKitchen();
+    };
+  }, []);
+
+  // Active ringing loop when alert is shown
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (kitchenAlert?.visible) {
+      // Play immediately
+      notificationService.playCallServerSound('1');
+      // Then loop every 2.5s until dismissed
+      interval = setInterval(() => {
+        notificationService.playCallServerSound('1');
+      }, 2500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [kitchenAlert?.visible]);
 
   // Sync URL with View
   useEffect(() => {
@@ -62,7 +235,6 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     else if (path.includes('/cau-hinh')) setView('settings');
     else if (path.includes('/bao-cao')) setView('reports');
     else if (path.includes('/so-do-nha-hang') || path === '/') setView('tables');
-    // 'cart', 'success', 'more' are internal states, usually not directly linked to a URL unless we want to
   }, [location.pathname]);
 
   const handleSetView = (newView: ViewState) => {
@@ -77,11 +249,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       case 'reports': navigate('/bao-cao'); break;
       case 'menu-management': navigate('/quan-ly-thuc-don'); break;
       case 'kitchen': navigate('/bep'); break;
-      // For internal views, we might not want to change URL or just keep current
       case 'more':
       case 'cart':
       case 'success':
-        // Optional: could have specific routes for these too
         break;
     }
   };
@@ -97,17 +267,18 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     }
   };
 
-  const filteredMenu = menuItems.filter(item =>
-    (activeCategory === 'All' || item.category === activeCategory) &&
+  const filteredMenu = menuItemsList.filter(item =>
+    (activeCategory === 'All' || item.categoryId === activeCategory) &&
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addToCart = (item: any) => {
+  const addToCart = (item: MenuItem) => {
     const existing = cart.find(i => i.id === item.id);
     if (existing) {
       setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      setCart([...cart, { ...item, quantity: 1 }]);
+      const catName = menuCategories.find(c => c.id === item.categoryId)?.name || 'Khác';
+      setCart([...cart, { ...item, quantity: 1, category: catName }]);
     }
   };
 
@@ -122,13 +293,79 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleSendOrder = () => {
-    handleSetView('success');
-    setTimeout(() => {
-      setCart([]);
-      setSelectedTable(null);
-      handleSetView('tables');
-    }, 2000);
+  const [isSendingOrder, setIsSendingOrder] = useState(false);
+
+  // Unified table click handler
+  const handleTableClick = (table: any) => {
+    const status = table.status;
+    if (status === 'occupied' || status === 'in-use') {
+      setTableActionTarget(table);
+    } else if (status === 'reserved') {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName(table.customerName || '');
+      setOpenTablePax(table.pax?.toString() || '');
+    } else {
+      // empty
+      setOpenTableTarget(table);
+      setOpenTableCustomerName('');
+      setOpenTablePax('');
+    }
+  };
+
+  const handleConfirmOpenTable = async () => {
+    if (!openTableTarget) return;
+    try {
+      await tableService.updateTableStatus(openTableTarget.id, {
+        status: 'occupied' as any,
+        customerName: openTableCustomerName || 'Khách vãng lai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      });
+      setSelectedTable({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
+      setOpenTableTarget(null);
+      setOpenTableCustomerName('');
+      setOpenTablePax('');
+      handleSetView('menu');
+      fetchTables();
+    } catch (err) {
+      console.error('Failed to open table', err);
+      alert('Lỗi: Không thể mở bàn.');
+    }
+  };
+
+  const handleSendOrder = async () => {
+    if (!selectedTable || cart.length === 0) return;
+
+    setIsSendingOrder(true);
+    try {
+      const items = cart.map(item => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category || 'Khác',
+        status: 'pending' as const,
+        notes: item.notes ? [item.notes] : undefined
+      }));
+
+      await orderService.createOrder(
+        selectedTable.name,
+        items,
+        selectedTable.id,
+        (selectedTable as any).bookingId
+      );
+
+      handleSetView('success');
+      setTimeout(() => {
+        setCart([]);
+        setSelectedTable(null);
+        handleSetView('tables');
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to send order', err);
+      alert('Lỗi: Không thể gửi order xuống bếp.');
+    } finally {
+      setIsSendingOrder(false);
+    }
   };
 
   const renderTables = () => (
@@ -159,23 +396,26 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       <div className="flex-1 overflow-y-auto p-4">
         {activeZone === 'T1' && (
           <div className="grid grid-cols-3 gap-4">
-            {level1Tables.map(table => (
+            {tablesL1.map(table => (
               <div
                 key={table.id}
-                onClick={() => {
-                  setSelectedTable(table);
-                  handleSetView('menu');
-                }}
+                onClick={() => handleTableClick(table)}
                 className={`
                   relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
                   ${getStatusColor(table.status)}
                   ${table.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}
                 `}
               >
-                <span className="text-lg font-bold mb-1">{table.name.replace('Bàn ', '')}</span>
-                <div className="flex items-center gap-1 text-[10px] font-medium opacity-80">
-                  <Users className="w-3 h-3" /> {table.pax}
-                </div>
+                <span className="text-lg font-bold leading-tight">{table.name.replace('Bàn ', '')}</span>
+                {(table.status === 'occupied' || table.status === 'reserved') && table.customerName ? (
+                  <div className="text-[9px] font-bold truncate w-full text-center px-1 leading-tight opacity-90">
+                    {table.customerName.length > 10 ? table.customerName.slice(0, 10) + '…' : table.customerName}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-[10px] font-medium opacity-80">
+                    <Users className="w-3 h-3" /> {table.pax}
+                  </div>
+                )}
                 {table.status === 'occupied' && (
                   <div className="absolute -top-2 -right-2 bg-white border border-green-200 px-1.5 py-0.5 rounded-full text-[10px] font-bold flex items-center shadow-sm text-green-700 z-10">
                     {table.duration}
@@ -193,13 +433,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
         {activeZone === 'T2' && (
           <div className="grid grid-cols-2 gap-4">
-            {vipRooms.map(room => (
+            {vipRoomsList.map(room => (
               <div
                 key={room.id}
-                onClick={() => {
-                  setSelectedTable(room);
-                  handleSetView('menu');
-                }}
+                onClick={() => handleTableClick(room)}
                 className={`
                   relative p-4 rounded-2xl border-2 shadow-sm flex flex-col justify-between h-32 active:scale-95 transition-transform
                   ${getStatusColor(room.status)}
@@ -208,6 +445,11 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                 <div>
                   <span className="text-lg font-bold block">{room.name.split('(')[0]}</span>
                   <span className="text-xs opacity-70 block">{room.name.split('(')[1]?.replace(')', '')}</span>
+                  {room.status === 'in-use' && room.customerName && (
+                    <div className="text-[10px] font-bold mt-1 truncate text-green-800 bg-white/50 px-1.5 py-0.5 rounded">
+                      {room.customerName.length > 14 ? room.customerName.slice(0, 14) + '…' : room.customerName}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-end mt-2">
@@ -226,37 +468,39 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         )}
 
         {activeZone === 'T3' && (
-          <div className="space-y-4">
-            {eventHall.map(hall => (
+          <div className="grid grid-cols-3 gap-4">
+            {tablesL3.map(table => (
               <div
-                key={hall.id}
-                onClick={() => {
-                  setSelectedTable(hall);
-                  handleSetView('menu');
-                }}
+                key={table.id}
+                onClick={() => handleTableClick(table)}
                 className={`
-                  relative p-6 rounded-2xl border-2 shadow-sm flex flex-col justify-between h-40 active:scale-95 transition-transform
-                  ${getStatusColor(hall.status)}
+                  relative p-2 rounded-2xl border-2 shadow-sm flex flex-col items-center justify-center aspect-square active:scale-95 transition-transform
+                  ${getStatusColor(table.status)}
+                  ${table.type === 'circle' ? 'rounded-full' : 'rounded-2xl'}
                 `}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-xl font-bold block">{hall.name}</span>
-                    <div className="flex items-center gap-2 text-sm font-medium opacity-80 mt-1">
-                      <Users className="w-4 h-4" /> Sức chứa: {hall.capacity}
+                <div className="text-center">
+                  <span className="text-base font-bold block leading-tight">{table.name.replace('Bàn ', '')}</span>
+                  {(table.status === 'occupied' || table.status === 'reserved') && table.customerName ? (
+                    <div className="text-[8px] font-bold truncate w-full text-center px-0.5 leading-tight opacity-90">
+                      {table.customerName.length > 8 ? table.customerName.slice(0, 8) + '…' : table.customerName}
                     </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${hall.status === 'empty' ? 'bg-gray-100 text-gray-500' : 'bg-white/50 text-current'}`}>
-                    {hall.status === 'empty' ? 'Trống' : 'Đã đặt'}
-                  </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1 text-[10px] font-medium opacity-80">
+                      <Users className="w-3 h-3" /> {table.pax}
+                    </div>
+                  )}
+                  {table.status === 'occupied' && (
+                    <div className="text-[9px] mt-0.5 font-bold text-green-700 bg-white/50 px-1 rounded">
+                      {table.duration}
+                    </div>
+                  )}
+                  {table.status === 'reserved' && (
+                    <div className="text-[9px] mt-0.5 font-bold text-yellow-700 bg-white/50 px-1 rounded">
+                      {table.time}
+                    </div>
+                  )}
                 </div>
-
-                {hall.status === 'reserved' && (
-                  <div className="mt-4 pt-4 border-t border-current/20">
-                    <div className="font-bold">{hall.customerName}</div>
-                    <div className="text-xs opacity-80">Thời gian: {hall.time}</div>
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -280,16 +524,48 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {['All', 'Khai vị', 'Món chính', 'Đồ uống'].map(cat => (
+          <button
+            onClick={() => setActiveCategory('All')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm
+              ${activeCategory === 'All' ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}
+            `}
+          >
+            Tất cả
+          </button>
+
+          {/* Degustation Tabs */}
+          <button
+            onClick={() => setActiveCategory('set-2-4')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+              ${activeCategory === 'set-2-4' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
+            `}
+          >
+            Dégustation (2-4 Món)
+          </button>
+          <button
+            onClick={() => setActiveCategory('set-4-7')}
+            className={`
+              px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+              ${activeCategory === 'set-4-7' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
+            `}
+          >
+            Dégustation (4-7 Món)
+          </button>
+
+          <div className="w-px h-6 bg-gray-300 mx-1 self-center shrink-0"></div>
+
+          {menuCategories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
               className={`
-                px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors
-                ${activeCategory === cat ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600'}
+                px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors shadow-sm border
+                ${activeCategory === cat.id ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
               `}
             >
-              {cat === 'All' ? 'Tất cả' : cat}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -297,35 +573,111 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
       {/* Menu List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredMenu.map(item => {
-          const inCart = cart.find(i => i.id === item.id);
-          return (
-            <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-              <div>
-                <h4 className="font-bold text-gray-800">{item.name}</h4>
-                <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
-              </div>
-              {inCart ? (
-                <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="font-bold w-4 text-center">{inCart.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
-                    <Plus className="w-4 h-4" />
-                  </button>
+
+        {activeCategory.startsWith('set-') ? (
+          // Render Set Menus (Premium UI)
+          setMenusList
+            .filter(set => {
+              if (activeCategory === 'set-2-4') return set.courses.length <= 4;
+              if (activeCategory === 'set-4-7') return set.courses.length > 4;
+              return false;
+            })
+            .map(set => {
+              const inCart = cart.find(i => i.id === set.id);
+              return (
+                <div key={set.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow relative">
+
+                  <div className="p-4 relative z-10">
+                    <div className="flex justify-between items-start mb-3 gap-2">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight mb-1">{set.name}</h3>
+                        <p className="text-gray-500 text-xs font-medium">{set.courses.length} Khóa (Courses)</p>
+                      </div>
+                      <span className="font-bold text-teal-600 shrink-0">
+                        {set.price.toLocaleString()}đ
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 my-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      {set.courses.map((course, idx) => (
+                        <div key={idx} className="border-l-2 border-teal-500/30 pl-3 py-0.5">
+                          <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{course.title}</h4>
+                          <p className="text-sm text-gray-800 mt-0.5 font-medium leading-snug">
+                            {course.options.map(opt => opt.nameVn).join(' / ')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {set.includedDrink && (
+                      <div className="text-xs font-medium text-teal-700 bg-teal-50 border border-teal-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg mb-4">
+                        🍷 {set.includedDrink}
+                      </div>
+                    )}
+
+                    <div className="pt-3 border-t border-gray-100 flex justify-end">
+                      {inCart ? (
+                        <div className="flex items-center gap-3 bg-gray-100 rounded-xl p-1 border border-gray-200">
+                          <button onClick={() => updateQuantity(set.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-red-500 shadow-sm transition-colors hover:bg-gray-50">
+                            <Minus className="w-5 h-5" />
+                          </button>
+                          <span className="font-bold text-gray-800 w-6 text-center text-lg">{inCart.quantity}</span>
+                          <button onClick={() => updateQuantity(set.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-lg text-teal-600 shadow-sm transition-colors hover:bg-gray-50">
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => addToCart({ ...set, categoryId: 'Set Menu' } as any)}
+                          className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-[0.98]"
+                        >
+                          <ShoppingBag className="w-5 h-5" />
+                          Thêm vào Order
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <button
-                  onClick={() => addToCart(item)}
-                  className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center hover:bg-teal-100"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          );
-        })}
+              );
+            })
+        ) : (
+          // Render A La Carte Items
+          filteredMenu.map(item => {
+            const inCart = cart.find(i => i.id === item.id);
+            return (
+              <div key={item.id} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3">
+                  {item.image && (
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-lg shadow-sm shrink-0" />
+                  )}
+                  <div>
+                    <h4 className="font-bold text-gray-800 line-clamp-2">{item.name}</h4>
+                    <p className="text-sm text-teal-600 font-medium">{item.price.toLocaleString()}đ</p>
+                  </div>
+                </div>
+                {inCart ? (
+                  <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1 shrink-0 ml-2">
+                    <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="font-bold w-4 text-center">{inCart.quantity}</span>
+                    <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    title="Thêm vào giỏ hàng"
+                    onClick={() => addToCart(item)}
+                    className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center hover:bg-teal-100 shrink-0 ml-2"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -350,11 +702,11 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
                   <p className="text-sm text-gray-500">{(item.price * item.quantity).toLocaleString()}đ</p>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-1">
-                  <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
+                  <button title="Giảm số lượng" onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-red-500">
                     <Minus className="w-4 h-4" />
                   </button>
                   <span className="font-bold w-4 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
+                  <button title="Tăng số lượng" onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm text-teal-600">
                     <Plus className="w-4 h-4" />
                   </button>
                 </div>
@@ -369,10 +721,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             </div>
             <button
               onClick={handleSendOrder}
-              className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200 active:scale-95 transition-transform flex items-center justify-center gap-2"
+              disabled={isSendingOrder}
+              className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Send className="w-5 h-5" />
-              Gửi Bếp
+              {isSendingOrder ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <Send className="w-5 h-5" />
+                  Gửi Bếp
+                </>
+              )}
             </button>
           </div>
         </>
@@ -453,6 +812,16 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       </button>
 
       <button
+        onClick={() => handleSetView('order-history')}
+        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+      >
+        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+          <Receipt className="w-7 h-7" />
+        </div>
+        <span className="font-bold text-gray-800">Lịch sử đơn</span>
+      </button>
+
+      <button
         onClick={onLogout}
         className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40 col-span-2"
       >
@@ -470,10 +839,16 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     <div className="h-screen bg-gray-50 flex flex-col font-sans">
       {/* Header */}
       {!isFullScreenView && view !== 'bookings' && (
-        <div className="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between sticky top-0 z-20">
+        <div className="bg-white px-4 py-3 border-b border-gray-200 flex items-center justify-between z-20 shrink-0">
           <div className="flex items-center gap-3">
             {view !== 'tables' && view !== 'success' && view !== 'more' && (
-              <button onClick={() => handleSetView('tables')} className="p-1 -ml-2 text-gray-500">
+              <button
+                onClick={() => {
+                  if (view === 'order-history') handleSetView('more');
+                  else handleSetView('tables');
+                }}
+                className="p-1 -ml-2 text-gray-500"
+              >
                 <ChevronLeft className="w-6 h-6" />
               </button>
             )}
@@ -481,9 +856,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <h1 className="font-bold text-lg text-gray-800">
                 {view === 'tables' ? 'Sơ đồ nhà hàng' :
                   view === 'more' ? 'Tiện ích mở rộng' :
-                    selectedTable?.name}
+                    view === 'order-history' ? 'Lịch sử Hoá đơn' :
+                      selectedTable?.name}
               </h1>
-              {selectedTable && view !== 'tables' && view !== 'more' && (
+              {selectedTable && view !== 'tables' && view !== 'more' && view !== 'order-history' && (
                 <p className="text-xs text-gray-500">
                   {selectedTable.pax || selectedTable.capacity} khách • {
                     ['occupied', 'in-use'].includes(selectedTable.status) ? 'Đang phục vụ' :
@@ -493,26 +869,80 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               )}
             </div>
           </div>
-          <div className="relative">
-            <Bell className="w-6 h-6 text-gray-400" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-50 rounded-full pl-1 pr-3 py-1 border border-gray-200">
+              <div className={`w-8 h-8 ${roleColors[userRole]} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                {userInitials}
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="text-[11px] font-bold text-gray-800 truncate max-w-[80px]">{user?.name || userRole}</span>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{roleLabels[userRole]}</span>
+              </div>
+            </div>
+            <div className="relative">
+              <Bell className="w-6 h-6 text-gray-400" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden relative">
+        {/* Full-screen Kitchen Call Alert */}
+        {kitchenAlert?.visible && (
+          <div className="absolute inset-0 z-[200] bg-red-600 flex flex-col items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <ChefHat className="w-12 h-12 text-white" />
+            </div>
+
+            <h2 className="text-3xl font-black text-white mb-2 text-center drop-shadow-md tracking-wider">
+              MÓN ĐÃ XONG!
+            </h2>
+
+            <div className="text-xl font-medium text-white/90 text-center mb-4 bg-black/20 px-6 py-3 rounded-2xl w-full">
+              Bàn: <span className="font-bold text-2xl text-yellow-300">{kitchenAlert.tables.join(', ')}</span>
+            </div>
+
+            {kitchenAlert.readyItems && kitchenAlert.readyItems.length > 0 && (
+              <div className="w-full mb-6 bg-white/15 rounded-xl px-5 py-3">
+                {kitchenAlert.readyItems.map((item, idx) => (
+                  <div key={idx} className="text-lg font-bold text-white py-1 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-yellow-300 shrink-0" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                setKitchenAlert(null);
+                notificationService.broadcastDismissAlert();
+              }}
+              className="w-full py-5 bg-white text-red-600 text-xl flex items-center gap-3 justify-center rounded-2xl font-black shadow-[0_8px_30px_rgb(0,0,0,0.2)] active:scale-95 transition-transform"
+            >
+              <CheckCircle className="w-8 h-8" />
+              ĐÃ HIỂU & BƯNG MÓN
+            </button>
+          </div>
+        )}
+
         {view === 'tables' && renderTables()}
         {view === 'menu' && renderMenu()}
         {view === 'cart' && renderCart()}
         {view === 'success' && renderSuccess()}
         {view === 'bookings' && <BookingKanban />}
-        {view === 'more' && renderMoreMenu()}
+        {view === 'more' && (
+          <div className="h-full overflow-y-auto pb-6">
+            {renderMoreMenu()}
+          </div>
+        )}
         {view === 'training' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
-              <h2 className="font-bold">Đào tạo</h2>
+              <button title="Đóng" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Đào tạo nội bộ</h2>
             </div>
             <div className="flex-1 min-h-0">
               <TrainingPortal />
@@ -521,9 +951,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         )}
         {view === 'crm' && (
           <div className="h-full flex flex-col pb-24">
-            <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
-              <h2 className="font-bold">Khách hàng</h2>
+            <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-2">
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Quản lý Khách hàng</h2>
             </div>
             <div className="flex-1 min-h-0">
               <CustomerCRM />
@@ -533,7 +963,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'settings' && (
           <div className="h-full overflow-y-auto pb-24">
             <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 flex items-center gap-2">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Cấu hình</h2>
             </div>
             <Settings />
@@ -542,7 +972,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'reports' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Báo cáo</h2>
             </div>
             <div className="flex-1 min-h-0">
@@ -553,7 +983,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'menu-management' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Quản lý thực đơn</h2>
             </div>
             <div className="flex-1 min-h-0">
@@ -564,11 +994,18 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         {view === 'kitchen' && (
           <div className="h-full flex flex-col pb-24">
             <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
               <h2 className="font-bold">Màn hình Bếp</h2>
             </div>
             <div className="flex-1 min-h-0">
               <KitchenDisplay />
+            </div>
+          </div>
+        )}
+        {view === 'order-history' && (
+          <div className="h-full flex flex-col pb-24">
+            <div className="flex-1 min-h-0">
+              <OrderHistory />
             </div>
           </div>
         )}
@@ -633,6 +1070,112 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           </button>
         </div>
       )}
+
+      {/* Table Action Modal for Occupied Tables */}
+      {tableActionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{tableActionTarget.name.replace('Bàn ', 'Bàn ')}</h3>
+                <p className="text-sm text-gray-500">{tableActionTarget.customerName || 'Khách vãng lai'}</p>
+              </div>
+              <button title="Đóng" onClick={() => setTableActionTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 grid grid-cols-1 gap-3">
+              <button
+                onClick={() => {
+                  setSelectedTable(tableActionTarget);
+                  setTableActionTarget(null);
+                  handleSetView('menu');
+                }}
+                className="flex items-center justify-center gap-2 w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700 transition"
+              >
+                <Utensils className="w-5 h-5" />
+                Gọi thêm món
+              </button>
+              <button
+                onClick={() => {
+                  setTableCheckoutId(tableActionTarget.id);
+                  setTableActionTarget(null);
+                }}
+                className="flex items-center justify-center gap-2 w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold shadow-md hover:bg-teal-700 transition"
+              >
+                <Receipt className="w-5 h-5" />
+                Thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open Table Popup - for empty/reserved tables */}
+      {openTableTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{openTableTarget.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {openTableTarget.status === 'reserved' ? '⏰ Bàn đã đặt trước' : '🪑 Bàn đang trống'}
+                </p>
+              </div>
+              <button title="Đóng" onClick={() => setOpenTableTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="text-center mb-2">
+                <div className={`w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Users className="w-7 h-7" />
+                </div>
+                <p className="text-sm font-bold text-gray-800">
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận khách đến?' : 'Mở bàn & Gọi món'}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Nhập thông tin khách để tiếp tục gọi món</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Tên khách</label>
+                <input
+                  type="text"
+                  value={openTableCustomerName}
+                  onChange={(e) => setOpenTableCustomerName(e.target.value)}
+                  placeholder="VD: Anh Minh, Ms. Linh..."
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={handleConfirmOpenTable}
+                className={`w-full py-3.5 rounded-xl font-bold text-white shadow-md transition flex items-center justify-center gap-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}
+              >
+                <Utensils className="w-5 h-5" />
+                {openTableTarget.status === 'reserved' ? 'Xác nhận & Gọi món' : 'Mở bàn & Gọi món'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Modal */}
+      {tableCheckoutId && (
+        <CheckoutModal
+          table={
+            tablesL1.find(t => t.id === tableCheckoutId) ||
+            vipRoomsList.find(v => v.id === tableCheckoutId) as any ||
+            tablesL3.find(t => t.id === tableCheckoutId)
+          }
+          onClose={() => setTableCheckoutId(null)}
+          onSuccess={() => {
+            setTableCheckoutId(null);
+            fetchTables();
+            handleSetView('tables');
+          }}
+        />
+      )}
+
     </div>
   );
 }

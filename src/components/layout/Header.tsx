@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, Plus, Menu, LogOut, User } from 'lucide-react';
+import { Bell, Search, ChevronLeft, ChevronRight, Plus, Menu, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   onAddBooking?: () => void;
@@ -9,6 +9,7 @@ interface HeaderProps {
 
 const VIEW_TITLES: Record<string, string> = {
   '/bao-cao': 'Báo cáo chuyên sâu',
+  '/lich-su-don': 'Lịch sử Hoá đơn',
   '/dat-ban': 'Quản lý Đặt Bàn',
   '/so-do-nha-hang': 'Sơ đồ nhà hàng',
   '/thuc-don': 'Quản lý Thực đơn',
@@ -100,47 +101,7 @@ export default function Header({ onAddBooking, onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      {/* Action Bar - Only for Booking View */}
-      {currentPath === '/dat-ban' && (
-        <div className="px-4 md:px-6 py-3 flex flex-col lg:flex-row items-start lg:items-center justify-between bg-gray-50/50 gap-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full lg:w-auto">
 
-            {/* Stats Bar */}
-            <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm w-full md:w-auto">
-              <div className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md font-medium border border-gray-200">
-                Sức chứa: 250
-              </div>
-              <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md font-medium border border-blue-100">
-                Đã đặt: 120
-              </div>
-              <div className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md font-medium border border-green-100">
-                Còn trống: 130
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto mt-2 lg:mt-0">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm tên khách, SĐT..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 shadow-sm"
-              />
-            </div>
-
-            {/* Add Button */}
-            <button
-              onClick={onAddBooking}
-              className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Đặt bàn mới</span>
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

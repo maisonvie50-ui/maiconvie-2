@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, Clock, Info, Users, Split, LayoutTemplate, Edit, Save, Plus, Trash2, Move, X, Check, ArrowRightLeft, Receipt, Utensils } from 'lucide-react';
 import OrderPad from './OrderPad';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
@@ -38,6 +38,8 @@ interface EditingItem {
 
 import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3, floorZones as mockZones, eventHall as initialEventHall } from '../../data/mockTables';
 import { tableService } from '../../services/tableService';
+import { orderService } from '../../services/orderService';
+import CheckoutModal from '../booking/CheckoutModal';
 
 export default function RestaurantMap() {
   const [activeFloor, setActiveFloor] = useState<1 | 2 | 3>(1);
@@ -51,6 +53,10 @@ export default function RestaurantMap() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPartitionMenuOpen, setIsPartitionMenuOpen] = useState(false);
+  const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | VipRoom | null>(null);
+  const [tableCheckoutId, setTableCheckoutId] = useState<string | null>(null);
+  const [openTableTarget, setOpenTableTarget] = useState<any>(null);
+  const [openTableCustomerName, setOpenTableCustomerName] = useState('');
 
   const fetchTables = async () => {
     try {
@@ -99,9 +105,6 @@ export default function RestaurantMap() {
   // Move Table State
   const [movingTableId, setMovingTableId] = useState<string | null>(null);
 
-  // Order Pad State
-  const [selectedTableForOrder, setSelectedTableForOrder] = useState<Table | VipRoom | null>(null);
-
   // Drag & Drop State
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -135,6 +138,38 @@ export default function RestaurantMap() {
       case 'occupied': return 'bg-green-100 border-green-500 text-green-700';
       case 'reserved': return 'bg-yellow-50 border-yellow-400 text-yellow-700';
       default: return 'bg-white border-gray-200 text-gray-500 hover:border-gray-300';
+    }
+  };
+
+  // Unified desktop table click handler
+  const handleDesktopTableClick = (table: any) => {
+    const status = table.status;
+    if (status === 'occupied' || status === 'in-use') {
+      setSelectedTableForOrder(table);
+    } else if (status === 'reserved') {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName(table.customerName || '');
+    } else {
+      setOpenTableTarget(table);
+      setOpenTableCustomerName('');
+    }
+  };
+
+  const handleConfirmOpenTableDesktop = async () => {
+    if (!openTableTarget) return;
+    try {
+      await tableService.updateTableStatus(openTableTarget.id, {
+        status: 'occupied' as any,
+        customerName: openTableCustomerName || 'Khách vãng lai',
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      });
+      setSelectedTableForOrder({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
+      setOpenTableTarget(null);
+      setOpenTableCustomerName('');
+      fetchTables();
+    } catch (err) {
+      console.error('Failed to open table', err);
+      alert('Lỗi: Không thể mở bàn.');
     }
   };
 
@@ -299,6 +334,10 @@ export default function RestaurantMap() {
             pax: editingItem.pax || 4,
             floor: flr
           });
+          // Sync table name to pending orders on the kitchen page
+          if (editingItem.name) {
+            await orderService.updateTableNameInOrders(editingItem.id, editingItem.name);
+          }
         } catch (error) {
           console.error('Failed to update table', error);
         }
@@ -323,6 +362,10 @@ export default function RestaurantMap() {
             name: editingItem.name,
             pax: editingItem.capacity || 6
           });
+          // Sync VIP room name to pending orders on the kitchen page
+          if (editingItem.name) {
+            await orderService.updateTableNameInOrders(editingItem.id, editingItem.name);
+          }
         } catch (error) {
           console.error('Failed to update VIP room', error);
         }
@@ -457,7 +500,7 @@ export default function RestaurantMap() {
                 `}
                   onClick={() => {
                     if (!isEditing && !movingTableId) {
-                      setSelectedTableForOrder(table);
+                      handleDesktopTableClick(table);
                     } else if (movingTableId && table.status === 'empty') {
                       handleMoveTable(movingTableId, table.id);
                     }
@@ -535,8 +578,20 @@ export default function RestaurantMap() {
                           {table.notes}
                         </div>
                       )}
+                      {table.status === 'occupied' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTableCheckoutId(table.id);
+                          }}
+                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          Thanh toán
+                        </button>
+                      )}
                       {/* Arrow */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                     </div>
                   )}
                 </div>
@@ -686,7 +741,7 @@ export default function RestaurantMap() {
                 onDragOver={(e) => e.preventDefault()}
                 onClick={() => {
                   if (!isEditing) {
-                    setSelectedTableForOrder(room);
+                    handleDesktopTableClick(room);
                   }
                 }}
               >
@@ -749,7 +804,17 @@ export default function RestaurantMap() {
                         {room.notes}
                       </div>
                     )}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTableCheckoutId(room.id);
+                      }}
+                      className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                    >
+                      <Receipt className="w-3.5 h-3.5" />
+                      Thanh toán
+                    </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                   </div>
                 )}
               </div>
@@ -875,7 +940,7 @@ export default function RestaurantMap() {
                  `}
                   onClick={() => {
                     if (!isEditing && !movingTableId) {
-                      setSelectedTableForOrder(table);
+                      handleDesktopTableClick(table);
                     } else if (movingTableId && table.status === 'empty') {
                       handleMoveTable(movingTableId, table.id);
                     }
@@ -934,7 +999,19 @@ export default function RestaurantMap() {
                         <Clock className="w-3 h-3" />
                         {table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}
                       </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      {table.status === 'occupied' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTableCheckoutId(table.id);
+                          }}
+                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          Thanh toán
+                        </button>
+                      )}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
                     </div>
                   )}
                 </div>
@@ -973,11 +1050,83 @@ export default function RestaurantMap() {
         </section>
       )}
 
+      {/* Open Table Popup - for empty/reserved tables */}
+      {openTableTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{openTableTarget.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {openTableTarget.status === 'reserved' ? '⏰ Bàn đã đặt trước' : '🪑 Bàn đang trống'}
+                </p>
+              </div>
+              <button onClick={() => setOpenTableTarget(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="text-center">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-3 ${openTableTarget.status === 'reserved' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-500'}`}>
+                  <Users className="w-8 h-8" />
+                </div>
+                <p className="font-bold text-gray-800">
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận khách đến?' : 'Mở bàn & Gọi món'}
+                </p>
+                <p className="text-sm text-gray-400 mt-1">Nhập thông tin khách để tiếp tục gọi món</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1.5">Tên khách</label>
+                <input
+                  type="text"
+                  value={openTableCustomerName}
+                  onChange={(e) => setOpenTableCustomerName(e.target.value)}
+                  placeholder="VD: Anh Minh, Ms. Linh..."
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setOpenTableTarget(null)}
+                  className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleConfirmOpenTableDesktop}
+                  className={`flex-1 py-3 rounded-xl font-bold text-white shadow-md transition flex items-center justify-center gap-2 ${openTableTarget.status === 'reserved' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-teal-600 hover:bg-teal-700'}`}
+                >
+                  <Utensils className="w-5 h-5" />
+                  {openTableTarget.status === 'reserved' ? 'Xác nhận' : 'Mở bàn'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Order Pad Modal */}
       {selectedTableForOrder && (
         <OrderPad
           table={selectedTableForOrder}
           onClose={() => setSelectedTableForOrder(null)}
+        />
+      )}
+
+      {/* Checkout Modal */}
+      {tableCheckoutId && (
+        <CheckoutModal
+          table={
+            tablesL1.find(t => t.id === tableCheckoutId) ||
+            vipRoomsList.find(v => v.id === tableCheckoutId) as any ||
+            tablesL3.find(t => t.id === tableCheckoutId)
+          }
+          onClose={() => setTableCheckoutId(null)}
+          onSuccess={() => {
+            setTableCheckoutId(null);
+            fetchTables();
+          }}
         />
       )}
 

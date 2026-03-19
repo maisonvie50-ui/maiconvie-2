@@ -1,12 +1,13 @@
 import { supabase } from '../lib/supabase';
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
-type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
+type ItemCategory = string; // e.g. 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống' | 'Set Menu' | 'Khác';
 
 export interface OrderItem {
     id: string;
     name: string;
     quantity: number;
+    price: number;
     notes?: string[];
     status: ItemStatus;
     category: ItemCategory;
@@ -17,10 +18,15 @@ export interface OrderTicket {
     table: string;
     tableId?: string;
     bookingId?: string;
+    customerName?: string;
+    customerPhone?: string;
     orderTime: Date;
     items: OrderItem[];
     status: 'pending' | 'completed' | 'cancelled';
     bookingStatus: 'confirmed' | 'pending' | 'new' | 'arrived';
+    paymentMethod?: string;
+    source?: string;
+    floor?: number;
 }
 
 export const orderService = {
@@ -66,6 +72,105 @@ export const orderService = {
                     id: item.id,
                     name: item.name,
                     quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
+    },
+
+    // Get orders by table ID (useful for billing/checkout)
+    async getOrdersByTableId(tableId: string): Promise<OrderTicket[]> {
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('table_id', tableId)
+            .eq('status', 'pending')
+            .order('order_time', { ascending: true });
+
+        if (orderError) {
+            console.error('Error fetching orders by table:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
+    },
+
+    // Get order by Booking Id
+    async getOrdersByBookingId(bookingId: string): Promise<OrderTicket[]> {
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('booking_id', bookingId)
+            .eq('status', 'pending') // Usually we bill what's pending to be closed
+            .order('order_time', { ascending: true });
+
+        if (orderError) {
+            console.error('Error fetching orders by booking:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
                     notes: item.notes || [],
                     status: item.status as ItemStatus,
                     category: item.category as ItemCategory
@@ -100,10 +205,13 @@ export const orderService = {
     },
 
     // 4. Complete an order
-    async completeOrder(orderId: string) {
+    async completeOrder(orderId: string, paymentMethod?: string) {
+        const updates: any = { status: 'completed', updated_at: new Date().toISOString() };
+        if (paymentMethod) updates.payment_method = paymentMethod;
+
         const { error } = await supabase
             .from('orders')
-            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .update(updates)
             .eq('id', orderId);
 
         if (error) {
@@ -113,7 +221,7 @@ export const orderService = {
     },
 
     // 5. Create a new order (from OrderPad)
-    async createOrder(tableName: string, items: { name: string; quantity: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string) {
+    async createOrder(tableName: string, items: { name: string; quantity: number; price: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string) {
         // Insert the order
         const { data: order, error: orderError } = await supabase
             .from('orders')
@@ -138,6 +246,7 @@ export const orderService = {
             order_id: order.id,
             name: item.name,
             quantity: item.quantity,
+            price: item.price || 0,
             notes: item.notes || [],
             status: 'pending',
             category: item.category
@@ -155,7 +264,21 @@ export const orderService = {
         return order;
     },
 
-    // 6. Subscribe to realtime changes on orders
+    // 6. Update table name in all pending orders (when table is renamed)
+    async updateTableNameInOrders(tableId: string, newTableName: string) {
+        const { error } = await supabase
+            .from('orders')
+            .update({ table_name: newTableName, updated_at: new Date().toISOString() })
+            .eq('table_id', tableId)
+            .eq('status', 'pending');
+
+        if (error) {
+            console.error('Error updating table name in orders:', error);
+            throw error;
+        }
+    },
+
+    // 7. Subscribe to realtime changes on orders
     subscribeToOrders(callback: () => void) {
         return supabase
             .channel('kitchen-orders')
@@ -174,5 +297,83 @@ export const orderService = {
                     console.log('Successfully subscribed to kitchen orders realtime!');
                 }
             });
+    },
+
+    // 8. Get completed orders (for Order History page)
+    async getCompletedOrders(filters?: { dateFrom?: string; dateTo?: string; searchTable?: string }): Promise<OrderTicket[]> {
+        let query = supabase
+            .from('orders')
+            .select(`
+                *,
+                bookings:booking_id (
+                    customer_name,
+                    phone,
+                    source
+                ),
+                tables:table_id (
+                    floor
+                )
+            `)
+            .eq('status', 'completed')
+            .order('order_time', { ascending: false });
+
+        if (filters?.dateFrom) {
+            query = query.gte('order_time', filters.dateFrom);
+        }
+        if (filters?.dateTo) {
+            // Add 1 day to include the entire "dateTo" day
+            const endDate = new Date(filters.dateTo);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('order_time', endDate.toISOString());
+        }
+        if (filters?.searchTable) {
+            query = query.ilike('table_name', `%${filters.searchTable}%`);
+        }
+
+        const { data: orders, error: orderError } = await query;
+
+        if (orderError) {
+            console.error('Error fetching completed orders:', orderError);
+            throw orderError;
+        }
+
+        if (!orders || orders.length === 0) return [];
+
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('*')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items:', itemError);
+            throw itemError;
+        }
+
+        return orders.map(order => ({
+            id: order.id,
+            table: order.table_name,
+            tableId: order.table_id,
+            bookingId: order.booking_id,
+            customerName: order.bookings?.customer_name,
+            customerPhone: order.bookings?.phone,
+            orderTime: new Date(order.order_time),
+            status: order.status,
+            bookingStatus: order.booking_status || 'confirmed',
+            paymentMethod: order.payment_method || undefined,
+            source: order.bookings?.source || undefined,
+            floor: order.tables?.floor || undefined,
+            items: (items || [])
+                .filter(item => item.order_id === order.id)
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price || 0,
+                    notes: item.notes || [],
+                    status: item.status as ItemStatus,
+                    category: item.category as ItemCategory
+                }))
+        }));
     }
 };

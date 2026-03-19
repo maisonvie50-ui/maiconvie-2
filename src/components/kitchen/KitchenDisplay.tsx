@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Clock, AlertTriangle, CheckCircle, Flame, Check, ChefHat, BellRing, Filter, X, LayoutGrid, List, ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
 import { orderService, OrderTicket, OrderItem } from '../../services/orderService';
+import { notificationService } from '../../services/notificationService';
 
 interface ContextType {
   isSidebarCollapsed: boolean;
@@ -10,11 +11,12 @@ interface ContextType {
 type ItemStatus = 'pending' | 'cooking' | 'done';
 type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
 
-const categoryOrder: Record<ItemCategory, number> = {
+const categoryOrder: Record<string, number> = {
   'Khai vị': 1,
   'Món chính': 2,
   'Tráng miệng': 3,
-  'Đồ uống': 4
+  'Đồ uống': 4,
+  'Combo': 5
 };
 
 export default function KitchenDisplay() {
@@ -87,6 +89,13 @@ export default function KitchenDisplay() {
 
     try {
       await orderService.updateItemStatus(itemId, targetStatus);
+
+      // Broadcast to servers when item is marked DONE
+      if (targetStatus === 'done' && order.table) {
+        const itemName = `${item.quantity}x ${item.name}`;
+        await notificationService.broadcastCallServer([order.table], orderId, [itemName]);
+        showNotification(`Đã báo phục vụ: ${item.name}`);
+      }
     } catch (error) {
       console.error('Failed to update status', error);
       loadOrders(); // fallback
@@ -109,11 +118,19 @@ export default function KitchenDisplay() {
   };
 
   const completeOrder = async (orderId: string) => {
+    // Find the order to get the table name before removing it
+    const order = orders.find(o => o.id === orderId);
+
     // Optimistic UI
     setOrders(prev => prev.filter(o => o.id !== orderId));
-    showNotification('Đã hoàn thành đơn hàng!');
+    showNotification('Đã gọi phục vụ!');
 
     try {
+      // Broadcast to servers
+      if (order && order.table) {
+        await notificationService.broadcastCallServer([order.table], orderId);
+      }
+      // Update DB
       await orderService.completeOrder(orderId);
     } catch (error) {
       console.error('Failed to complete order', error);
@@ -174,7 +191,8 @@ export default function KitchenDisplay() {
     })
     .map(order => ({
       ...order,
-      items: filterCategory === 'All' ? order.items : order.items.filter(i => i.category === filterCategory)
+      items: (filterCategory === 'All' ? order.items : order.items.filter(i => i.category === filterCategory))
+        .filter(i => i.category !== 'Combo')
     }))
     .filter(order => order.items.length > 0);
 
@@ -221,7 +239,15 @@ export default function KitchenDisplay() {
       .sort((a, b) => categoryOrder[a.category] - categoryOrder[b.category]);
   }, [filteredOrders]);
 
-  const handleCompleteAggregatedItem = (originalItems: { orderId: string, itemId: string }[], isDone: boolean) => {
+  const handleCompleteAggregatedItem = async (originalItems: { orderId: string, itemId: string }[], isDone: boolean, itemName?: string) => {
+    const targetStatus = isDone ? 'pending' : 'done';
+
+    // Collect table names for broadcast
+    const tableNames = targetStatus === 'done'
+      ? [...new Set(originalItems.map(oi => orders.find(o => o.id === oi.orderId)?.table).filter(Boolean) as string[])]
+      : [];
+
+    // Optimistic UI Update
     setOrders(orders.map(order => {
       let newOrder = { ...order };
       const itemsToUpdate = originalItems.filter(oi => oi.orderId === order.id).map(oi => oi.itemId);
@@ -229,13 +255,30 @@ export default function KitchenDisplay() {
       if (itemsToUpdate.length > 0) {
         newOrder.items = newOrder.items.map(item => {
           if (itemsToUpdate.includes(item.id)) {
-            return { ...item, status: isDone ? 'pending' : 'done' }; // Toggle status
+            return { ...item, status: targetStatus };
           }
           return item;
         });
       }
       return newOrder;
     }));
+
+    // Perform the backend updates using Promise.all to ensure speed
+    try {
+      await Promise.all(
+        originalItems.map((item) => orderService.updateItemStatus(item.itemId, targetStatus))
+      );
+
+      // Broadcast to servers when items are marked DONE
+      if (targetStatus === 'done' && tableNames.length > 0) {
+        const readyItems = itemName ? [itemName] : [];
+        await notificationService.broadcastCallServer(tableNames, originalItems[0].orderId, readyItems);
+        showNotification(`Đã báo phục vụ: ${itemName || 'Món đã xong'}`);
+      }
+    } catch (error) {
+      console.error('Failed to update aggregated item status', error);
+      loadOrders(); // fallback
+    }
   };
 
   return (
@@ -346,15 +389,15 @@ export default function KitchenDisplay() {
                       }`}
                   >
                     {/* Header */}
-                    <div className={`px-3 py-2.5 md:px-4 md:py-2.5 flex justify-between items-center rounded-t-xl ${styles.header}`}>
-                      <h3 className="text-lg md:text-xl font-black flex items-center gap-1.5 tracking-tight">
-                        {order.table}
-                        {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 animate-pulse text-white" />}
+                    <div className={`px-2 py-2 md:px-3 md:py-2.5 flex justify-between items-center rounded-t-xl gap-2 ${styles.header}`}>
+                      <h3 className="text-base md:text-lg font-black flex items-center gap-1.5 tracking-tight min-w-0" title={order.table}>
+                        <span className="truncate">{order.table}</span>
+                        {isCritical && <Flame className="w-4 h-4 md:w-5 md:h-5 shrink-0 animate-pulse text-white" />}
                       </h3>
 
-                      <div className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1 font-mono text-sm md:text-sm font-bold ${styles.timer}`}>
-                          <Clock className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className={`flex items-center gap-1 font-mono text-[11px] md:text-xs font-bold whitespace-nowrap ${styles.timer}`}>
+                          <Clock className="w-3.5 h-3.5 shrink-0" />
                           {elapsed}'
                         </div>
 
@@ -362,10 +405,10 @@ export default function KitchenDisplay() {
                         {!allItemsDone && !isMobile && (
                           <button
                             onClick={() => markAllDone(order.id)}
-                            className="py-0.5 px-2 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all text-[10px]"
+                            className="py-0.5 px-1.5 rounded-md bg-white/20 hover:bg-white/30 text-white border border-white/30 font-bold flex items-center justify-center gap-1 active:scale-95 transition-all text-[10px] whitespace-nowrap shrink-0"
                             title="Xong tất cả"
                           >
-                            <CheckSquare className="w-3 h-3" /> Xong tất cả
+                            <CheckSquare className="w-3 h-3 shrink-0" /> Xong
                           </button>
                         )}
                       </div>
@@ -419,7 +462,7 @@ export default function KitchenDisplay() {
                               {/* Item Details */}
                               <div className={`flex-1 p-2 flex flex-col justify-center relative min-w-0 w-full overflow-hidden rounded-r-xl ${isDone ? 'bg-emerald-50/30' : 'bg-white'}`}>
                                 <div className="pr-6 w-full">
-                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight ${isMobile ? 'break-words' : 'truncate'} ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
+                                  <div className={`text-[13px] md:text-[15px] font-bold leading-tight break-words ${isDone ? 'text-emerald-500 line-through opacity-70' : 'text-gray-800'}`} title={item.name}>
                                     {item.name}
                                   </div>
 
@@ -503,7 +546,7 @@ export default function KitchenDisplay() {
                 return (
                   <div key={`agg-${index}`} className="h-full w-full">
                     <div
-                      onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone)}
+                      onClick={() => handleCompleteAggregatedItem(item.originalItems, isDone, `${isDone ? item.doneQuantity : item.pendingQuantity}x ${item.name}`)}
                       className={`
                         h-full w-full relative group flex flex-col p-3 rounded-xl cursor-pointer 
                         transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] 

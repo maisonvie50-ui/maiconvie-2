@@ -13,15 +13,17 @@ import {
   Image as ImageIcon,
   UtensilsCrossed,
   Minus,
-  PackageOpen
+  PackageOpen,
+  Printer
 } from 'lucide-react';
-import { mockSetMenus } from '../../data/mockMenu';
-import type { SetMenu } from '../../types';
+import type { SetMenu, TourMenu } from '../../types';
+import { menuService } from '../../services/menuService';
+import { useEffect } from 'react';
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
-  count: number;
+  count?: number;
 }
 
 interface MenuItem {
@@ -36,76 +38,53 @@ interface MenuItem {
   variants?: string[];
 }
 
-const mockCategories: Category[] = [
-  { id: 'c1', name: 'Khai vị', count: 8 },
-  { id: 'c2', name: 'Món chính', count: 24 },
-  { id: 'c3', name: 'Tráng miệng', count: 12 },
-  { id: 'c4', name: 'Đồ uống', count: 18 },
-  { id: 'c5', name: 'Rượu vang', count: 35 },
-];
-
-const mockItems: MenuItem[] = [
-  {
-    id: 'm1',
-    categoryId: 'c2',
-    name: 'Bò Wagyu A5 áp chảo',
-    description: 'Thăn bò Wagyu thượng hạng mềm tan trong miệng, quyện cùng sốt tiêu đen nồng nàn và măng tây nướng.',
-    price: 1250000,
-    image: 'https://picsum.photos/seed/wagyu/400/300',
-    inStock: true,
-    tags: ["Chef's Choice", 'Best Seller'],
-    variants: ['Rare', 'Medium Rare', 'Well Done']
-  },
-  {
-    id: 'm2',
-    categoryId: 'c2',
-    name: 'Cá hồi Na Uy sốt chanh dây',
-    description: 'Cá hồi tươi nướng da giòn, dùng kèm sốt chanh dây chua ngọt và khoai tây nghiền.',
-    price: 450000,
-    image: 'https://picsum.photos/seed/salmon/400/300',
-    inStock: false,
-    tags: ['New'],
-    variants: ['Sốt chanh dây', 'Sốt bơ tỏi']
-  },
-  {
-    id: 'm3',
-    categoryId: 'c1',
-    name: 'Súp bí đỏ nấm truffle',
-    description: 'Súp bí đỏ kem tươi mịn màng, điểm xuyết hương nấm truffle đặc trưng.',
-    price: 180000,
-    image: 'https://picsum.photos/seed/soup/400/300',
-    inStock: true,
-    tags: ['Vegetarian'],
-  },
-  {
-    id: 'm4',
-    categoryId: 'c5',
-    name: 'Château Margaux 2015',
-    description: 'Vang đỏ Pháp thượng hạng với hương thơm phức hợp của trái cây đen, gỗ sồi và vanilla.',
-    price: 8500000,
-    image: 'https://picsum.photos/seed/wine/400/300',
-    inStock: true,
-    tags: ['Premium'],
-    variants: ['Ly (150ml)', 'Chai (750ml)']
-  },
-  {
-    id: 'm5',
-    categoryId: 'c2',
-    name: 'Mỳ Ý Hải Sản (Seafood Pasta)',
-    description: 'Mỳ Ý sợi dẹt xào cùng tôm sú, mực ống, vẹm xanh và sốt cà chua cay nhẹ.',
-    price: 320000,
-    image: 'https://picsum.photos/seed/pasta/400/300',
-    inStock: true,
-    tags: ['Spicy', 'Best Seller'],
-  }
-];
-
 export default function MenuManagement() {
-  const [menuType, setMenuType] = useState<'alacarte' | 'set'>('alacarte');
-  const [activeCategory, setActiveCategory] = useState<string>('c2');
+  const [menuType, setMenuType] = useState<'alacarte' | 'set' | 'tour'>('alacarte');
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [items, setItems] = useState<MenuItem[]>(mockItems);
-  const [setMenus, setSetMenus] = useState<SetMenu[]>(mockSetMenus);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [setMenus, setSetMenus] = useState<SetMenu[]>([]);
+  const [tourMenus, setTourMenus] = useState<TourMenu[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTourMenus] = await Promise.all([
+          menuService.getCategories(),
+          menuService.getMenuItems(),
+          menuService.getSetMenus(),
+          menuService.getTourMenus()
+        ]);
+        if (mounted) {
+          setCategories(fetchedCategories);
+          setItems(fetchedItems);
+          setSetMenus(fetchedSets);
+          setTourMenus(fetchedTourMenus);
+          if (fetchedCategories.length > 0 && !activeCategory) {
+            setActiveCategory(fetchedCategories[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi tải dữ liệu menu', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    loadData();
+    const unsubscribe = menuService.subscribeToMenuChanges(() => {
+      loadData();
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [activeCategory]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -131,58 +110,102 @@ export default function MenuManagement() {
     includedDrink: ''
   });
 
+  // Tour Menu Modal State
+  const [isTourMenuModalOpen, setIsTourMenuModalOpen] = useState(false);
+  const [editingTourMenuId, setEditingTourMenuId] = useState<string | null>(null);
+  const [newTourMenu, setNewTourMenu] = useState<Partial<TourMenu>>({
+    name: '',
+    price: 0,
+    netPrice: 0,
+    focPolicy: '',
+    companyTags: [],
+    status: 'available',
+    courses: [],
+    includedDrink: ''
+  });
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  const toggleStock = (id: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, inStock: !item.inStock } : item));
+  const toggleStock = async (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    setItems(items.map(i => i.id === id ? { ...i, inStock: !i.inStock } : i));
+    try {
+      await menuService.updateItemStock(id, !item.inStock);
+    } catch (err) {
+      setItems(items.map(i => i.id === id ? item : i));
+    }
   };
 
 
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (!newItem.name || !newItem.price) return;
+    const prev = [...items];
 
-    if (editingId) {
-      // Update existing item
-      setItems(items.map(item => item.id === editingId ? {
-        ...item,
-        categoryId: newItem.categoryId || item.categoryId,
-        name: newItem.name!,
-        description: newItem.description || '',
-        price: newItem.price!,
-        image: newItem.image || item.image,
-        tags: newItem.tags || item.tags,
-        variants: newItem.variants || item.variants
-      } : item));
-    } else {
-      // Add new item
-      const item: MenuItem = {
-        id: `m${Date.now()}`,
-        categoryId: newItem.categoryId || activeCategory,
-        name: newItem.name!,
-        description: newItem.description || '',
-        price: newItem.price!,
-        image: newItem.image || `https://picsum.photos/seed/${Date.now()}/400/300`,
+    try {
+      if (editingId) {
+        setItems(items.map(item => item.id === editingId ? {
+          ...item,
+          categoryId: newItem.categoryId || item.categoryId,
+          name: newItem.name!,
+          description: newItem.description || '',
+          price: newItem.price!,
+          image: newItem.image || item.image,
+          tags: newItem.tags || item.tags,
+          variants: newItem.variants || item.variants
+        } : item));
+
+        await menuService.updateMenuItem(editingId, newItem);
+      } else {
+        const itemObj: MenuItem = {
+          id: `m${Date.now()}`,
+          categoryId: newItem.categoryId || activeCategory,
+          name: newItem.name!,
+          description: newItem.description || '',
+          price: newItem.price!,
+          image: newItem.image || `https://picsum.photos/seed/${Date.now()}/400/300`,
+          inStock: newItem.inStock ?? true,
+          tags: newItem.tags || [],
+          variants: newItem.variants || []
+        };
+        setItems([itemObj, ...items]);
+
+        const toSave = { ...itemObj };
+        delete (toSave as any).id;
+        await menuService.createMenuItem(toSave);
+      }
+
+      setIsModalOpen(false);
+      setEditingId(null);
+      setNewItem({
+        name: '',
+        price: 0,
+        description: '',
+        categoryId: activeCategory,
+        tags: [],
         inStock: true,
-        tags: newItem.tags || [],
-        variants: newItem.variants || []
-      };
-      setItems([item, ...items]);
+        image: ''
+      });
+    } catch (err) {
+      console.error(err);
+      setItems(prev);
     }
+  };
 
-    setIsModalOpen(false);
-    setEditingId(null);
-    setNewItem({
-      name: '',
-      price: 0,
-      description: '',
-      categoryId: activeCategory,
-      tags: [],
-      inStock: true,
-      image: ''
-    });
+  const handleDeleteItem = async (id: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa món này?')) {
+      const prev = [...items];
+      setItems(items.filter(i => i.id !== id));
+      try {
+        await menuService.deleteMenuItem(id);
+      } catch (err) {
+        console.error(err);
+        setItems(prev);
+      }
+    }
   };
 
   const handleEditItem = (item: MenuItem) => {
@@ -233,35 +256,204 @@ export default function MenuManagement() {
     setNewSetMenu({ name: '', price: 0, status: 'available', courses: [], includedDrink: '' });
   };
 
-  const handleSaveSetMenu = () => {
+  const handleSaveSetMenu = async () => {
     if (!newSetMenu.name || !newSetMenu.price) return;
+    const prev = [...setMenus];
 
-    if (editingSetMenuId) {
-      setSetMenus(setMenus.map(set => set.id === editingSetMenuId ? {
-        ...set,
-        name: newSetMenu.name!,
-        price: newSetMenu.price!,
-        status: newSetMenu.status as any,
-        courses: newSetMenu.courses || [],
-        includedDrink: newSetMenu.includedDrink
-      } : set));
-    } else {
-      setSetMenus([{
-        id: `set${Date.now()}`,
-        name: newSetMenu.name!,
-        price: newSetMenu.price!,
-        status: newSetMenu.status as any || 'available',
-        courses: newSetMenu.courses || [],
-        includedDrink: newSetMenu.includedDrink
-      }, ...setMenus]);
+    try {
+      if (editingSetMenuId) {
+        setSetMenus(setMenus.map(set => set.id === editingSetMenuId ? {
+          ...set,
+          name: newSetMenu.name!,
+          price: newSetMenu.price!,
+          status: newSetMenu.status as any,
+          courses: newSetMenu.courses || [],
+          includedDrink: newSetMenu.includedDrink
+        } : set));
+
+        await menuService.updateSetMenu(editingSetMenuId, newSetMenu);
+      } else {
+        const itemObj: SetMenu = {
+          id: `set${Date.now()}`,
+          name: newSetMenu.name!,
+          price: newSetMenu.price!,
+          status: newSetMenu.status as any || 'available',
+          courses: newSetMenu.courses || [],
+          includedDrink: newSetMenu.includedDrink
+        };
+        setSetMenus([itemObj, ...setMenus]);
+
+        const toSave = { ...itemObj };
+        delete (toSave as any).id;
+        await menuService.createSetMenu(toSave);
+      }
+      handleCloseSetMenuModal();
+    } catch (err) {
+      console.error(err);
+      setSetMenus(prev);
     }
-    handleCloseSetMenuModal();
   };
 
-  const handleDeleteSetMenu = (id: string) => {
+  const handleDeleteSetMenu = async (id: string) => {
     if (confirm('Bạn có chắc chắn muốn xóa Set Menu này?')) {
+      const prev = [...setMenus];
       setSetMenus(setMenus.filter(set => set.id !== id));
+      try {
+        await menuService.deleteSetMenu(id);
+      } catch (err) {
+        console.error(err);
+        setSetMenus(prev);
+      }
     }
+  };
+
+  // Tour Menu Handlers
+  const handleEditTourMenu = (tourMenu: TourMenu) => {
+    setEditingTourMenuId(tourMenu.id);
+    setNewTourMenu({
+      name: tourMenu.name,
+      price: tourMenu.price,
+      netPrice: tourMenu.netPrice,
+      focPolicy: tourMenu.focPolicy || '',
+      companyTags: [...(tourMenu.companyTags || [])],
+      status: tourMenu.status,
+      courses: [...tourMenu.courses],
+      includedDrink: tourMenu.includedDrink || ''
+    });
+    setIsTourMenuModalOpen(true);
+  };
+
+  const handleCloseTourMenuModal = () => {
+    setIsTourMenuModalOpen(false);
+    setEditingTourMenuId(null);
+    setNewTourMenu({ name: '', price: 0, netPrice: 0, focPolicy: '', companyTags: [], status: 'available', courses: [], includedDrink: '' });
+  };
+
+  const handleSaveTourMenu = async () => {
+    if (!newTourMenu.name || !newTourMenu.price || !newTourMenu.netPrice) return;
+    const prev = [...tourMenus];
+
+    try {
+      if (editingTourMenuId) {
+        setTourMenus(tourMenus.map(set => set.id === editingTourMenuId ? {
+          ...set,
+          name: newTourMenu.name!,
+          price: newTourMenu.price!,
+          netPrice: newTourMenu.netPrice!,
+          focPolicy: newTourMenu.focPolicy,
+          companyTags: newTourMenu.companyTags || [],
+          status: newTourMenu.status as any,
+          courses: newTourMenu.courses || [],
+          includedDrink: newTourMenu.includedDrink
+        } : set));
+
+        await menuService.updateTourMenu(editingTourMenuId, newTourMenu);
+      } else {
+        const itemObj: TourMenu = {
+          id: `tour${Date.now()}`,
+          name: newTourMenu.name!,
+          price: newTourMenu.price!,
+          netPrice: newTourMenu.netPrice!,
+          focPolicy: newTourMenu.focPolicy,
+          companyTags: newTourMenu.companyTags || [],
+          status: newTourMenu.status as any || 'available',
+          courses: newTourMenu.courses || [],
+          includedDrink: newTourMenu.includedDrink
+        };
+        setTourMenus([itemObj, ...tourMenus]);
+
+        const toSave = { ...itemObj };
+        delete (toSave as any).id;
+        await menuService.createTourMenu(toSave);
+      }
+      handleCloseTourMenuModal();
+    } catch (err) {
+      console.error(err);
+      setTourMenus(prev);
+    }
+  };
+
+  const handleDeleteTourMenu = async (id: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa Thực đơn Lữ hành này?')) {
+      const prev = [...tourMenus];
+      setTourMenus(tourMenus.filter(set => set.id !== id));
+      try {
+        await menuService.deleteTourMenu(id);
+      } catch (err) {
+        console.error(err);
+        setTourMenus(prev);
+      }
+    }
+  };
+
+  const handlePrintQuotation = (tourMenu: TourMenu) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let coursesHtml = '';
+    tourMenu.courses.forEach(course => {
+      let optionsHtml = '';
+      course.options.forEach(opt => {
+        optionsHtml += `
+          <li style="margin-bottom: 8px;">
+            <strong>${opt.nameVn}</strong><br/>
+            <span style="font-style: italic; color: #555;">${opt.nameEn}</span>
+          </li>
+        `;
+      });
+
+      coursesHtml += `
+        <div style="margin-bottom: 16px;">
+          <h4 style="text-transform: uppercase; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 8px;">${course.title}</h4>
+          <ul style="list-style-type: disc; padding-left: 20px; font-size: 14px;">
+            ${optionsHtml}
+          </ul>
+        </div>
+      `;
+    });
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Báo giá Thực đơn - ${tourMenu.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; padding: 40px; color: #333; }
+            h1 { text-align: center; color: #000; margin-bottom: 5px; }
+            h2 { text-align: center; color: #008080; border-bottom: 2px solid #008080; padding-bottom: 10px; margin-bottom: 20px;}
+            .header { text-align: center; margin-bottom: 30px; }
+            .info-box { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px; }
+            .footer { margin-top: 50px; font-style: italic; font-size: 12px; text-align: center; color: #777;}
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>NHÀ HÀNG MAISON VIE</h1>
+            <p>123 Đường B, Phường C, Quận D, TP. HCM</p>
+          </div>
+          
+          <h2>BÁO GIÁ THỰC ĐƠN LỮ HÀNH</h2>
+
+          <div class="info-box">
+             <p><strong>Tên Set:</strong> ${tourMenu.name}</p>
+             <p><strong>Đơn giá:</strong> <span style="font-size: 18px; font-weight: bold; color: #e60000;">${formatPrice(tourMenu.price)} / Khách</span></p>
+             ${tourMenu.includedDrink ? `<p><strong>Đồ uống đi kèm:</strong> ${tourMenu.includedDrink}</p>` : ''}
+          </div>
+
+          <h3>CHI TIẾT THỰC ĐƠN:</h3>
+          ${coursesHtml}
+
+          <div class="footer">
+            <p>Báo giá có giá trị trong vòng 30 ngày. Vui lòng liên hệ bộ phận kinh doanh để được hỗ trợ tốt nhất.</p>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleAddCourse = () => {
@@ -308,6 +500,50 @@ export default function MenuManagement() {
     setNewSetMenu({ ...newSetMenu, courses: updatedCourses });
   };
 
+  const handleAddTourCourse = () => {
+    setNewTourMenu(prev => ({
+      ...prev,
+      courses: [...(prev.courses || []), { title: '', options: [] }]
+    }));
+  };
+
+  const handleUpdateTourCourseTitle = (courseIndex: number, title: string) => {
+    const updatedCourses = [...(newTourMenu.courses || [])];
+    updatedCourses[courseIndex].title = title;
+    setNewTourMenu({ ...newTourMenu, courses: updatedCourses });
+  };
+
+  const handleDeleteTourCourse = (courseIndex: number) => {
+    const updatedCourses = (newTourMenu.courses || []).filter((_, i) => i !== courseIndex);
+    setNewTourMenu({ ...newTourMenu, courses: updatedCourses });
+  };
+
+  const handleAddOptionToTourCourse = (courseIndex: number) => {
+    const updatedCourses = [...(newTourMenu.courses || [])];
+    updatedCourses[courseIndex].options.push({
+      id: `opt${Date.now()}`,
+      nameVn: '',
+      nameEn: '',
+      descriptionEn: ''
+    });
+    setNewTourMenu({ ...newTourMenu, courses: updatedCourses });
+  };
+
+  const handleUpdateTourOption = (courseIndex: number, optionIndex: number, field: keyof typeof newTourMenu.courses[0]['options'][0], value: string) => {
+    const updatedCourses = [...(newTourMenu.courses || [])];
+    updatedCourses[courseIndex].options[optionIndex] = {
+      ...updatedCourses[courseIndex].options[optionIndex],
+      [field]: value
+    };
+    setNewTourMenu({ ...newTourMenu, courses: updatedCourses });
+  };
+
+  const handleDeleteTourOption = (courseIndex: number, optionIndex: number) => {
+    const updatedCourses = [...(newTourMenu.courses || [])];
+    updatedCourses[courseIndex].options = updatedCourses[courseIndex].options.filter((_, i) => i !== optionIndex);
+    setNewTourMenu({ ...newTourMenu, courses: updatedCourses });
+  };
+
   const filteredItems = items.filter(item => item.categoryId === activeCategory);
 
   const getTagColor = (tag: string) => {
@@ -325,20 +561,27 @@ export default function MenuManagement() {
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden relative">
 
       {/* Top Menu Type Bar */}
-      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center justify-between z-10 flex-shrink-0">
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center z-10 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <div className="flex bg-gray-100 p-1 rounded-lg min-w-max">
           <button
             onClick={() => setMenuType('alacarte')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${menuType === 'alacarte' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${menuType === 'alacarte' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Món Lẻ (A La Carte)
           </button>
           <button
             onClick={() => setMenuType('set')}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${menuType === 'set' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${menuType === 'set' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             <UtensilsCrossed className="w-4 h-4" />
             Thực đơn theo Set
+          </button>
+          <button
+            onClick={() => setMenuType('tour')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${menuType === 'tour' ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <Printer className="w-4 h-4" />
+            Thực đơn Lữ hành
           </button>
         </div>
       </div>
@@ -354,7 +597,7 @@ export default function MenuManagement() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {mockCategories.map(cat => {
+              {categories.map(cat => {
                 const count = items.filter(i => i.categoryId === cat.id).length;
                 return (
                   <div
@@ -378,38 +621,57 @@ export default function MenuManagement() {
 
           {/* Main Content: Items */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Toolbar */}
-            <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
-              <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    {mockCategories.find(c => c.id === activeCategory)?.name}
-                  </h2>
-                  {/* Mobile Add Button (visible only on mobile next to title) */}
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="md:hidden flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-sm transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Thêm
-                  </button>
-                </div>
+            <div className="px-4 md:px-6 py-3 bg-white border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0">
+              {/* Row 1/Col 1: Title (Desktop Only) */}
+              <div className="hidden md:flex items-center justify-between w-full md:w-auto">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800">
+                  {categories.find(c => c.id === activeCategory)?.name || 'Tất cả'}
+                </h2>
+              </div>
 
-                <div className="hidden md:block h-6 w-px bg-gray-200"></div>
+              {/* Row 2/Col 2: Search, Toggles & Add */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="hidden md:block h-6 w-px bg-gray-200 mr-2"></div>
 
-                <div className="relative w-full md:w-64">
+                {/* Search */}
+                <div className="relative flex-1 md:w-64 min-w-0">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Tìm món ăn..."
-                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 bg-gray-50 focus:bg-white transition-colors h-[38px]"
                   />
                 </div>
+
+                {/* View Toggle */}
+                <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0 h-[38px]">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Add Button (Icon on Mobile, Text on Desktop) */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors h-[38px] shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden md:inline">Thêm món mới</span>
+                </button>
               </div>
 
               {/* Mobile Categories (Horizontal Scroll) */}
-              <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                {mockCategories.map(cat => {
+              <div className="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-0.5 mt-1">
+                {categories.map(cat => {
                   const count = items.filter(i => i.categoryId === cat.id).length;
                   return (
                     <button
@@ -425,32 +687,6 @@ export default function MenuManagement() {
                     </button>
                   )
                 })}
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-4">
-                {/* View Toggle */}
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-500 hover:text-gray-700'}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="hidden md:flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm món mới
-                </button>
               </div>
             </div>
 
@@ -539,6 +775,13 @@ export default function MenuManagement() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+                            <button
+                              onClick={() => handleDeleteItem(item.id)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Xóa"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -606,7 +849,11 @@ export default function MenuManagement() {
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa">
+                              <button
+                                onClick={() => handleDeleteItem(item.id)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Xóa"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
@@ -620,7 +867,7 @@ export default function MenuManagement() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : menuType === 'set' ? (
         <div className="flex-1 min-h-0 w-full p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 relative">
           <div className="max-w-7xl mx-auto space-y-6 pb-12">
             <div className="flex items-center justify-between mb-6">
@@ -644,7 +891,7 @@ export default function MenuManagement() {
                       <div className="text-xs font-bold text-teal-600 mb-1 tracking-wider uppercase">{set.name}</div>
                       <h3 className="text-2xl font-bold text-gray-900">{formatPrice(set.price)}<span className="text-sm font-normal text-gray-500">/pax</span></h3>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-medium shrink-0 whitespace-nowrap ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {set.status === 'available' ? 'Đang bán' : 'Ngưng bán'}
                     </span>
                   </div>
@@ -692,10 +939,114 @@ export default function MenuManagement() {
                 </div>
               ))}
             </div>
-          </div >
-        </div >
-      )
-      }
+          </div>
+        </div>
+      ) : menuType === 'tour' ? (
+        <div className="flex-1 min-h-0 w-full p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 relative">
+          <div className="max-w-7xl mx-auto space-y-6 pb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Quản lý Thực đơn Lữ hành</h2>
+                <p className="text-sm text-gray-500 mt-1">Các gói thực đơn dành riêng cho đối tác Tour/Lữ hành</p>
+              </div>
+              <button
+                onClick={() => setIsTourMenuModalOpen(true)}
+                className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Thêm Thực đơn mới
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
+              {tourMenus.map(set => (
+                <div key={set.id} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none">
+                    <div className="absolute top-4 -right-6 font-bold text-[10px] uppercase tracking-wider bg-orange-100 text-orange-700 w-full text-center py-0.5 rotate-45 shadow-sm">
+                      Tour
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start mb-4 pr-6">
+                    <div>
+                      <div className="text-xs font-bold text-teal-600 mb-1 tracking-wider uppercase">{set.name}</div>
+                      <h3 className="text-2xl font-bold text-gray-900">{formatPrice(set.price)}<span className="text-sm font-normal text-gray-500">/pax</span></h3>
+                      <div className="text-sm font-semibold text-red-600 mt-1">Net: {formatPrice(set.netPrice)}</div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-medium shrink-0 whitespace-nowrap ${set.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {set.status === 'available' ? 'Đang bán' : 'Ngưng bán'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 mb-4 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    {set.focPolicy && (
+                      <div className="text-xs text-gray-700 flex items-start gap-1">
+                        <span className="font-bold shrink-0">FOC:</span>
+                        <span>{set.focPolicy}</span>
+                      </div>
+                    )}
+                    {set.companyTags && set.companyTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {set.companyTags.map(tag => (
+                          <span key={tag} className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[10px] uppercase font-bold rounded">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-4 mb-4 pb-4 border-b border-gray-100 pr-2">
+                    {set.courses.map((course, idx) => (
+                      <div key={idx}>
+                        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 bg-gray-50 py-1 px-2 rounded inline-block">{course.title}</h4>
+                        <ul className="space-y-3">
+                          {course.options.map(opt => (
+                            <li key={opt.id} className="text-sm text-gray-800 pl-4 relative before:content-[''] before:w-1.5 before:h-1.5 before:bg-teal-500 before:rounded-full before:absolute before:left-0 before:top-1.5">
+                              <span className="font-semibold block">{opt.nameVn}</span>
+                              <span className="text-xs text-gray-500 block italic">{opt.nameEn}</span>
+                              {opt.descriptionEn && <p className="text-[11px] text-gray-400 mt-1 line-clamp-2">{opt.descriptionEn}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {set.includedDrink && (
+                    <div className="mt-auto mb-4 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                      <p className="text-xs text-orange-800 font-medium flex items-start gap-2">
+                        <span>⭐</span>
+                        <span>Đi kèm: <br /><span className="font-normal italic text-[11px] opacity-80">{set.includedDrink}</span></span>
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-auto pt-4 border-t border-gray-100 flex gap-2">
+                    <button
+                      onClick={() => handlePrintQuotation(set)}
+                      className="flex-1 py-1.5 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                      title="In báo giá"
+                    >
+                      <Printer className="w-3.5 h-3.5" /> Báo giá
+                    </button>
+                    <button
+                      onClick={() => handleEditTourMenu(set)}
+                      className="flex-1 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTourMenu(set.id)}
+                      className="flex-1 py-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Add Item Modal */}
       {
@@ -731,7 +1082,8 @@ export default function MenuManagement() {
                       onChange={(e) => setNewItem({ ...newItem, categoryId: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     >
-                      {mockCategories.map(cat => (
+                      <option value="">Chọn danh mục</option>
+                      {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
@@ -973,6 +1325,200 @@ export default function MenuManagement() {
           </div>
         )
       }
-    </div >
+      {/* Add/Edit Tour Menu Modal */}
+      {
+        isTourMenuModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-orange-50 shrink-0">
+                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                  <Printer className="w-5 h-5 text-orange-600" />
+                  {editingTourMenuId ? 'Cập nhật Thực đơn Lữ hành' : 'Thêm Thực đơn Lữ hành mới'}
+                </h3>
+                <button onClick={handleCloseTourMenuModal} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tên Thực đơn</label>
+                      <input
+                        type="text"
+                        value={newTourMenu.name}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, name: e.target.value })}
+                        placeholder="VD: Thực đơn Đoàn - 250k"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Giá bán (Public Price)</label>
+                      <input
+                        type="number"
+                        value={newTourMenu.price}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, price: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Giá Net (Cho đối tác)</label>
+                      <input
+                        type="number"
+                        value={newTourMenu.netPrice}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, netPrice: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-red-300 bg-red-50 text-red-900 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Chính sách FOC</label>
+                      <input
+                        type="text"
+                        value={newTourMenu.focPolicy}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, focPolicy: e.target.value })}
+                        placeholder="VD: 15 FOC 1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Công ty Lữ hành (Tag)</label>
+                      <input
+                        type="text"
+                        value={(newTourMenu.companyTags || []).join(', ')}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, companyTags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                        placeholder="VD: Vietravel, Saigontourist (Cách nhau bằng dấu phẩy)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                      <select
+                        value={newTourMenu.status}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, status: e.target.value as any })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      >
+                        <option value="available">Đang bán</option>
+                        <option value="out_of_stock">Ngưng bán</option>
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Đồ uống đi kèm</label>
+                      <input
+                        type="text"
+                        value={newTourMenu.includedDrink}
+                        onChange={(e) => setNewTourMenu({ ...newTourMenu, includedDrink: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+
+                  <hr className="border-gray-200" />
+
+                  {/* Courses */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-bold text-gray-800">Cấu trúc thực đơn (Courses)</h4>
+                      <button
+                        onClick={handleAddTourCourse}
+                        className="text-teal-600 hover:text-teal-700 text-sm font-medium flex items-center gap-1 bg-teal-50 px-3 py-1.5 rounded-lg"
+                      >
+                        <Plus className="w-4 h-4" /> Thêm Course
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      {(newTourMenu.courses || []).map((course, courseIndex) => (
+                        <div key={courseIndex} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                          <div className="flex items-center gap-3 mb-4">
+                            <input
+                              type="text"
+                              value={course.title}
+                              onChange={(e) => handleUpdateTourCourseTitle(courseIndex, e.target.value)}
+                              placeholder="Tên Course (VD: Khai vị, Món chính...)"
+                              className="font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded focus:ring-2 focus:ring-teal-500 outline-none w-64"
+                            />
+                            <div className="flex-1 border-b border-gray-200"></div>
+                            <button
+                              onClick={() => handleDeleteTourCourse(courseIndex)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                              title="Xóa Course"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="space-y-3 pl-4 border-l-2 border-teal-200">
+                            {course.options.map((opt, optIndex) => (
+                              <div key={opt.id} className="bg-white p-3 rounded-lg border border-gray-100 flex gap-4 relative group">
+                                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    value={opt.nameVn}
+                                    onChange={(e) => handleUpdateTourOption(courseIndex, optIndex, 'nameVn', e.target.value)}
+                                    placeholder="Tên tiếng Việt"
+                                    className="text-sm border border-gray-200 rounded px-2 py-1.5 w-full focus:border-teal-500 outline-none"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={opt.nameEn}
+                                    onChange={(e) => handleUpdateTourOption(courseIndex, optIndex, 'nameEn', e.target.value)}
+                                    placeholder="Tên tiếng Anh (Tùy chọn)"
+                                    className="text-sm border border-gray-200 rounded px-2 py-1.5 w-full focus:border-teal-500 outline-none"
+                                  />
+                                  <textarea
+                                    value={opt.descriptionEn}
+                                    onChange={(e) => handleUpdateTourOption(courseIndex, optIndex, 'descriptionEn', e.target.value)}
+                                    placeholder="Mô tả chi tiết (Tùy chọn)"
+                                    rows={1}
+                                    className="text-xs border border-gray-200 rounded px-2 py-1.5 w-full focus:border-teal-500 outline-none md:col-span-2 resize-none text-gray-500"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleDeleteTourOption(courseIndex, optIndex)}
+                                  className="text-gray-400 hover:text-red-500 h-fit mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => handleAddOptionToTourCourse(courseIndex)}
+                              className="text-xs text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1 mt-2"
+                            >
+                              <Plus className="w-3 h-3" /> Thêm món chọn (Option)
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                <button
+                  onClick={handleCloseTourMenuModal}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleSaveTourMenu}
+                  className="px-6 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  {editingTourMenuId ? 'Lưu thay đổi' : 'Tạo Thực đơn mới'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+    </div>
   );
 }
