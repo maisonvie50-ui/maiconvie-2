@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, ChevronLeft, ChevronRight, Plus, Menu, LogOut, User } from 'lucide-react';
+import { Bell, Search, Plus, Menu, LogOut, User } from 'lucide-react';
 
 interface HeaderProps {
   onAddBooking?: () => void;
@@ -104,18 +104,6 @@ export default function Header({ onAddBooking, onMenuClick }: HeaderProps) {
       {currentPath === '/dat-ban' && (
         <div className="px-4 md:px-6 py-3 flex flex-col lg:flex-row items-start lg:items-center justify-between bg-gray-50/50 gap-4">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full lg:w-auto">
-            {/* Date Filter */}
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden w-full md:w-auto shrink-0">
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 border-r border-gray-200">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex-1 text-center px-4 py-1.5 text-sm font-medium text-gray-700 whitespace-nowrap">
-                Hôm nay, {new Date().toLocaleDateString('vi-VN')}
-              </div>
-              <button className="px-3 py-1.5 text-gray-600 hover:bg-gray-50 border-l border-gray-200">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
 
             {/* Stats Bar */}
             <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm w-full md:w-auto">
