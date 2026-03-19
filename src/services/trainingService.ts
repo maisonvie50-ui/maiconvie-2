@@ -322,6 +322,74 @@ export const trainingService = {
         return true;
     },
 
+    saveDirectEvaluation: async (
+        employeeId: string,
+        evaluatorId: string,
+        level: number,
+        checklistResults: { itemId: string; itemText: string; checked: boolean; note?: string }[]
+    ): Promise<{ success: boolean; error?: string }> => {
+        // Check if there's already a pending evaluation for this employee and level
+        const { data: existing } = await supabase
+            .from('training_evaluations')
+            .select('id')
+            .eq('employee_id', employeeId)
+            .eq('to_level', level)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+        if (existing) {
+            // Update the existing pending record
+            const { error } = await supabase
+                .from('training_evaluations')
+                .update({
+                    evaluator_id: evaluatorId,
+                    checklist_results: checklistResults,
+                    completed_videos_at: new Date().toISOString()
+                })
+                .eq('id', existing.id);
+
+            if (error) {
+                console.error('Error updating evaluation:', error);
+                return { success: false, error: error.message };
+            }
+            return { success: true };
+        }
+
+        // Create new pending evaluation
+        const { error } = await supabase
+            .from('training_evaluations')
+            .insert([{
+                employee_id: employeeId,
+                evaluator_id: evaluatorId,
+                from_level: level > 1 ? level - 1 : 1,
+                to_level: level,
+                status: 'pending',
+                checklist_results: checklistResults,
+                completed_videos_at: new Date().toISOString()
+            }]);
+
+        if (error) {
+            console.error('Error saving direct evaluation:', error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    },
+
+    getLatestEvaluation: async (employeeId: string, level: number) => {
+        const { data, error } = await supabase
+            .from('training_evaluations')
+            .select('checklist_results, status, evaluated_at')
+            .eq('employee_id', employeeId)
+            .eq('to_level', level)
+            .order('evaluated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error || !data) return null;
+        return data;
+    },
+
     // === MODULES (updated to filter by employee level) ===
     getModules: async (employeeId?: string): Promise<TrainingModule[]> => {
         // Fetch employee level

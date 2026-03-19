@@ -403,66 +403,132 @@ export default function Settings() {
             )}
 
             {activeTrainingTab === 'levels' && (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {levelConfigs.map(cfg => (
-                        <div key={cfg.level} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative flex flex-col group/card hover:shadow-md transition-all">
-                            <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-teal-500 to-teal-400"></div>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-3 max-w-4xl mx-auto">
+                    {levelConfigs.map(cfg => {
+                        const levelItems = checklistItems.filter(c => c.level === cfg.level);
+                        const levelColors = [
+                            { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+                            { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
+                            { dot: 'bg-violet-500', text: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-200' },
+                            { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+                            { dot: 'bg-rose-500', text: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+                        ][cfg.level - 1] || { dot: 'bg-gray-500', text: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' };
 
-                            <div className="p-5 border-b border-gray-100 bg-gradient-to-br from-white to-gray-50/50">
-                                <div className="flex justify-between items-start mb-5">
-                                    <div>
-                                        <h4 className="font-bold text-gray-800 text-lg mb-1.5">{cfg.name}</h4>
-                                        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100/50 px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">Level {cfg.level}</span>
+                        return (
+                            <div key={cfg.level} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-sm transition-all">
+                                {/* Level Header Row */}
+                                <div className="px-4 py-3 flex items-center gap-3 border-b border-gray-100">
+                                    {/* Level indicator */}
+                                    <div className={`w-8 h-8 rounded-lg ${levelColors.bg} flex items-center justify-center shrink-0`}>
+                                        <span className={`text-xs font-black ${levelColors.text}`}>{cfg.level}</span>
                                     </div>
 
+                                    {/* Name */}
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-bold text-gray-800 truncate">{cfg.name}</h4>
+                                    </div>
+
+                                    {/* Days control */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <Clock className="w-3.5 h-3.5 text-gray-300" />
+                                        <input
+                                            type="number"
+                                            value={cfg.minDaysFromPrev}
+                                            onChange={async (e) => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val });
+                                                setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c));
+                                            }}
+                                            className="w-12 px-1.5 py-1 text-sm font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-md text-center focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                                        />
+                                        <span className="text-[11px] text-gray-400">ngày</span>
+                                    </div>
+
+                                    {/* Evaluation toggle */}
                                     {cfg.level > 1 && (
-                                        <label className="flex items-center gap-2 cursor-pointer group bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm hover:border-teal-300 transition-colors">
-                                            <span className="text-[10px] uppercase font-bold text-gray-500 group-hover:text-teal-700 tracking-wider transition-colors">Đánh Giá</span>
-                                            <div className="relative flex items-center h-5">
-                                                <input type="checkbox" checked={cfg.requiresEvaluation} onChange={async (e) => { await trainingService.updateLevelConfig(cfg.level, { requires_evaluation: e.target.checked }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, requiresEvaluation: e.target.checked } : c)); }} className="peer sr-only" />
-                                                <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500 shadow-inner"></div>
+                                        <div className="flex items-center gap-2 shrink-0 pl-2 border-l border-gray-100">
+                                            <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">Đánh giá</span>
+                                            <div
+                                                onClick={async () => {
+                                                    const next = !cfg.requiresEvaluation;
+                                                    await trainingService.updateLevelConfig(cfg.level, { requires_evaluation: next });
+                                                    setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, requiresEvaluation: next } : c));
+                                                }}
+                                                className={`w-9 h-5 flex items-center rounded-full p-0.5 cursor-pointer transition-colors ${cfg.requiresEvaluation ? 'bg-teal-500' : 'bg-gray-200'}`}
+                                            >
+                                                <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform duration-200 ${cfg.requiresEvaluation ? 'translate-x-4' : ''}`} />
                                             </div>
-                                        </label>
+                                        </div>
                                     )}
                                 </div>
 
-                                <div className="flex flex-col gap-2 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                                    <div className="text-[10px] uppercase font-bold text-gray-400 tracking-widest flex items-center gap-1.5 mb-1"><Clock className="w-3.5 h-3.5 text-teal-500" />Điều kiện Cần: Thời gian</div>
-                                    <div className="flex items-baseline gap-2">
-                                        <input type="number" value={cfg.minDaysFromPrev} onChange={async (e) => { const val = parseInt(e.target.value) || 0; await trainingService.updateLevelConfig(cfg.level, { min_days_from_prev: val }); setLevelConfigs(prev => prev.map(c => c.level === cfg.level ? { ...c, minDaysFromPrev: val } : c)); }} className="w-14 px-2 py-1 text-lg font-black text-teal-700 bg-teal-50 border border-teal-100 rounded-lg focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-center transition-all shadow-inner" />
-                                        <span className="text-xs text-gray-500 font-medium">ngày kể từ Level {cfg.level - 1}</span>
-                                    </div>
-                                </div>
-                            </div>
+                                {/* Checklist (only when evaluation is on) */}
+                                {cfg.level > 1 && cfg.requiresEvaluation && (
+                                    <div className="px-4 py-3 bg-gray-50/50">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Tiêu chí đánh giá</span>
+                                            <span className="text-[10px] text-gray-300 font-medium">{levelItems.length} mục</span>
+                                        </div>
 
-                            {cfg.level > 1 && cfg.requiresEvaluation && (
-                                <div className="p-5 flex-1 flex flex-col bg-gray-50/30">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h5 className="text-[11px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-teal-500" /> Tiêu chí đánh giá (ĐK Đủ)</h5>
-                                        <span className="text-[10px] font-bold text-gray-400 bg-white border border-gray-200 shadow-sm px-2 py-0.5 rounded-md">{checklistItems.filter(c => c.level === cfg.level).length} mục</span>
-                                    </div>
-
-                                    <div className="space-y-2 mb-4 flex-1">
-                                        {checklistItems.filter(c => c.level === cfg.level).map(item => (
-                                            <div key={item.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-teal-200 hover:shadow transition-all group/chk">
-                                                <div className="w-6 h-6 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center flex-shrink-0"><span className="text-[10px] font-black text-teal-600">{checklistItems.filter(c => c.level === cfg.level).indexOf(item) + 1}</span></div>
-                                                <span className="text-sm font-medium text-gray-700 flex-1 leading-snug">{item.itemText}</span>
-                                                <button onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }} className="text-red-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-lg transition-all" title="Xóa tiêu chí"><Trash2 className="w-4 h-4" /></button>
+                                        {/* Items */}
+                                        {levelItems.length > 0 ? (
+                                            <div className="space-y-1.5 mb-3">
+                                                {levelItems.map((item, idx) => (
+                                                    <div key={item.id} className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-lg border border-gray-100 group hover:border-gray-200 transition-colors">
+                                                        <span className={`text-[10px] font-bold ${levelColors.text} w-4 text-center shrink-0`}>{idx + 1}</span>
+                                                        <span className="text-sm text-gray-700 flex-1 leading-snug">{item.itemText}</span>
+                                                        <button
+                                                            onClick={async () => { await trainingService.deleteChecklistItem(item.id); await loadData(); }}
+                                                            className="text-gray-200 hover:text-red-500 p-1 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                                            title="Xóa"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                        {checklistItems.filter(c => c.level === cfg.level).length === 0 && (
-                                            <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl bg-white">Chưa có tiêu chí nào.<br /><span className="text-xs">Tiêu chí rất cần để quản lý đánh giá!</span></div>
+                                        ) : (
+                                            <div className="py-4 text-center text-xs text-gray-300 border border-dashed border-gray-200 rounded-lg bg-white mb-3">
+                                                Chưa có tiêu chí
+                                            </div>
                                         )}
-                                    </div>
 
-                                    <div className="flex items-center gap-2 mt-auto">
-                                        <input type="text" id={`checklist-input-${cfg.level}`} placeholder="Nhập tiêu chí đánh giá mới..." onKeyDown={async (e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { const text = e.currentTarget.value.trim(); e.currentTarget.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="flex-1 pl-4 pr-3 py-3 text-sm font-medium border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-sm hover:shadow transition-all" />
-                                        <button onClick={async () => { const input = document.getElementById(`checklist-input-${cfg.level}`) as HTMLInputElement; if (input && input.value.trim()) { const text = input.value.trim(); input.value = ''; await trainingService.addChecklistItem(cfg.level, text, checklistItems.filter(c => c.level === cfg.level).length + 1); await loadData(); } }} className="px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-colors shadow-sm flex-shrink-0 flex items-center gap-1"><Plus className="w-4 h-4" />Thêm</button>
+                                        {/* Add input */}
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                id={`checklist-input-${cfg.level}`}
+                                                placeholder="Thêm tiêu chí..."
+                                                onKeyDown={async (e) => {
+                                                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                                        const text = e.currentTarget.value.trim();
+                                                        e.currentTarget.value = '';
+                                                        await trainingService.addChecklistItem(cfg.level, text, levelItems.length + 1);
+                                                        await loadData();
+                                                    }
+                                                }}
+                                                className="flex-1 pl-3 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-teal-500 focus:border-teal-500 bg-white"
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    const input = document.getElementById(`checklist-input-${cfg.level}`) as HTMLInputElement;
+                                                    if (input && input.value.trim()) {
+                                                        const text = input.value.trim();
+                                                        input.value = '';
+                                                        await trainingService.addChecklistItem(cfg.level, text, levelItems.length + 1);
+                                                        await loadData();
+                                                    }
+                                                }}
+                                                className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors shrink-0 flex items-center gap-1"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" />Thêm
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

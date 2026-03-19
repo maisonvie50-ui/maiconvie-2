@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { Play, Award, CheckCircle, BarChart2, Search, Lock, X, Star, Target, Shield, Crown, ArrowUp, Clock, ClipboardCheck, ChevronRight, AlertCircle, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { Play, Award, CheckCircle, BarChart2, Search, Lock, X, Star, Target, Shield, Crown, ArrowUp, Clock, ClipboardCheck, ChevronRight, ThumbsUp, ThumbsDown, MessageSquare, Check } from 'lucide-react';
 
 import { trainingService, TrainingModule, EmployeeTrainingProgress, LevelConfig, TrainingEvaluation, ChecklistItem } from '../../services/trainingService';
 
@@ -9,11 +10,11 @@ interface ExtendedModule extends TrainingModule {
 }
 
 const levels = [
-    { id: 1, name: 'Level 1: Nhập môn', color: 'text-emerald-500', bg: 'bg-emerald-100', bgDark: 'bg-emerald-500', icon: 'Award' },
-    { id: 2, name: 'Level 2: Cơ bản', color: 'text-blue-500', bg: 'bg-blue-100', bgDark: 'bg-blue-500', icon: 'Star' },
-    { id: 3, name: 'Level 3: Nâng cao', color: 'text-purple-500', bg: 'bg-purple-100', bgDark: 'bg-purple-500', icon: 'Target' },
-    { id: 4, name: 'Level 4: Chuyên sâu', color: 'text-orange-500', bg: 'bg-orange-100', bgDark: 'bg-orange-500', icon: 'Shield' },
-    { id: 5, name: 'Level 5: Quản lý', color: 'text-red-500', bg: 'bg-red-100', bgDark: 'bg-red-500', icon: 'Crown' },
+    { id: 1, name: 'Nhập môn', color: 'text-emerald-600', bg: 'bg-emerald-50', bgDark: 'bg-emerald-500', border: 'border-emerald-200', ring: 'ring-emerald-500/30', gradient: 'from-emerald-500 to-emerald-600', icon: 'Award' },
+    { id: 2, name: 'Cơ bản', color: 'text-blue-600', bg: 'bg-blue-50', bgDark: 'bg-blue-500', border: 'border-blue-200', ring: 'ring-blue-500/30', gradient: 'from-blue-500 to-blue-600', icon: 'Star' },
+    { id: 3, name: 'Nâng cao', color: 'text-violet-600', bg: 'bg-violet-50', bgDark: 'bg-violet-500', border: 'border-violet-200', ring: 'ring-violet-500/30', gradient: 'from-violet-500 to-violet-600', icon: 'Target' },
+    { id: 4, name: 'Chuyên sâu', color: 'text-amber-600', bg: 'bg-amber-50', bgDark: 'bg-amber-500', border: 'border-amber-200', ring: 'ring-amber-500/30', gradient: 'from-amber-500 to-amber-600', icon: 'Shield' },
+    { id: 5, name: 'Quản lý', color: 'text-rose-600', bg: 'bg-rose-50', bgDark: 'bg-rose-500', border: 'border-rose-200', ring: 'ring-rose-500/30', gradient: 'from-rose-500 to-rose-600', icon: 'Crown' },
 ];
 
 const renderIcon = (iconName: string, className: string) => {
@@ -40,23 +41,24 @@ export default function TrainingPortal() {
     const [checklistState, setChecklistState] = useState<Record<string, { checked: boolean; note: string }>>({});
     const [rejectReason, setRejectReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const [showLevelUpModal, setShowLevelUpModal] = useState(false);
-    const [isManager, setIsManager] = useState(false);
-    const [currentEmployeeId, setCurrentEmployeeId] = useState<string>('');
+    const { user, userRole } = useAuth();
+    const isManager = userRole === 'admin' || userRole === 'manager';
+    const currentEmployeeId = user?.id || '';
+
+    // Direct Evaluation States
+    const [directEvalEmployee, setDirectEvalEmployee] = useState<EmployeeTrainingProgress | null>(null);
+    const [directEvalLevel, setDirectEvalLevel] = useState<number>(1);
+
     const isMobile = useIsMobile();
 
-    React.useEffect(() => {
+    useEffect(() => {
         const loadData = async () => {
+            if (!currentEmployeeId) return;
             try {
-                // Get current employee from localStorage
-                const stored = localStorage.getItem('currentEmployee');
-                const empId = stored ? JSON.parse(stored)?.id : null;
-                const empIsManager = stored ? JSON.parse(stored)?.role_manager : false;
-                setCurrentEmployeeId(empId || '');
-                setIsManager(empIsManager);
-
                 const [modulesData, progressData, configs] = await Promise.all([
-                    trainingService.getModules(empId),
+                    trainingService.getModules(currentEmployeeId),
                     trainingService.getEmployeeProgressReports(),
                     trainingService.getLevelConfig(),
                 ]);
@@ -64,14 +66,14 @@ export default function TrainingPortal() {
                 setEmployees(progressData);
                 setLevelConfigs(configs);
 
-                if (empId) {
-                    const level = await trainingService.getEmployeeLevel(empId);
+                if (currentEmployeeId) {
+                    const level = await trainingService.getEmployeeLevel(currentEmployeeId);
                     setEmployeeLevel(level);
-                    const elig = await trainingService.checkLevelUpEligibility(empId);
+                    const elig = await trainingService.checkLevelUpEligibility(currentEmployeeId);
                     setEligibility(elig);
                 }
 
-                if (empIsManager) {
+                if (isManager) {
                     const evals = await trainingService.getPendingEvaluations();
                     setEvaluations(evals);
                 }
@@ -80,7 +82,7 @@ export default function TrainingPortal() {
             }
         };
         loadData();
-    }, []);
+    }, [currentEmployeeId, isManager]);
 
     const handleCompleteVideo = async () => {
         if (playingCourse) {
@@ -91,10 +93,8 @@ export default function TrainingPortal() {
             }
             try {
                 await trainingService.updateProgress(currentEmployeeId, playingCourse.id, 100);
-                // Reload modules to get updated progress from DB
                 const updatedModules = await trainingService.getModules(currentEmployeeId);
                 setCourses(updatedModules as ExtendedModule[]);
-                // Re-check eligibility after completing a video
                 const elig = await trainingService.checkLevelUpEligibility(currentEmployeeId);
                 setEligibility(elig);
             } catch (error) {
@@ -157,67 +157,209 @@ export default function TrainingPortal() {
         setIsSubmitting(false);
     };
 
-    // === LEVEL STATUS BAR ===
+    const handleOpenDirectEval = async (emp: EmployeeTrainingProgress) => {
+        if (!isManager) return;
+        setDirectEvalEmployee(emp);
+        setDirectEvalLevel(emp.trainingLevel);
+        setSubmitError(null);
+        const items = await trainingService.getChecklist(emp.trainingLevel);
+        setChecklist(items);
+        const state: Record<string, { checked: boolean; note: string }> = {};
+        items.forEach(item => { state[item.id] = { checked: false, note: '' }; });
+
+        // Load previously saved evaluation
+        const prev = await trainingService.getLatestEvaluation(emp.id, emp.trainingLevel);
+        if (prev?.checklist_results && Array.isArray(prev.checklist_results)) {
+            (prev.checklist_results as any[]).forEach((r: any) => {
+                if (state[r.itemId]) {
+                    state[r.itemId] = { checked: r.checked || false, note: r.note || '' };
+                }
+            });
+        }
+        setChecklistState(state);
+    };
+
+    const handleDirectEvalLevelChange = async (level: number) => {
+        setDirectEvalLevel(level);
+        setSubmitError(null);
+        const items = await trainingService.getChecklist(level);
+        setChecklist(items);
+        const state: Record<string, { checked: boolean; note: string }> = {};
+        items.forEach(item => { state[item.id] = { checked: false, note: '' }; });
+
+        // Load previously saved evaluation for this level
+        if (directEvalEmployee) {
+            const prev = await trainingService.getLatestEvaluation(directEvalEmployee.id, level);
+            if (prev?.checklist_results && Array.isArray(prev.checklist_results)) {
+                (prev.checklist_results as any[]).forEach((r: any) => {
+                    if (state[r.itemId]) {
+                        state[r.itemId] = { checked: r.checked || false, note: r.note || '' };
+                    }
+                });
+            }
+        }
+        setChecklistState(state);
+    };
+
+    const handleSubmitDirectEval = async () => {
+        setSubmitError(null);
+        if (!directEvalEmployee) {
+            setSubmitError("Lỗi: Không tìm thấy nhân viên cần đánh giá.");
+            return;
+        }
+        if (!currentEmployeeId) {
+            setSubmitError("Lỗi: Không tìm thấy thông tin quản lý (ID trống). Vui lòng F5 và đăng nhập lại.");
+            return;
+        }
+        setIsSubmitting(true);
+
+        const results = checklist.map(item => ({
+            itemId: item.id,
+            itemText: item.itemText,
+            checked: checklistState[item.id]?.checked || false,
+            note: checklistState[item.id]?.note || '',
+        }));
+
+        try {
+            const { success, error } = await trainingService.saveDirectEvaluation(
+                directEvalEmployee.id,
+                currentEmployeeId,
+                directEvalLevel,
+                results
+            );
+
+            if (success) {
+                setDirectEvalEmployee(null);
+                const progData = await trainingService.getEmployeeProgressReports();
+                setEmployees(progData);
+                // Refresh pending evaluations list
+                if (isManager) {
+                    const evals = await trainingService.getPendingEvaluations();
+                    setEvaluations(evals);
+                }
+            } else {
+                setSubmitError(`Failed to save: ${error || 'Không rõ nguyên nhân'}`);
+            }
+        } catch (e: any) {
+            setSubmitError(`Exception: ${e.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // === LEVEL JOURNEY STEPPER ===
     const LevelStatusBar = () => {
         const currentLevelCourses = courses.filter(c => c.level === employeeLevel);
         const completedCount = currentLevelCourses.filter(c => c.progress === 100).length;
         const totalCount = currentLevelCourses.length;
         const allDone = totalCount > 0 && completedCount === totalCount;
+        const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
         return (
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-3">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Stepper Timeline */}
+                <div className={`${isMobile ? 'px-3 pt-4 pb-3' : 'px-6 pt-5 pb-4'}`}>
+                    <div className="flex items-center justify-between mb-1">
+                        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-500 uppercase tracking-wider`}>Hành trình đào tạo</h3>
+                        {eligibility?.hasPendingEvaluation && (
+                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border border-amber-200">
+                                <Clock className="w-2.5 h-2.5" /> Chờ đánh giá
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Horizontal Stepper */}
+                    <div className="flex items-center mt-3">
+                        {levels.map((lvl, idx) => {
+                            const isCompleted = lvl.id < employeeLevel;
+                            const isActive = lvl.id === employeeLevel;
+                            const isLocked = lvl.id > employeeLevel;
+                            const isLast = idx === levels.length - 1;
+
+                            return (
+                                <React.Fragment key={lvl.id}>
+                                    {/* Node */}
+                                    <div className="flex flex-col items-center relative group">
+                                        <div className={`
+                                            ${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center transition-all duration-300
+                                            ${isCompleted
+                                                ? `bg-gradient-to-br ${lvl.gradient} text-white shadow-md`
+                                                : isActive
+                                                    ? `${lvl.bg} ${lvl.color} ring-2 ${lvl.ring} shadow-sm`
+                                                    : 'bg-gray-100 text-gray-300'
+                                            }
+                                        `}>
+                                            {isCompleted
+                                                ? <Check className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} strokeWidth={3} />
+                                                : renderIcon(lvl.icon, `${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`)
+                                            }
+                                        </div>
+                                        {/* Label - hidden on mobile for space */}
+                                        <span className={`
+                                            ${isMobile ? 'text-[8px] mt-1' : 'text-[10px] mt-1.5'} font-medium text-center leading-tight
+                                            ${isCompleted ? 'text-gray-600' : isActive ? lvl.color : 'text-gray-300'}
+                                        `}>
+                                            {isMobile ? `Lv${lvl.id}` : lvl.name}
+                                        </span>
+                                    </div>
+
+                                    {/* Connector Line */}
+                                    {!isLast && (
+                                        <div className={`flex-1 ${isMobile ? 'h-0.5 mx-1' : 'h-[2px] mx-2'} rounded-full relative`}>
+                                            <div className="absolute inset-0 bg-gray-100 rounded-full" />
+                                            <div
+                                                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${isCompleted ? `bg-gradient-to-r ${lvl.gradient}` : 'bg-transparent'
+                                                    }`}
+                                                style={{ width: isCompleted ? '100%' : isActive ? `${progressPct}%` : '0%' }}
+                                            />
+                                        </div>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Current Level Progress Footer */}
+                <div className={`${isMobile ? 'px-3 py-2.5' : 'px-6 py-3'} bg-gray-50/80 border-t border-gray-100 flex items-center justify-between`}>
                     <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-lg ${levels[employeeLevel - 1]?.bg}`}>
-                            {renderIcon(levels[employeeLevel - 1]?.icon || 'Award', `w-4 h-4 ${levels[employeeLevel - 1]?.color}`)}
+                        <div className={`${isMobile ? 'w-6 h-6' : 'w-7 h-7'} rounded-lg ${levels[employeeLevel - 1]?.bg} flex items-center justify-center`}>
+                            {renderIcon(levels[employeeLevel - 1]?.icon || 'Award', `${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'} ${levels[employeeLevel - 1]?.color}`)}
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-gray-800">{levels[employeeLevel - 1]?.name}</h3>
-                            <p className="text-xs text-gray-500">{completedCount}/{totalCount} bài hoàn thành</p>
+                            <span className={`${isMobile ? 'text-[11px]' : 'text-xs'} font-semibold text-gray-700`}>
+                                Level {employeeLevel}: {levels[employeeLevel - 1]?.name}
+                            </span>
+                            <span className={`${isMobile ? 'text-[10px]' : 'text-[11px]'} text-gray-400 ml-2`}>
+                                {completedCount}/{totalCount} bài
+                            </span>
                         </div>
                     </div>
-                    {eligibility?.hasPendingEvaluation && (
-                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> Đang chờ đánh giá
+
+                    {/* Action or Status */}
+                    {allDone && eligibility?.eligible && !eligibility?.hasPendingEvaluation && (
+                        <button
+                            onClick={() => setShowLevelUpModal(true)}
+                            className={`${isMobile ? 'text-[10px] px-2.5 py-1' : 'text-xs px-3 py-1.5'} bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white rounded-lg font-medium flex items-center gap-1 transition-all shadow-sm`}
+                        >
+                            <ArrowUp className={`${isMobile ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                            Lên Level
+                        </button>
+                    )}
+
+                    {allDone && !eligibility?.eligible && !eligibility?.hasPendingEvaluation && eligibility?.minDaysRequired > 0 && (
+                        <span className={`${isMobile ? 'text-[10px]' : 'text-[11px]'} text-gray-400 flex items-center gap-1`}>
+                            <Clock className="w-3 h-3" />
+                            Còn {eligibility.minDaysRequired - eligibility.daysWaited} ngày
+                        </span>
+                    )}
+
+                    {!allDone && totalCount > 0 && (
+                        <span className={`${isMobile ? 'text-[10px]' : 'text-[11px]'} font-semibold ${levels[employeeLevel - 1]?.color}`}>
+                            {progressPct}%
                         </span>
                     )}
                 </div>
-
-                {/* Level badges */}
-                <div className="flex gap-2 mb-3">
-                    {levels.map((lvl) => {
-                        const isActive = lvl.id === employeeLevel;
-                        const isCompleted = lvl.id < employeeLevel;
-                        const isLocked = lvl.id > employeeLevel;
-                        return (
-                            <div
-                                key={lvl.id}
-                                className={`flex-1 h-1.5 rounded-full ${isCompleted ? lvl.bgDark : isActive ? `${lvl.bgDark} opacity-60` : 'bg-gray-200'
-                                    }`}
-                            />
-                        );
-                    })}
-                </div>
-
-                {/* Level Up Button */}
-                {allDone && eligibility?.eligible && !eligibility?.hasPendingEvaluation && (
-                    <button
-                        onClick={() => setShowLevelUpModal(true)}
-                        className="w-full mt-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white py-2.5 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-teal-500/20"
-                    >
-                        <ArrowUp className="w-4 h-4" />
-                        Yêu cầu lên {levels[employeeLevel]?.name || 'Level tiếp theo'}
-                    </button>
-                )}
-
-                {allDone && !eligibility?.eligible && !eligibility?.hasPendingEvaluation && eligibility?.minDaysRequired > 0 && (
-                    <div className="mt-2 bg-gray-50 p-3 rounded-lg text-xs text-gray-600 flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                        <div>
-                            Bạn đã hoàn thành tất cả bài học. Cần chờ thêm <strong>{eligibility.minDaysRequired - eligibility.daysWaited}</strong> ngày nữa để yêu cầu lên level.
-                        </div>
-                    </div>
-                )}
             </div>
         );
     };
@@ -231,7 +373,7 @@ export default function TrainingPortal() {
 
     const pendingCount = evaluations.filter(e => e.status === 'pending').length;
 
-    // === COURSE LIST (shared between mobile/desktop) ===
+    // === COURSE LIST ===
     const renderCourseList = (isMobileView: boolean) => (
         <div className="space-y-6">
             <LevelStatusBar />
@@ -245,15 +387,15 @@ export default function TrainingPortal() {
                 return (
                     <section key={levelId} className={isLocked ? 'opacity-50' : ''}>
                         <h3 className={`${isMobileView ? 'text-base' : 'text-xl'} font-bold text-gray-800 mb-3 flex items-center gap-2`}>
-                            <span className={`${isMobileView ? 'w-1.5 h-5' : 'w-2 h-8'} rounded-full ${levelInfo?.bg}`}></span>
-                            {levelInfo?.name}
+                            <span className={`${isMobileView ? 'w-1.5 h-5' : 'w-2 h-8'} rounded-full ${levelInfo?.bgDark}`}></span>
+                            Level {levelId}: {levelInfo?.name}
                             {isLocked && <Lock className="w-4 h-4 text-gray-400" />}
                         </h3>
 
                         {isLocked ? (
                             <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 text-center text-sm text-gray-500">
                                 <Lock className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-                                Hoàn thành {levels[levelId - 2]?.name} và được đánh giá để mở khóa
+                                Hoàn thành Level {levelId - 1} và được đánh giá để mở khóa
                             </div>
                         ) : isMobileView ? (
                             <div className="space-y-3">
@@ -323,11 +465,15 @@ export default function TrainingPortal() {
         </div>
     );
 
-    // === REPORT VIEW (shared) ===
+    // === REPORT VIEW ===
     const renderReport = (isMobileView: boolean) => isMobileView ? (
         <div className="space-y-4">
             {employees.map((emp) => (
-                <div key={emp.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div
+                    key={emp.id}
+                    className={`bg-white p-4 rounded-xl border border-gray-200 shadow-sm ${isManager ? 'cursor-pointer hover:border-teal-300 transition-colors' : ''}`}
+                    onClick={() => isManager && handleOpenDirectEval(emp)}
+                >
                     <div className="flex items-center gap-3 mb-3">
                         <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
                         <div>
@@ -376,7 +522,11 @@ export default function TrainingPortal() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {employees.map((emp) => (
-                            <tr key={emp.id} className="hover:bg-gray-50/50 transition-colors">
+                            <tr
+                                key={emp.id}
+                                className={`hover:bg-gray-50/50 transition-colors ${isManager ? 'cursor-pointer hover:bg-teal-50/30' : ''}`}
+                                onClick={() => isManager && handleOpenDirectEval(emp)}
+                            >
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" referrerPolicy="no-referrer" />
@@ -417,46 +567,73 @@ export default function TrainingPortal() {
         </div>
     );
 
-    // === EVALUATION TAB (Manager only) ===
+    // === EVALUATION TAB ===
     const renderEvaluationTab = () => {
         const pending = evaluations.filter(e => e.status === 'pending');
+        const approved = evaluations.filter(e => e.status === 'approved');
+        const rejected = evaluations.filter(e => e.status === 'rejected');
         const history = evaluations.filter(e => e.status !== 'pending');
 
         return (
-            <div className={`space-y-6 ${isMobile ? '' : 'max-w-4xl mx-auto'}`}>
+            <div className={`space-y-5 ${isMobile ? '' : 'max-w-4xl mx-auto'}`}>
+                {/* Stats Summary */}
+                <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-4'}`}>
+                    <div className="bg-white rounded-xl border border-amber-100 p-3 text-center">
+                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-amber-600`}>{pending.length}</div>
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 font-medium`}>Chờ duyệt</div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-green-100 p-3 text-center">
+                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>{approved.length}</div>
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 font-medium`}>Đã duyệt</div>
+                    </div>
+                    <div className="bg-white rounded-xl border border-red-100 p-3 text-center">
+                        <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-red-500`}>{rejected.length}</div>
+                        <div className={`${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500 font-medium`}>Từ chối</div>
+                    </div>
+                </div>
+
                 {/* Pending Evaluations */}
                 <div>
-                    <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-500" />
-                        Chờ đánh giá ({pending.length})
+                    <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-bold text-gray-800 mb-3 flex items-center gap-2`}>
+                        <span className="w-1.5 h-5 rounded-full bg-amber-400" />
+                        Chờ đánh giá
+                        {pending.length > 0 && (
+                            <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-bold border border-amber-200">{pending.length}</span>
+                        )}
                     </h3>
                     {pending.length === 0 ? (
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 text-center text-sm text-gray-500">
-                            <ClipboardCheck className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                            Không có yêu cầu nào đang chờ
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 text-center text-sm text-gray-400">
+                            <ClipboardCheck className="w-6 h-6 mx-auto mb-1.5 text-gray-300" />
+                            Không có yêu cầu nào
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             {pending.map((ev) => (
-                                <div key={ev.id} className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleOpenEvaluation(ev)}>
+                                <div
+                                    key={ev.id}
+                                    className="bg-white p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-amber-200 hover:shadow-sm transition-all group"
+                                    onClick={() => handleOpenEvaluation(ev)}
+                                >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                                                <ArrowUp className="w-5 h-5 text-amber-600" />
+                                            <div className={`${isMobile ? 'w-8 h-8' : 'w-9 h-9'} rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
+                                                {ev.employeeName?.charAt(0) || '?'}
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-gray-900">{ev.employeeName}</div>
-                                                <div className="text-xs text-gray-500">{ev.employeeRole}</div>
+                                                <div className={`${isMobile ? 'text-sm' : 'text-sm'} font-semibold text-gray-900`}>{ev.employeeName}</div>
+                                                <div className="text-[11px] text-gray-400">{ev.employeeRole}</div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${levels[ev.fromLevel - 1]?.bg} ${levels[ev.fromLevel - 1]?.color}`}>Lv{ev.fromLevel}</span>
-                                            <ChevronRight className="w-4 h-4 text-gray-400" />
-                                            <span className={`text-xs px-2 py-1 rounded-full font-bold ${levels[ev.toLevel - 1]?.bg} ${levels[ev.toLevel - 1]?.color}`}>Lv{ev.toLevel}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${levels[ev.fromLevel - 1]?.bg} ${levels[ev.fromLevel - 1]?.color}`}>
+                                                {ev.fromLevel}
+                                            </span>
+                                            <ChevronRight className="w-3 h-3 text-gray-300" />
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${levels[ev.toLevel - 1]?.bg} ${levels[ev.toLevel - 1]?.color}`}>
+                                                {ev.toLevel}
+                                            </span>
+                                            <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-amber-400 transition-colors ml-1" />
                                         </div>
-                                    </div>
-                                    <div className="mt-2 text-xs text-gray-400">
-                                        Yêu cầu: {ev.createdAt ? new Date(ev.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                                     </div>
                                 </div>
                             ))}
@@ -464,30 +641,52 @@ export default function TrainingPortal() {
                     )}
                 </div>
 
-                {/* History */}
+                {/* History Timeline */}
                 {history.length > 0 && (
                     <div>
-                        <h3 className="text-base font-bold text-gray-800 mb-3">Lịch sử đánh giá</h3>
-                        <div className="space-y-2">
-                            {history.slice(0, 10).map((ev) => (
-                                <div key={ev.id} className="bg-white p-3 rounded-lg border border-gray-200 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${ev.status === 'approved' ? 'bg-green-100' : 'bg-red-100'}`}>
-                                            {ev.status === 'approved' ? <ThumbsUp className="w-4 h-4 text-green-600" /> : <ThumbsDown className="w-4 h-4 text-red-600" />}
+                        <h3 className={`${isMobile ? 'text-sm' : 'text-base'} font-bold text-gray-800 mb-3 flex items-center gap-2`}>
+                            <span className="w-1.5 h-5 rounded-full bg-gray-300" />
+                            Lịch sử
+                        </h3>
+                        <div className="relative">
+                            {/* Timeline line */}
+                            <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100" />
+
+                            <div className="space-y-1">
+                                {history.slice(0, 10).map((ev) => {
+                                    const isApproved = ev.status === 'approved';
+                                    return (
+                                        <div key={ev.id} className="relative flex items-center gap-3 pl-1">
+                                            {/* Timeline dot */}
+                                            <div className={`z-10 w-[26px] h-[26px] rounded-full border-2 border-white flex items-center justify-center shrink-0 shadow-sm
+                                                ${isApproved ? 'bg-green-100' : 'bg-red-50'}`}
+                                            >
+                                                {isApproved
+                                                    ? <Check className="w-3 h-3 text-green-600" strokeWidth={3} />
+                                                    : <X className="w-3 h-3 text-red-500" strokeWidth={3} />
+                                                }
+                                            </div>
+                                            {/* Content */}
+                                            <div className="flex-1 bg-white rounded-lg border border-gray-100 px-3 py-2 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-medium text-gray-800">{ev.employeeName}</span>
+                                                    <span className="text-[10px] text-gray-400">
+                                                        Lv{ev.fromLevel} → Lv{ev.toLevel}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-[10px] font-bold ${isApproved ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {isApproved ? 'Duyệt' : 'Từ chối'}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-300">
+                                                        {ev.evaluatedAt ? new Date(ev.evaluatedAt).toLocaleDateString('vi-VN') : ''}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <span className="font-medium text-sm text-gray-800">{ev.employeeName}</span>
-                                            <span className="text-xs text-gray-500 ml-2">Lv{ev.fromLevel} → Lv{ev.toLevel}</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className={`text-xs font-bold ${ev.status === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
-                                            {ev.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
-                                        </span>
-                                        <div className="text-[10px] text-gray-400">{ev.evaluatedAt ? new Date(ev.evaluatedAt).toLocaleDateString('vi-VN') : ''}</div>
-                                    </div>
-                                </div>
-                            ))}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -581,24 +780,24 @@ export default function TrainingPortal() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowLevelUpModal(false)}>
                     <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
                         <div className="text-center mb-6">
-                            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${levels[employeeLevel]?.bg || 'bg-teal-100'} flex items-center justify-center`}>
-                                {renderIcon(levels[employeeLevel]?.icon || 'Award', `w-8 h-8 ${levels[employeeLevel]?.color || 'text-teal-500'}`)}
+                            <div className={`w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br ${levels[employeeLevel]?.gradient || 'from-teal-500 to-teal-600'} flex items-center justify-center shadow-lg`}>
+                                {renderIcon(levels[employeeLevel]?.icon || 'Award', 'w-7 h-7 text-white')}
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">Yêu cầu lên Level {employeeLevel + 1}</h3>
-                            <p className="text-sm text-gray-500 mt-2">
-                                Bạn đã hoàn thành tất cả bài học ở {levels[employeeLevel - 1]?.name}. Yêu cầu sẽ được gửi đến quản lý để đánh giá.
+                            <h3 className="text-lg font-bold text-gray-900">Yêu cầu lên Level {employeeLevel + 1}</h3>
+                            <p className="text-sm text-gray-500 mt-1.5">
+                                Bạn đã hoàn thành tất cả bài học. Yêu cầu sẽ được gửi đến quản lý để đánh giá.
                             </p>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-xl mb-6 space-y-2 text-sm">
-                            <div className="flex justify-between"><span className="text-gray-500">Level hiện tại:</span><span className="font-bold">{levels[employeeLevel - 1]?.name}</span></div>
-                            <div className="flex justify-between"><span className="text-gray-500">Level tiếp theo:</span><span className="font-bold">{levels[employeeLevel]?.name}</span></div>
-                            <div className="flex justify-between"><span className="text-gray-500">Thời gian chờ:</span><span className="font-bold text-green-600">✓ Đủ điều kiện</span></div>
+                        <div className="bg-gray-50 p-3 rounded-xl mb-5 space-y-2 text-sm">
+                            <div className="flex justify-between"><span className="text-gray-400">Hiện tại</span><span className="font-semibold text-gray-700">Level {employeeLevel}: {levels[employeeLevel - 1]?.name}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Tiếp theo</span><span className="font-semibold text-gray-700">Level {employeeLevel + 1}: {levels[employeeLevel]?.name}</span></div>
+                            <div className="flex justify-between"><span className="text-gray-400">Điều kiện</span><span className="font-semibold text-green-600">✓ Đủ</span></div>
                         </div>
 
                         <div className="flex gap-3">
-                            <button onClick={() => setShowLevelUpModal(false)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
-                            <button onClick={handleRequestLevelUp} disabled={isSubmitting} className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2">
+                            <button onClick={() => setShowLevelUpModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">Hủy</button>
+                            <button onClick={handleRequestLevelUp} disabled={isSubmitting} className="flex-1 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 disabled:from-gray-300 disabled:to-gray-300 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 shadow-sm">
                                 {isSubmitting ? 'Đang gửi...' : <><ArrowUp className="w-4 h-4" /> Gửi yêu cầu</>}
                             </button>
                         </div>
@@ -606,87 +805,240 @@ export default function TrainingPortal() {
                 </div>
             )}
 
-            {/* Evaluation Modal (for Manager) */}
+            {/* Evaluation Modal */}
             {selectedEval && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setSelectedEval(null)}>
                     <div className={`bg-white rounded-2xl ${isMobile ? 'w-full max-h-[90vh]' : 'max-w-lg w-full max-h-[85vh]'} shadow-2xl flex flex-col overflow-hidden`} onClick={e => e.stopPropagation()}>
-                        {/* Eval Header */}
-                        <div className="p-5 border-b border-gray-200 shrink-0">
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-100 shrink-0">
                             <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-lg font-bold text-gray-900">Đánh giá thăng cấp</h3>
-                                <button onClick={() => setSelectedEval(null)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full">
+                                <h3 className="text-base font-bold text-gray-900">Đánh giá thăng cấp</h3>
+                                <button onClick={() => setSelectedEval(null)} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                                    <ArrowUp className="w-5 h-5 text-amber-600" />
+                                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${levels[selectedEval.toLevel - 1]?.gradient || 'from-amber-400 to-orange-500'} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
+                                    {selectedEval.employeeName?.charAt(0) || '?'}
                                 </div>
                                 <div>
-                                    <div className="font-semibold text-gray-900">{selectedEval.employeeName}</div>
-                                    <div className="text-xs text-gray-500">{selectedEval.employeeRole} • {levels[selectedEval.fromLevel - 1]?.name} → {levels[selectedEval.toLevel - 1]?.name}</div>
+                                    <div className="text-sm font-semibold text-gray-900">{selectedEval.employeeName}</div>
+                                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                                        {selectedEval.employeeRole}
+                                        <span className="text-gray-300">•</span>
+                                        <span className={`font-bold ${levels[selectedEval.fromLevel - 1]?.color}`}>Lv{selectedEval.fromLevel}</span>
+                                        <span className="text-gray-300">→</span>
+                                        <span className={`font-bold ${levels[selectedEval.toLevel - 1]?.color}`}>Lv{selectedEval.toLevel}</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* Checklist Progress */}
+                            {checklist.length > 0 && (
+                                <div className="mt-3 flex items-center gap-2">
+                                    <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                                            style={{ width: `${Math.round((Object.values(checklistState).filter((v: any) => v.checked).length / checklist.length) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[10px] text-gray-400 font-medium">
+                                        {Object.values(checklistState).filter((v: any) => v.checked).length}/{checklist.length}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Checklist */}
-                        <div className="p-5 flex-1 overflow-y-auto space-y-3">
-                            <h4 className="text-sm font-bold text-gray-700 mb-2">Checklist đánh giá cho {levels[selectedEval.toLevel - 1]?.name}</h4>
-                            {checklist.map(item => (
-                                <div key={item.id} className="bg-gray-50 p-3 rounded-lg space-y-2">
-                                    <label className="flex items-start gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={checklistState[item.id]?.checked || false}
-                                            onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], checked: e.target.checked } }))}
-                                            className="mt-0.5 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-                                        />
-                                        <span className="text-sm text-gray-800">{item.itemText}</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ghi chú (tùy chọn)..."
-                                        value={checklistState[item.id]?.note || ''}
-                                        onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], note: e.target.value } }))}
-                                        className="w-full text-xs px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500"
-                                    />
-                                </div>
-                            ))}
+                        <div className="p-4 flex-1 overflow-y-auto space-y-2">
+                            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                                Checklist — {levels[selectedEval.toLevel - 1]?.name}
+                            </h4>
+                            {checklist.map((item, idx) => {
+                                const isChecked = checklistState[item.id]?.checked || false;
+                                return (
+                                    <div key={item.id} className={`rounded-lg border transition-colors ${isChecked ? 'bg-teal-50/50 border-teal-200' : 'bg-white border-gray-100'}`}>
+                                        <label className="flex items-start gap-3 p-3 cursor-pointer">
+                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-200'}`}>
+                                                {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                                            </div>
+                                            <div className="flex-1">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], checked: e.target.checked } }))}
+                                                    className="sr-only"
+                                                />
+                                                <span className={`text-sm ${isChecked ? 'text-teal-800' : 'text-gray-700'}`}>{item.itemText}</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ghi chú..."
+                                                    value={checklistState[item.id]?.note || ''}
+                                                    onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], note: e.target.value } }))}
+                                                    className="w-full mt-1.5 text-xs px-2.5 py-1 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white/80"
+                                                />
+                                            </div>
+                                        </label>
+                                    </div>
+                                );
+                            })}
 
                             {/* Reject Reason */}
-                            <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    <MessageSquare className="w-3.5 h-3.5 inline mr-1" />
-                                    Lý do từ chối (nếu reject)
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                                    Lý do từ chối
                                 </label>
                                 <textarea
                                     value={rejectReason}
                                     onChange={(e) => setRejectReason(e.target.value)}
                                     placeholder="Nhập lý do nếu từ chối..."
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 resize-none bg-gray-50"
                                     rows={2}
                                 />
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="p-5 border-t border-gray-200 flex gap-3 shrink-0">
+                        <div className="p-4 border-t border-gray-100 flex gap-2.5 shrink-0">
                             <button
                                 onClick={() => handleSubmitEvaluation('rejected')}
                                 disabled={isSubmitting || !rejectReason.trim()}
-                                className="flex-1 py-2.5 border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                                className="flex-1 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium flex items-center justify-center gap-1.5"
                             >
-                                <ThumbsDown className="w-4 h-4" />
+                                <ThumbsDown className="w-3.5 h-3.5" />
                                 Từ chối
                             </button>
                             <button
                                 onClick={() => handleSubmitEvaluation('approved')}
                                 disabled={isSubmitting}
-                                className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2"
+                                className="flex-1 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-300 disabled:to-gray-300 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 shadow-sm"
                             >
-                                <ThumbsUp className="w-4 h-4" />
-                                {isSubmitting ? 'Đang xử lý...' : 'Duyệt thăng cấp'}
+                                <ThumbsUp className="w-3.5 h-3.5" />
+                                {isSubmitting ? 'Đang xử lý...' : 'Duyệt'}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Direct Evaluation Modal */}
+            {directEvalEmployee && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setDirectEvalEmployee(null)}>
+                    <div className={`bg-white rounded-2xl ${isMobile ? 'w-full max-h-[90vh]' : 'max-w-lg w-full max-h-[85vh]'} shadow-2xl flex flex-col overflow-hidden`} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="p-4 border-b border-gray-100 shrink-0">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-base font-bold text-gray-900">Đánh giá trực tiếp</h3>
+                                <button onClick={() => setDirectEvalEmployee(null)} className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${levels[directEvalEmployee.trainingLevel - 1]?.gradient || 'from-teal-400 to-teal-500'} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>
+                                    {directEvalEmployee.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold text-gray-900">{directEvalEmployee.name}</div>
+                                    <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                                        {directEvalEmployee.role}
+                                        <span className="text-gray-300">•</span>
+                                        <span className={`font-bold ${levels[directEvalEmployee.trainingLevel - 1]?.color}`}>Hiện tại: Lv{directEvalEmployee.trainingLevel}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Level Selector */}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {levels.map(lvl => (
+                                    <button
+                                        key={lvl.id}
+                                        onClick={() => handleDirectEvalLevelChange(lvl.id)}
+                                        className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${directEvalLevel === lvl.id ? `bg-gradient-to-br ${lvl.gradient} text-white border-transparent shadow-sm` : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        Level {lvl.id}: {lvl.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Checklist */}
+                        <div className="p-4 flex-1 overflow-y-auto space-y-2 bg-gray-50/50">
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Tiêu chí đánh giá Level {directEvalLevel}
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                    {Object.values(checklistState).filter((v: any) => v.checked).length}/{checklist.length} hoàn thành
+                                </span>
+                            </div>
+
+                            {checklist.length === 0 ? (
+                                <div className="text-center py-6 text-gray-400 text-sm">
+                                    Không có tiêu chí đánh giá nào cho cấp độ này.
+                                </div>
+                            ) : (
+                                checklist.map((item) => {
+                                    const isChecked = checklistState[item.id]?.checked || false;
+                                    return (
+                                        <div key={item.id} className={`rounded-xl border transition-colors overflow-hidden ${isChecked ? 'bg-teal-50/30 border-teal-200' : 'bg-white border-gray-200'}`}>
+                                            <label className="flex items-start gap-3 p-3 cursor-pointer">
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? 'bg-teal-500 border-teal-500' : 'border-gray-300'}`}>
+                                                    {isChecked && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], checked: e.target.checked } }))}
+                                                        className="sr-only"
+                                                    />
+                                                    <span className={`text-sm ${isChecked ? 'text-teal-900 font-medium' : 'text-gray-700'}`}>{item.itemText}</span>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ghi chú thêm (tùy chọn)..."
+                                                        value={checklistState[item.id]?.note || ''}
+                                                        onChange={(e) => setChecklistState(prev => ({ ...prev, [item.id]: { ...prev[item.id], note: e.target.value } }))}
+                                                        className="w-full mt-2 text-xs px-3 py-1.5 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 bg-white"
+                                                    />
+                                                </div>
+                                            </label>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="p-4 border-t border-gray-100 bg-white shrink-0">
+                            {submitError && (
+                                <div className="mb-3 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 font-medium whitespace-pre-wrap">
+                                    {submitError}
+                                </div>
+                            )}
+                            {directEvalLevel > directEvalEmployee.trainingLevel && (
+                                <div className="mb-3 px-3 py-2 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2">
+                                    <Award className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                                    <p className="text-xs text-blue-800">
+                                        Đánh giá Level {directEvalLevel} sẽ được gửi lên <strong>chờ duyệt</strong>. Khi được duyệt, nhân viên sẽ được thăng cấp.
+                                    </p>
+                                </div>
+                            )}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setDirectEvalEmployee(null)}
+                                    className="flex-1 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-sm font-medium"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    onClick={handleSubmitDirectEval}
+                                    disabled={isSubmitting || checklist.length === 0}
+                                    className="flex-[2] py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                    <ClipboardCheck className="w-4 h-4" />
+                                    {isSubmitting ? 'Đang gửi...' : 'Gửi đánh giá (Chờ duyệt)'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
