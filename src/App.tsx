@@ -69,7 +69,7 @@ function DesktopLayout() {
             } />
             <Route path="thuc-don" element={<RoleGuard allowedRoles={['admin', 'manager']}><MenuManagement /></RoleGuard>} />
             <Route path="bep" element={<RoleGuard allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></RoleGuard>} />
-            <Route path="dao-tao" element={<RoleGuard allowedRoles={['admin', 'manager']}><TrainingPortal /></RoleGuard>} />
+            <Route path="dao-tao" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist', 'kitchen', 'server']}><TrainingPortal /></RoleGuard>} />
             <Route path="khach-hang" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></RoleGuard>} />
             <Route path="cau-hinh" element={<RoleGuard allowedRoles={['admin', 'manager']}><Settings /></RoleGuard>} />
             <Route path="ho-so" element={<UserProfile />} />
