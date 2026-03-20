@@ -749,27 +749,33 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     </div>
   );
 
+  const isAdminOrManager = userRole === 'admin' || userRole === 'manager';
+
   const renderMoreMenu = () => (
     <div className="p-4 grid grid-cols-2 gap-4 pb-24">
-      <button
-        onClick={() => handleSetView('menu-management')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-3">
-          <Utensils className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Quản lý thực đơn</span>
-      </button>
+      {isAdminOrManager && (
+        <button
+          onClick={() => handleSetView('menu-management')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-3">
+            <Utensils className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Quản lý thực đơn</span>
+        </button>
+      )}
 
-      <button
-        onClick={() => handleSetView('kitchen')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-3">
-          <ChefHat className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Bếp (KDS)</span>
-      </button>
+      {(isAdminOrManager || userRole === 'kitchen') && (
+        <button
+          onClick={() => handleSetView('kitchen')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-3">
+            <ChefHat className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Bếp (KDS)</span>
+        </button>
+      )}
 
       <button
         onClick={() => handleSetView('training')}
@@ -781,45 +787,53 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         <span className="font-bold text-gray-800">Đào tạo nội bộ</span>
       </button>
 
-      <button
-        onClick={() => handleSetView('crm')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3">
-          <Users className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Khách hàng CRM</span>
-      </button>
+      {(isAdminOrManager || userRole === 'receptionist') && (
+        <button
+          onClick={() => handleSetView('crm')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mb-3">
+            <Users className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Khách hàng CRM</span>
+        </button>
+      )}
 
-      <button
-        onClick={() => handleSetView('settings')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center mb-3">
-          <SettingsIcon className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Cấu hình</span>
-      </button>
+      {isAdminOrManager && (
+        <button
+          onClick={() => handleSetView('settings')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center mb-3">
+            <SettingsIcon className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Cấu hình</span>
+        </button>
+      )}
 
-      <button
-        onClick={() => handleSetView('reports')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-3">
-          <BarChart3 className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Báo cáo nhanh</span>
-      </button>
+      {isAdminOrManager && (
+        <button
+          onClick={() => handleSetView('reports')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-3">
+            <BarChart3 className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Báo cáo nhanh</span>
+        </button>
+      )}
 
-      <button
-        onClick={() => handleSetView('order-history')}
-        className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
-      >
-        <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3">
-          <Receipt className="w-7 h-7" />
-        </div>
-        <span className="font-bold text-gray-800">Lịch sử đơn</span>
-      </button>
+      {(isAdminOrManager || userRole === 'receptionist') && (
+        <button
+          onClick={() => handleSetView('order-history')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-3">
+            <Receipt className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Lịch sử đơn</span>
+        </button>
+      )}
 
       <button
         onClick={onLogout}

@@ -89,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="block w-full pl-10 pr-3 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                placeholder="Nhập email đăng nhập"
+                placeholder="Nhập tên đăng nhập (VD: admin, letan1...)"
               />
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function Login({ onLogin }: LoginProps) {
             <div className="p-6">
               <h3 className="text-xl font-bold text-white mb-2">Quên mật khẩu?</h3>
               <p className="text-slate-400 text-sm mb-6">
-                Vui lòng nhập email liên kết với tài khoản của bạn. Chúng tôi sẽ gửi một liên kết để đặt lại mật khẩu (có hiệu lực trong 24h).
+                Vui lòng nhập tên đăng nhập của bạn. Chúng tôi sẽ kiểm tra và hỗ trợ cấp lại mật khẩu.
               </p>
 
               {resetSent ? (
@@ -191,7 +191,7 @@ export default function Login({ onLogin }: LoginProps) {
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
                       className="block w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
-                      placeholder="email@example.com"
+                      placeholder="Nhập tên đăng nhập..."
                     />
                   </div>
                   <div className="flex gap-3">
