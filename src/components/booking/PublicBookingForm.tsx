@@ -6,7 +6,119 @@ import { menuService } from '../../services/menuService';
 import { settingsService } from '../../services/settingsService';
 import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
 
+
+const TRANSLATIONS = {
+    vi: {
+        appName: "Maison Vie",
+        lookup: "Tra cứu đơn đặt bàn",
+        title: "ĐẶT BÀN ONLINE",
+        subtitle: "Hoàn tất biểu mẫu dưới đây, chúng tôi sẽ liên hệ để xác nhận ngay.",
+        customerTypeHeading: "Đối tượng Khách hàng",
+        retail: "Khách Lẻ",
+        tour: "Khách Tour",
+        contactInfoHeading: "Thông tin liên hệ",
+        fullName: "Họ và Tên",
+        fullNamePlaceholder: "Nguyễn Văn A",
+        phone: "Số Điện Thoại",
+        phonePlaceholder: "090 123 4567",
+        emailOptional: "Email (Tùy chọn)",
+        reservationHeading: "Thông tin Đặt Bàn",
+        date: "Ngày",
+        time: "Giờ",
+        pax: "Số Khách",
+        checking: "Đang kiểm tra chỗ trống...",
+        fullyBooked: "Rất tiếc, khung giờ này đã kín bàn.",
+        canStillBook: "(Bạn vẫn có thể đặt, nhưng có thể phải đợi bàn)",
+        suggestedSlots: "Vui lòng chọn một trong các khung giờ gần nhất còn trống:",
+        menuHeading: "Chọn Thực đơn (Không bắt buộc)",
+        alacarteTab: "Gọi Món Lẻ",
+        setTab: "Set Menu",
+        loadingMenus: "Đang tải thực đơn...",
+        perGuest: "/khách",
+        viewDetail: "Xem chi tiết →",
+        otherRequests: "Yêu cầu khác (Tùy chọn)",
+        notesLabel: "Ghi chú (Dị ứng, kỷ niệm, v.v.)",
+        notesPlaceholder: "Ví dụ: Khách dị ứng tôm, đặt bàn tổ chức sinh nhật...",
+        continueBtn: "Tiếp tục",
+        footer: "© 2026 Maison Vie. Bảo mật thông tin khách hàng.",
+        close: "Đóng",
+        confirmTitle: "Xác nhận thông tin",
+        confirmSubtitle: "Vui lòng kiểm tra lại trước khi gửi",
+        customerTypeTitle: "Loại khách",
+        selectedItems: "Món đã chọn",
+        notesConfirm: "Ghi chú",
+        backBtn: "Quay lại",
+        processingBtn: "Đang xử lý...",
+        confirmBtn: "Xác Nhận Đặt Bàn",
+        successTitle: "Đặt Bàn Thành Công!",
+        successThanks: "Cảm ơn",
+        successAt: "đã đặt bàn tại Maison Vie.",
+        successContact: "Chúng tôi sẽ liên hệ qua số",
+        successSoon: "để xác nhận trong ít phút tới.",
+        backToHome: "Về Trang Chủ",
+        errorSubmit: "Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.",
+        guest: "người",
+        tourLabel: "Khách Tour",
+        retailLabel: "Khách Lẻ",
+    },
+    en: {
+        appName: "Maison Vie",
+        lookup: "Lookup Booking",
+        title: "BOOK A TABLE ONLINE",
+        subtitle: "Fill out the form below, we will contact you shortly to confirm.",
+        customerTypeHeading: "Customer Type",
+        retail: "Retail",
+        tour: "Tour",
+        contactInfoHeading: "Contact Information",
+        fullName: "Full Name",
+        fullNamePlaceholder: "John Doe",
+        phone: "Phone Number",
+        phonePlaceholder: "090 123 4567",
+        emailOptional: "Email (Optional)",
+        reservationHeading: "Reservation Details",
+        date: "Date",
+        time: "Time",
+        pax: "Guests",
+        checking: "Checking availability...",
+        fullyBooked: "Sorry, this time slot is fully booked.",
+        canStillBook: "(You can still book, but may have to wait for a table)",
+        suggestedSlots: "Please select one of the nearest available time slots:",
+        menuHeading: "Select Menu (Optional)",
+        alacarteTab: "A La Carte",
+        setTab: "Set Menu",
+        loadingMenus: "Loading menus...",
+        perGuest: "/pax",
+        viewDetail: "View details →",
+        otherRequests: "Other Requests (Optional)",
+        notesLabel: "Notes (Allergies, anniversary, etc.)",
+        notesPlaceholder: "E.g. Shrimp allergy, birthday celebration...",
+        continueBtn: "Continue",
+        footer: "© 2026 Maison Vie. Customer information is kept confidential.",
+        close: "Close",
+        confirmTitle: "Confirm Information",
+        confirmSubtitle: "Please review before submitting",
+        customerTypeTitle: "Customer Type",
+        selectedItems: "Selected Items",
+        notesConfirm: "Notes",
+        backBtn: "Back",
+        processingBtn: "Processing...",
+        confirmBtn: "Confirm Booking",
+        successTitle: "Booking Successful!",
+        successThanks: "Thank you",
+        successAt: "for booking a table at Maison Vie.",
+        successContact: "We will contact you at",
+        successSoon: "to confirm shortly.",
+        backToHome: "Back to Home",
+        errorSubmit: "An error occurred while booking. Please try again later.",
+        guest: "people",
+        tourLabel: "Tour",
+        retailLabel: "Regular",
+    }
+};
+
 export default function PublicBookingForm() {
+    const [lang, setLang] = useState<'vi' | 'en'>('vi');
+    const t = TRANSLATIONS[lang];
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showLookup, setShowLookup] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,7 +273,7 @@ export default function PublicBookingForm() {
             setIsSubmitted(true);
         } catch (error) {
             console.error('Error submitting booking:', error);
-            alert('Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.');
+            alert(t.errorSubmit);
         } finally {
             setIsSubmitting(false);
         }
@@ -179,10 +291,10 @@ export default function PublicBookingForm() {
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="w-10 h-10 text-green-500" />
                     </div>
-                    <h2 className="text-2xl font-black mb-2 text-gray-900">Đặt Bàn Thành Công!</h2>
+                    <h2 className="text-2xl font-black mb-2 text-gray-900">{t.successTitle}</h2>
                     <p className="text-gray-600 mb-8 leading-relaxed">
-                        Cảm ơn <strong>{formData.customerName}</strong> đã đặt bàn tại Maison Vie.<br />
-                        Chúng tôi sẽ liên hệ qua số <strong>{formData.phone}</strong> để xác nhận trong ít phút tới.
+                        {t.successThanks} <strong>{formData.customerName}</strong> {t.successAt}<br />
+                        {t.successContact} <strong>{formData.phone}</strong> {t.successSoon}
                     </p>
 
                     <div className="bg-gray-50 rounded-xl p-4 text-left space-y-3 mb-8">
@@ -196,7 +308,7 @@ export default function PublicBookingForm() {
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-700">
                             <Users className="w-4 h-4 text-gray-400" />
-                            <span>{formData.pax} người</span>
+                            <span>{formData.pax}  {t.guest}</span>
                         </div>
                     </div>
 
@@ -221,23 +333,35 @@ export default function PublicBookingForm() {
     return (
         <div className="min-h-screen bg-[#f3f4f6] font-sans flex flex-col">
             {/* Header */}
-            <div className="bg-white shadow-sm py-4 px-6 md:px-12 flex justify-center items-center sticky top-0 z-10 w-full">
-                <div className="flex items-center gap-2">
-                    <UtensilsCrossed className="w-7 h-7 text-teal-600" />
-                    <h1 className="text-2xl font-black tracking-tight text-gray-900">Maison Vie</h1>
+            <div className="bg-white shadow-sm py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-10 w-full">
+                <div className="w-24 hidden sm:block"></div>
+                <div className="flex items-center justify-center flex-1">
+                    <div className="flex items-center gap-2">
+                        <UtensilsCrossed className="w-7 h-7 text-teal-600" />
+                        <h1 className="text-xl md:text-2xl font-black tracking-tight text-gray-900">{t.appName}</h1>
+                    </div>
+                </div>
+                <div className="w-24 flex justify-end">
+                    <button
+                        type="button"
+                        onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
+                        className="px-2.5 py-1.5 rounded-full border border-gray-200 text-xs md:text-sm font-semibold hover:bg-gray-50 flex items-center shadow-sm bg-white text-gray-700 transition gap-1.5 whitespace-nowrap"
+                    >
+                        {lang === 'vi' ? '🇻🇳 VN' : '🇬🇧 EN'}
+                    </button>
                 </div>
             </div>
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center p-4 md:p-8 w-full max-w-2xl mx-auto">
-                {/* Tra cứu đơn đặt bàn */}
+                {/* {t.lookup} */}
                 <div className="w-full mt-2 md:mt-8 mb-3">
                     <button
                         onClick={() => setShowLookup(!showLookup)}
                         className="flex items-center gap-2 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors mx-auto"
                     >
                         <Search className="w-4 h-4" />
-                        Tra cứu đơn đặt bàn
+                        {t.lookup}
                         {showLookup ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                     {showLookup && (
@@ -250,36 +374,36 @@ export default function PublicBookingForm() {
                 <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
                     <div className="bg-teal-600 px-6 py-8 text-white text-center">
-                        <h2 className="text-2xl md:text-3xl font-black mb-2">ĐẶT BÀN ONLINE</h2>
-                        <p className="text-teal-100 text-sm md:text-base">Hoàn tất biểu mẫu dưới đây, chúng tôi sẽ liên hệ để xác nhận ngay.</p>
+                        <h2 className="text-2xl md:text-3xl font-black mb-2">{t.title}</h2>
+                        <p className="text-teal-100 text-sm md:text-base">{t.subtitle}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="px-6 py-8 md:px-10 md:py-10 space-y-6">
 
                         {/* LOẠI KHÁCH HÀNG */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Đối tượng Khách hàng</h3>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.customerTypeHeading}</h3>
                             <div className="flex gap-3">
                                 <label className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg border cursor-pointer transition-all text-sm ${formData.customerType === 'retail' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" className="hidden" name="customerType" value="retail" checked={formData.customerType === 'retail'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
-                                    <span className={`font-semibold ${formData.customerType === 'retail' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Lẻ</span>
+                                    <span className={`font-semibold ${formData.customerType === 'retail' ? 'text-teal-700' : 'text-gray-600'}`}>{t.retail}</span>
                                 </label>
                                 <label className={`flex-1 flex items-center justify-center py-2 px-3 rounded-lg border cursor-pointer transition-all text-sm ${formData.customerType === 'tour' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" className="hidden" name="customerType" value="tour" checked={formData.customerType === 'tour'} onChange={(e) => { handleChange(e); setSelectedMenus([]); }} />
-                                    <span className={`font-semibold ${formData.customerType === 'tour' ? 'text-teal-700' : 'text-gray-600'}`}>Khách Tour</span>
+                                    <span className={`font-semibold ${formData.customerType === 'tour' ? 'text-teal-700' : 'text-gray-600'}`}>{t.tour}</span>
                                 </label>
                             </div>
                         </div>
 
                         {/* THÔNG TIN CÁ NHÂN */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Thông tin liên hệ</h3>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.contactInfoHeading}</h3>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <User className="w-4 h-4 text-teal-600" />
-                                        Họ và Tên <span className="text-red-500">*</span>
+                                        {t.fullName} <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -288,14 +412,14 @@ export default function PublicBookingForm() {
                                         value={formData.customerName}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
-                                        placeholder="Nguyễn Văn A"
+                                        placeholder={t.fullNamePlaceholder}
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Phone className="w-4 h-4 text-teal-600" />
-                                        Số Điện Thoại <span className="text-red-500">*</span>
+                                        {t.phone} <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="tel"
@@ -304,7 +428,7 @@ export default function PublicBookingForm() {
                                         value={formData.phone}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
-                                        placeholder="090 123 4567"
+                                        placeholder={t.phonePlaceholder}
                                     />
                                 </div>
 
@@ -327,13 +451,13 @@ export default function PublicBookingForm() {
 
                         {/* THỜI GIAN & SỐ LƯỢNG */}
                         <div className="space-y-4 pt-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Thông tin Đặt Bàn</h3>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.reservationHeading}</h3>
 
                             {/* Ngày — full width */}
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                     <CalendarIcon className="w-4 h-4 text-teal-600" />
-                                    Ngày <span className="text-red-500">*</span>
+                                    {t.date} <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
@@ -350,7 +474,7 @@ export default function PublicBookingForm() {
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-teal-600" />
-                                        Giờ <span className="text-red-500">*</span>
+                                        {t.time} <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="time"
@@ -367,7 +491,7 @@ export default function PublicBookingForm() {
                                 <div className="space-y-1.5">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Users className="w-4 h-4 text-teal-600" />
-                                        Số Khách <span className="text-red-500">*</span>
+                                        {t.pax} <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="pax"
@@ -384,19 +508,19 @@ export default function PublicBookingForm() {
 
                             {/* Hiển thị check availability */}
                             {isChecking ? (
-                                <p className="text-sm text-gray-500 mt-2 italic">Đang kiểm tra chỗ trống...</p>
+                                <p className="text-sm text-gray-500 mt-2 italic">{t.checking}</p>
                             ) : isAvailable === false ? (
                                 <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
                                     <div className="text-orange-800 font-bold mb-2 flex items-start gap-2">
                                         <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                                         <div>
-                                            Rất tiếc, khung giờ này đã kín bàn.
-                                            {!appSettings?.strictMode && <div className="font-normal text-sm mt-1">(Bạn vẫn có thể đặt, nhưng có thể phải đợi bàn)</div>}
+                                            {t.fullyBooked}
+                                            {!appSettings?.strictMode && <div className="font-normal text-sm mt-1">{t.canStillBook}</div>}
                                         </div>
                                     </div>
                                     {suggestedSlots.length > 0 && (
                                         <>
-                                            <p className="text-sm text-orange-700 mb-3 font-medium">Vui lòng chọn một trong các khung giờ gần nhất còn trống:</p>
+                                            <p className="text-sm text-orange-700 mb-3 font-medium">{t.suggestedSlots}</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {suggestedSlots.map(slot => (
                                                     <button
@@ -423,14 +547,14 @@ export default function PublicBookingForm() {
 
                             {formData.customerType === 'retail' && (
                                 <div className="flex border-b border-gray-200 mb-4">
-                                    <button type="button" onClick={() => setActiveRetailTab('alacarte')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'alacarte' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>Gọi Món Lẻ</button>
-                                    <button type="button" onClick={() => setActiveRetailTab('set')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'set' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>Set Menu</button>
+                                    <button type="button" onClick={() => setActiveRetailTab('alacarte')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'alacarte' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.alacarteTab}</button>
+                                    <button type="button" onClick={() => setActiveRetailTab('set')} className={`px-4 py-2 font-semibold text-sm ${activeRetailTab === 'set' ? 'text-teal-600 border-b-2 border-teal-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.setTab}</button>
                                 </div>
                             )}
 
                             <div className="max-h-80 overflow-y-auto pr-2 custom-scrollbar space-y-3">
                                 {isLoadingMenus ? (
-                                    <div className="text-center py-4 text-gray-500 text-sm">Đang tải thực đơn...</div>
+                                    <div className="text-center py-4 text-gray-500 text-sm">{t.loadingMenus}</div>
                                 ) : (
                                     <>
                                         {/* Render ALACARTE */}
@@ -454,8 +578,8 @@ export default function PublicBookingForm() {
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex-1">
                                                         <h4 className="font-semibold text-gray-800">{set.name}</h4>
-                                                        <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">/khách</span></p>
-                                                        <button type="button" onClick={() => setMenuDetailItem(set)} className="text-xs text-teal-600 font-semibold mt-1 hover:underline">Xem chi tiết →</button>
+                                                        <p className="text-teal-600 font-medium text-sm">{set.price.toLocaleString()} ₫ <span className="text-gray-400 font-normal">{t.perGuest}</span></p>
+                                                        <button type="button" onClick={() => setMenuDetailItem(set)} className="text-xs text-teal-600 font-semibold mt-1 hover:underline">{t.viewDetail}</button>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <button type="button" onClick={() => handleQuantityChange(set, 'set', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
@@ -477,7 +601,7 @@ export default function PublicBookingForm() {
                                                         </div>
                                                         <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
                                                         {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
-                                                        <button type="button" onClick={() => setMenuDetailItem(tour)} className="text-xs text-orange-600 font-semibold mt-1 hover:underline">Xem chi tiết →</button>
+                                                        <button type="button" onClick={() => setMenuDetailItem(tour)} className="text-xs text-orange-600 font-semibold mt-1 hover:underline">{t.viewDetail}</button>
                                                     </div>
                                                     <div className="flex items-center gap-3">
                                                         <button type="button" onClick={() => handleQuantityChange(tour, 'tour', -1)} className="w-8 h-8 flex justify-center items-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600" title="Giảm"><Minus className="w-4 h-4" /></button>
@@ -494,18 +618,18 @@ export default function PublicBookingForm() {
 
                         {/* YÊU CẦU THÊM */}
                         <div className="space-y-4 pt-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">Yêu cầu khác (Tùy chọn)</h3>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.otherRequests}</h3>
 
 
                             <div className="space-y-1.5 pt-2">
-                                <label className="text-sm font-semibold text-gray-700">Ghi chú (Dị ứng, kỷ niệm, v.v.)</label>
+                                <label className="text-sm font-semibold text-gray-700">{t.notesLabel}</label>
                                 <textarea
                                     name="notes"
                                     value={formData.notes}
                                     onChange={handleChange}
                                     rows={3}
                                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white resize-none"
-                                    placeholder="Ví dụ: Khách dị ứng tôm, đặt bàn tổ chức sinh nhật..."
+                                    placeholder={t.notesPlaceholder}
                                 />
                             </div>
                         </div>
@@ -523,7 +647,7 @@ export default function PublicBookingForm() {
                 </div>
 
                 <p className="text-center text-gray-400 text-sm mt-8 pb-8 font-medium">
-                    © 2026 Maison Vie. Bảo mật thông tin khách hàng.
+                    {t.footer}
                 </p>
             </div>
 
@@ -540,7 +664,7 @@ export default function PublicBookingForm() {
                         <div className="flex items-center gap-3">
                             <span className="text-2xl font-black text-teal-600">{menuDetailItem.price?.toLocaleString()} ₫</span>
                             {menuDetailItem.netPrice && <span className="text-sm text-gray-400 line-through">{menuDetailItem.netPrice.toLocaleString()} ₫</span>}
-                            <span className="text-gray-400 text-sm">/khách</span>
+                            <span className="text-gray-400 text-sm">{t.perGuest}</span>
                         </div>
                         {menuDetailItem.focPolicy && <p className="text-sm text-gray-600 italic bg-orange-50 p-3 rounded-lg border border-orange-100">FOC: {menuDetailItem.focPolicy}</p>}
 
@@ -575,25 +699,25 @@ export default function PublicBookingForm() {
                 <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                         <div className="bg-teal-600 text-white px-6 py-5 shrink-0">
-                            <h3 className="text-xl font-black">Xác nhận thông tin</h3>
-                            <p className="text-teal-100 text-sm mt-1">Vui lòng kiểm tra lại trước khi gửi</p>
+                            <h3 className="text-xl font-black">{t.confirmTitle}</h3>
+                            <p className="text-teal-100 text-sm mt-1">{t.confirmSubtitle}</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 space-y-5">
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Họ tên</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">SĐT</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.fullName}</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.phone}</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
                                 {formData.email && <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>}
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Loại khách</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? 'Khách Tour' : 'Khách Lẻ'}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.customerTypeTitle}</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? t.tourLabel : t.retailLabel}</span></div>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Ngày</span><span className="font-semibold text-gray-800">{new Date(formData.date).toLocaleDateString('vi-VN')}</span></div>
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Giờ</span><span className="font-semibold text-gray-800">{formData.time}</span></div>
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Số khách</span><span className="font-semibold text-gray-800">{formData.pax} người</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.date}</span><span className="font-semibold text-gray-800">{new Date(formData.date).toLocaleDateString('vi-VN')}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.time}</span><span className="font-semibold text-gray-800">{formData.time}</span></div>
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">{t.pax}</span><span className="font-semibold text-gray-800">{formData.pax}  {t.guest}</span></div>
                             </div>
 
                             {selectedMenus.length > 0 && (
                                 <div className="bg-gray-50 p-4 rounded-xl space-y-2">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Món đã chọn</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t.selectedItems}</p>
                                     {selectedMenus.map((item, idx) => (
                                         <div key={idx} className="flex justify-between items-center text-sm">
                                             <span className="text-gray-700">{item.name}</span>
@@ -605,7 +729,7 @@ export default function PublicBookingForm() {
 
                             {formData.notes && (
                                 <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ghi chú</p>
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{t.notesConfirm}</p>
                                     <p className="text-sm text-gray-700">{formData.notes}</p>
                                 </div>
                             )}
@@ -624,7 +748,7 @@ export default function PublicBookingForm() {
                                 disabled={isSubmitting}
                                 className={`flex-1 py-3 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 ${isSubmitting ? 'bg-teal-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'}`}
                             >
-                                {isSubmitting ? 'Đang xử lý...' : 'Xác Nhận Đặt Bàn'}
+                                {isSubmitting ? t.processingBtn : t.confirmBtn}
                                 {!isSubmitting && <CheckCircle className="w-5 h-5" />}
                             </button>
                         </div>
