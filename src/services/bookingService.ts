@@ -4,6 +4,7 @@ import { customerService } from './customerService';
 import { orderService } from './orderService';
 import { tableService } from './tableService';
 import { settingsService } from './settingsService';
+import { bookingNotifyService } from './bookingNotifyService';
 export const bookingService = {
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
     async getBookings() {
@@ -71,7 +72,7 @@ export const bookingService = {
             throw error;
         }
 
-        return {
+        const result = {
             id: data.id,
             customerName: data.customer_name,
             phone: data.phone,
@@ -86,10 +87,26 @@ export const bookingService = {
             customerType: data.customer_type,
             selectedMenus: data.selected_menus || []
         } as Booking;
+
+        // Fire-and-forget: thông báo booking mới qua webhook/email
+        bookingNotifyService.notifyNewBooking(result).catch(() => {});
+
+        return result;
     },
 
     // 3. Cập nhật trạng thái
     async updateBookingStatus(id: string, status: BookingStatus) {
+        // Lấy trạng thái cũ trước khi cập nhật (cho notification)
+        let oldStatus: BookingStatus | undefined;
+        try {
+            const { data: current } = await supabase
+                .from('bookings')
+                .select('status')
+                .eq('id', id)
+                .single();
+            if (current) oldStatus = current.status as BookingStatus;
+        } catch { /* ignore */ }
+
         const { error } = await supabase
             .from('bookings')
             .update({ status, updated_at: new Date().toISOString() })
@@ -134,6 +151,68 @@ export const bookingService = {
                         bookingId: booking.id
                     } as any);
                 }
+            }
+
+            // Fire-and-forget: thông báo thay đổi trạng thái qua webhook/email
+            if (booking && oldStatus && oldStatus !== status) {
+                // --- Enrich: lấy tên bàn từ tables nếu thiếu ---
+                let resolvedTableName = booking.table_name || '';
+                let resolvedArea = booking.area || '';
+                if (booking.table_id && !resolvedTableName) {
+                    try {
+                        const { data: tbl } = await supabase
+                            .from('tables')
+                            .select('name, area')
+                            .eq('id', booking.table_id)
+                            .single();
+                        if (tbl) {
+                            resolvedTableName = tbl.name || '';
+                            if (tbl.area && !resolvedArea) resolvedArea = tbl.area;
+                        }
+                    } catch { /* ignore */ }
+                }
+
+                // --- Enrich: resolve menu names nếu selected_menus chỉ chứa ID ---
+                let resolvedMenus = booking.selected_menus || [];
+                if (resolvedMenus.length > 0) {
+                    // Nếu phần tử đầu tiên không có field name/title → cần lookup
+                    const firstItem = resolvedMenus[0];
+                    const hasName = typeof firstItem === 'object' && firstItem !== null && (firstItem.name || firstItem.title);
+                    if (!hasName) {
+                        try {
+                            // selected_menus có thể là array of IDs hoặc array of {id, ...}
+                            const menuIds = resolvedMenus.map((m: any) => typeof m === 'string' ? m : m?.id).filter(Boolean);
+                            if (menuIds.length > 0) {
+                                const { data: menus } = await supabase
+                                    .from('menus')
+                                    .select('id, name, title')
+                                    .in('id', menuIds);
+                                if (menus && menus.length > 0) {
+                                    resolvedMenus = menus.map((m: any) => ({ id: m.id, name: m.name || m.title || m.id }));
+                                }
+                            }
+                        } catch { /* ignore */ }
+                    }
+                }
+
+                const bookingData = {
+                    id: booking.id,
+                    customerName: booking.customer_name,
+                    phone: booking.phone,
+                    email: booking.email,
+                    time: booking.time,
+                    bookingDate: booking.booking_date,
+                    pax: booking.pax,
+                    status: status,
+                    notes: booking.notes || [],
+                    area: resolvedArea,
+                    source: booking.source,
+                    customerType: booking.customer_type,
+                    selectedMenus: resolvedMenus,
+                    tableId: booking.table_id,
+                    tableName: resolvedTableName,
+                } as Booking;
+                bookingNotifyService.notifyStatusChange(bookingData, oldStatus, status).catch(() => {});
             }
         } catch (err) {
             console.error('Error syncing table status:', err);

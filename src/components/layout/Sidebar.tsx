@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../../assets/logo.jpg';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -71,12 +72,13 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
         ${isCollapsed ? 'w-20' : 'w-64'}
       `}>
         {/* Logo */}
-        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-0' : 'justify-between px-6'} border-b border-gray-100 shrink-0 transition-all duration-300`}>
-          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-            <div className={`bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm transition-all ${isCollapsed ? 'w-10 h-10' : 'w-8 h-8'}`}>
-              M
-            </div>
-            {!isCollapsed && <span className="text-gray-900 font-bold text-lg tracking-wide whitespace-nowrap">Maison Vie</span>}
+        <div className={`h-16 flex items-center ${isCollapsed ? 'justify-center px-2' : 'justify-between px-4'} border-b border-gray-100 shrink-0 transition-all duration-300`}>
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2'}`}>
+            <img
+              src={logoImg}
+              alt="Maison Vie"
+              className={`object-contain rounded transition-all ${isCollapsed ? 'w-10 h-10' : 'h-12'}`}
+            />
           </div>
           {!isCollapsed && (
             <button onClick={onClose} className="md:hidden text-gray-400 hover:text-gray-600 transition-colors">

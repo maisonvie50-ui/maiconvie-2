@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, Lock, ArrowRight, ChefHat } from 'lucide-react';
+import { User, Lock, ArrowRight } from 'lucide-react';
+import logoImg from '../../assets/logo.jpg';
 import { supabase } from '../../lib/supabase';
 
 interface LoginProps {
@@ -68,9 +69,11 @@ export default function Login({ onLogin }: LoginProps) {
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-teal-500/30">
-            <span className="text-white font-bold text-3xl">M</span>
-          </div>
+          <img
+            src={logoImg}
+            alt="Maison Vie"
+            className="w-24 h-24 object-contain mx-auto mb-4 rounded-2xl shadow-lg"
+          />
           <h1 className="text-3xl font-bold text-white mb-2">Maison Vie</h1>
           <p className="text-slate-300 text-sm">Hệ thống quản lý nhà hàng cao cấp</p>
         </div>

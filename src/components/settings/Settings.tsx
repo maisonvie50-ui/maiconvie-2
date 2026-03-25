@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 import { settingsService, Employee, ActivityLog, Station, AppSettings } from '../../services/settingsService';
+import NotificationSettings from './NotificationSettings';
 import { trainingService, TrainingModule, LevelConfig, ChecklistItem } from '../../services/trainingService';
 import { tableService } from '../../services/tableService';
 import { Table } from '../../types';
@@ -1001,6 +1002,9 @@ export default function Settings() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            <div className="col-span-1 lg:col-span-2 mt-0">
+                                <NotificationSettings />
                             </div>
                         </div>
                     )}
