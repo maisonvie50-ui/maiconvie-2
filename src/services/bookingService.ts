@@ -6,6 +6,110 @@ import { tableService } from './tableService';
 import { settingsService } from './settingsService';
 import { bookingNotifyService } from './bookingNotifyService';
 export const bookingService = {
+    // === CHỐNG OVERBOOKING: Kiểm tra xung đột bàn/phòng ===
+    async checkTableConflict(
+        tableId: string,
+        date: string,
+        time: string,
+        excludeBookingId?: string
+    ): Promise<{ hasConflict: boolean; conflictBooking?: any }> {
+        if (!tableId || !date || !time) return { hasConflict: false };
+
+        try {
+            // Lấy defaultDuration từ settings
+            const settings = await settingsService.getAppSettings();
+            const duration = settings?.defaultDuration || 120;
+
+            const timeToMinutes = (t: string) => {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + (m || 0);
+            };
+
+            const reqStart = timeToMinutes(time);
+            const reqEnd = reqStart + duration;
+
+            // Lấy tất cả booking cùng ngày, cùng bàn, trạng thái active
+            let query = supabase
+                .from('bookings')
+                .select('*')
+                .eq('booking_date', date)
+                .eq('table_id', tableId)
+                .not('status', 'in', '("cancelled","no_show","completed")');
+
+            if (excludeBookingId) {
+                query = query.neq('id', excludeBookingId);
+            }
+
+            const { data: conflictBookings, error } = await query;
+            if (error) {
+                console.error('Error checking table conflict:', error);
+                return { hasConflict: false };
+            }
+
+            // Kiểm tra overlap thời gian
+            for (const b of (conflictBookings || [])) {
+                const bStart = timeToMinutes(b.time);
+                const bEnd = bStart + duration;
+                // Hai khoảng thời gian overlap nếu: start1 < end2 AND end1 > start2
+                if (reqStart < bEnd && reqEnd > bStart) {
+                    return {
+                        hasConflict: true,
+                        conflictBooking: {
+                            id: b.id,
+                            customerName: b.customer_name,
+                            time: b.time,
+                            pax: b.pax,
+                            endTime: `${Math.floor(bEnd / 60)}:${(bEnd % 60).toString().padStart(2, '0')}`,
+                            status: b.status
+                        }
+                    };
+                }
+            }
+
+            return { hasConflict: false };
+        } catch (err) {
+            console.error('checkTableConflict error:', err);
+            return { hasConflict: false };
+        }
+    },
+
+    // Lấy danh sách booking active theo ngày (dùng cho UI xếp bàn)
+    async getActiveBookingsForDate(date: string) {
+        if (!date) return [];
+        try {
+            const settings = await settingsService.getAppSettings();
+            const duration = settings?.defaultDuration || 120;
+
+            const { data, error } = await supabase
+                .from('bookings')
+                .select('id, customer_name, phone, time, pax, status, table_id, table_name, booking_date')
+                .eq('booking_date', date)
+                .not('status', 'in', '("cancelled","no_show","completed")');
+
+            if (error) throw error;
+
+            return (data || []).map(b => {
+                const timeToMinutes = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+                const startMin = timeToMinutes(b.time);
+                const endMin = startMin + duration;
+                return {
+                    id: b.id,
+                    customerName: b.customer_name,
+                    phone: b.phone,
+                    time: b.time,
+                    endTime: `${Math.floor(endMin / 60)}:${(endMin % 60).toString().padStart(2, '0')}`,
+                    pax: b.pax,
+                    status: b.status,
+                    tableId: b.table_id,
+                    tableName: b.table_name
+                };
+            });
+        } catch (err) {
+            console.error('getActiveBookingsForDate error:', err);
+            return [];
+        }
+    },
+
     // 1. Lấy danh sách Booking trong ngày hoặc từ trước tới nay
     async getBookings() {
         const { data, error } = await supabase
@@ -40,6 +144,19 @@ export const bookingService = {
 
     // 2. Tạo Booking mới
     async createBooking(booking: Omit<Booking, 'id'>) {
+
+        // --- CHỐNG OVERBOOKING: Kiểm tra xung đột bàn trước khi tạo ---
+        if (booking.tableId && booking.bookingDate && booking.time) {
+            const conflict = await bookingService.checkTableConflict(
+                booking.tableId, booking.bookingDate, booking.time
+            );
+            if (conflict.hasConflict) {
+                const cb = conflict.conflictBooking;
+                throw new Error(
+                    `⚠️ Bàn này đã có booking của "${cb.customerName}" từ ${cb.time}-${cb.endTime} (${cb.pax} khách). Vui lòng chọn bàn khác hoặc thời gian khác.`
+                );
+            }
+        }
 
         // --- Tích hợp CRM: Thử tìm hoặc tạo mới khách hàng qua SĐT ---
         let customerId = null;
@@ -320,6 +437,27 @@ export const bookingService = {
             .select('*')
             .eq('id', id)
             .single();
+
+        // --- CHỐNG OVERBOOKING: Kiểm tra xung đột khi đổi bàn ---
+        const newTableId = updates.tableId !== undefined ? updates.tableId : oldBooking?.table_id;
+        const newDate = updates.bookingDate || oldBooking?.booking_date;
+        const newTime = updates.time || oldBooking?.time;
+        if (newTableId && newDate && newTime) {
+            // Chỉ check nếu bàn hoặc thời gian thay đổi
+            const tableChanged = updates.tableId !== undefined && updates.tableId !== oldBooking?.table_id;
+            const timeChanged = (updates.time && updates.time !== oldBooking?.time) || (updates.bookingDate && updates.bookingDate !== oldBooking?.booking_date);
+            if (tableChanged || timeChanged) {
+                const conflict = await bookingService.checkTableConflict(
+                    newTableId, newDate, newTime, id
+                );
+                if (conflict.hasConflict) {
+                    const cb = conflict.conflictBooking;
+                    throw new Error(
+                        `⚠️ Bàn này đã có booking của "${cb.customerName}" từ ${cb.time}-${cb.endTime} (${cb.pax} khách). Vui lòng chọn bàn khác hoặc thời gian khác.`
+                    );
+                }
+            }
+        }
 
         const dbUpdates: any = {};
         if (updates.customerName) dbUpdates.customer_name = updates.customerName;

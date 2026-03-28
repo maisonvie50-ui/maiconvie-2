@@ -365,6 +365,37 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [suggestedSlots, setSuggestedSlots] = useState<string[]>([]);
   const [isCheckingSlot, setIsCheckingSlot] = useState(false);
 
+  // === CHỐNG OVERBOOKING: Danh sách booking active theo ngày (dùng cho UI xếp bàn) ===
+  const [dateActiveBookings, setDateActiveBookings] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchActive = async () => {
+      if (!newBooking.bookingDate) return;
+      try {
+        const data = await bookingService.getActiveBookingsForDate(newBooking.bookingDate);
+        setDateActiveBookings(data);
+      } catch { setDateActiveBookings([]); }
+    };
+    if (showModal) fetchActive();
+  }, [newBooking.bookingDate, showModal]);
+
+  // Helper: kiểm tra 1 bàn có bị xung đột thời gian không
+  const getTableConflict = (tableId: string) => {
+    if (!newBooking.time || !tableId) return null;
+    const settings = appSettings;
+    const duration = settings?.defaultDuration || 120;
+    const timeToMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+    const reqStart = timeToMin(newBooking.time);
+    const reqEnd = reqStart + duration;
+
+    return dateActiveBookings.find(b => {
+      if (b.tableId !== tableId) return false;
+      if (editingId && b.id === editingId) return false; // Bỏ qua chính booking đang edit
+      const bStart = timeToMin(b.time);
+      const bEnd = bStart + duration;
+      return reqStart < bEnd && reqEnd > bStart;
+    }) || null;
+  };
+
   useEffect(() => {
     if (newBooking.phone && newBooking.phone.length > 3) {
       const found = bookings.find(b =>
@@ -2035,32 +2066,49 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <div className="grid grid-cols-2 gap-1.5 p-2">
                             {floorTables.map(table => {
                               const isSelected = newBooking.tableId === table.id;
-                              const isEmpty = table.status === 'empty';
+                              const conflict = getTableConflict(table.id);
+                              const isBlocked = !!conflict && !isSelected;
                               return (
                                 <button
                                   key={table.id}
                                   type="button"
-                                  onClick={() => setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name })}
+                                  disabled={isBlocked}
+                                  onClick={() => {
+                                    if (isBlocked) return;
+                                    setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name });
+                                  }}
                                   className={`relative px-2.5 py-2 rounded-lg text-left border-2 transition-all text-xs ${isSelected
                                     ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200 shadow-sm'
-                                    : isEmpty
-                                      ? 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
-                                      : 'border-orange-200 bg-orange-50/50 opacity-70'
+                                    : isBlocked
+                                      ? 'border-red-200 bg-red-50/50 opacity-60 cursor-not-allowed'
+                                      : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
                                     }`}
+                                  title={isBlocked ? `🔒 ${conflict.customerName} (${conflict.time}-${conflict.endTime}, ${conflict.pax} khách)` : ''}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <span className={`font-bold ${isSelected ? 'text-teal-700' : 'text-gray-800'}`}>{table.name}</span>
+                                    <span className={`font-bold ${isSelected ? 'text-teal-700' : isBlocked ? 'text-red-400' : 'text-gray-800'}`}>{table.name}</span>
                                     {isSelected && (
                                       <span className="w-4 h-4 bg-teal-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold">✓</span>
                                     )}
+                                    {isBlocked && (
+                                      <span className="text-[10px]">🔒</span>
+                                    )}
                                   </div>
-                                  <div className="flex items-center justify-between mt-0.5">
-                                    <span className="text-gray-400">{table.pax} chỗ</span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isEmpty ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-600'
-                                      }`}>
-                                      {isEmpty ? 'Trống' : 'Đã đặt'}
-                                    </span>
-                                  </div>
+                                  {isBlocked ? (
+                                    <div className="mt-0.5">
+                                      <span className="text-[10px] font-bold text-red-500 leading-tight block truncate">
+                                        {conflict.customerName} · {conflict.time}-{conflict.endTime}
+                                      </span>
+                                      <span className="text-[10px] text-red-400">{conflict.pax} khách</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center justify-between mt-0.5">
+                                      <span className="text-gray-400">{table.pax} chỗ</span>
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700`}>
+                                        Trống
+                                      </span>
+                                    </div>
+                                  )}
                                 </button>
                               );
                             })}

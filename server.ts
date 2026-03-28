@@ -12,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 4567;
 
   app.use(cors());
   app.use(express.json());

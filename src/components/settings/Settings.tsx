@@ -38,7 +38,7 @@ export default function Settings() {
     const [areas, setAreas] = useState<Area[]>([
         { id: '1', name: 'Sảnh Tầng 1', capacity: 80 },
         { id: '2', name: 'Sảnh Tầng 2', capacity: 50 },
-        { id: '3', name: 'Phòng VIP', capacity: 20 },
+        { id: '3', name: 'Tầng 3', capacity: 20 },
     ]);
 
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
