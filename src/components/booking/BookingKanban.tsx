@@ -827,7 +827,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <h4 className="font-bold text-sm text-gray-900 truncate">{booking.customerName || 'Không có tên'}</h4>
                         {booking.customerType === 'tour' ? (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 shrink-0">Tour</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 shrink-0">Đoàn</span>
                         ) : booking.customerType === 'retail' ? (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 shrink-0">Lẻ</span>
                         ) : null}
@@ -1050,7 +1050,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
                             {booking.customerType === 'tour' ? (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Tour</span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Đoàn</span>
                             ) : booking.customerType === 'retail' ? (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">Lẻ</span>
                             ) : null}
@@ -1267,7 +1267,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <h4 className="font-semibold text-gray-900 text-sm truncate">{booking.customerName || 'Không tên'}</h4>
                                       {booking.customerType === 'tour' && (
-                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Tour</span>
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Đoàn</span>
                                       )}
                                       {booking.customerType === 'retail' && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">Lẻ</span>
@@ -1676,7 +1676,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
                     <span>Thực đơn khách đã chọn</span>
                     {newBooking.customerType ? (
-                      <span className={`${newBooking.customerType === 'tour' ? 'text-purple-700 bg-purple-100 border-purple-200' : 'text-blue-700 bg-blue-100 border-blue-200'} text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase`}>{newBooking.customerType === 'tour' ? 'KHÁCH TOUR' : 'KHÁCH LẺ'}</span>
+                      <span className={`${newBooking.customerType === 'tour' ? 'text-purple-700 bg-purple-100 border-purple-200' : 'text-blue-700 bg-blue-100 border-blue-200'} text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase`}>{newBooking.customerType === 'tour' ? 'KHÁCH ĐOÀN' : 'KHÁCH LẺ'}</span>
                     ) : null}
                   </label>
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
@@ -1745,7 +1745,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               {/* Chọn thực đơn - Visual Card Picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {newBooking.customerType === 'tour' ? '🚌 Thêm Tour Menu' : '🍽️ Thêm món / Set Menu'}
+                  {newBooking.customerType === 'tour' ? '🚌 Thêm Menu Đoàn' : '🍽️ Thêm món / Set Menu'}
                 </label>
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
                   <div className="max-h-[240px] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
@@ -1795,7 +1795,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     {newBooking.customerType === 'tour' && availableTourMenus.length > 0 && (
                       <div>
                         <div className="px-3 py-2 bg-purple-50 border-b border-purple-100 sticky top-0 z-10">
-                          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">🚌 Tour Menu ({availableTourMenus.length})</span>
+                          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">🚌 Menu Đoàn ({availableTourMenus.length})</span>
                         </div>
                         {availableTourMenus.map(menu => {
                           const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === menu.name);
@@ -2253,7 +2253,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
                 {viewingBooking.customerType && (
                   <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${viewingBooking.customerType === 'tour' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                    Khách {viewingBooking.customerType === 'tour' ? 'Tour' : 'Lẻ'}
+                    Khách {viewingBooking.customerType === 'tour' ? 'Đoàn' : 'Lẻ'}
                   </span>
                 )}
               </div>

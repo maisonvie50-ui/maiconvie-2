@@ -15,7 +15,7 @@ const TRANSLATIONS = {
         subtitle: "Hoàn tất biểu mẫu dưới đây, chúng tôi sẽ liên hệ để xác nhận ngay.",
         customerTypeHeading: "Đối tượng Khách hàng",
         retail: "Khách Lẻ",
-        tour: "Khách Tour",
+        tour: "Khách Đoàn",
         contactInfoHeading: "Thông tin liên hệ",
         fullName: "Họ và Tên",
         fullNamePlaceholder: "Nguyễn Văn A",
@@ -58,7 +58,7 @@ const TRANSLATIONS = {
         backToHome: "Về Trang Chủ",
         errorSubmit: "Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.",
         guest: "người",
-        tourLabel: "Khách Tour",
+        tourLabel: "Khách Đoàn",
         retailLabel: "Khách Lẻ",
     },
     en: {
@@ -597,7 +597,7 @@ export default function PublicBookingForm() {
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2">
                                                             <h4 className="font-semibold text-gray-800">{tour.name}</h4>
-                                                            <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Tour</span>
+                                                            <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">Đoàn</span>
                                                         </div>
                                                         <p className="text-red-500 font-medium text-sm mt-1">Net: {tour.netPrice.toLocaleString()} ₫ <span className="text-gray-400 font-normal line-through text-xs ml-1">{tour.price.toLocaleString()} ₫</span></p>
                                                         {tour.focPolicy && <p className="text-xs text-gray-500 mt-1 opacity-80 italic">FOC: {tour.focPolicy}</p>}
