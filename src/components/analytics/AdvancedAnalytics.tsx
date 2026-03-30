@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { reportingService, GoldenHourData, MenuItemStats, BookingSourceData, BookingStatusData } from '../../services/reportingService';
+import { reportingService, GoldenHourData, MenuItemStats, BookingSourceData, BookingStatusData, StaffPerformance } from '../../services/reportingService';
 import {
     BarChart,
     Bar,
@@ -19,13 +19,9 @@ import {
 } from 'recharts';
 import { TrendingUp, Award, AlertCircle, DollarSign, Clock, Users, Calendar, Download, PieChart as PieChartIcon, Activity } from 'lucide-react';
 
-// 3. Staff Performance (Keeping mock since we don't have staff order tables yet)
-const staffData = [
-    { name: 'Nguyễn Văn A', sales: 45000000, orders: 120, upsell: 15 },
-    { name: 'Trần Thị B', sales: 38000000, orders: 110, upsell: 8 },
-    { name: 'Lê Văn C', sales: 52000000, orders: 140, upsell: 22 },
-    { name: 'Phạm Thị D', sales: 28000000, orders: 90, upsell: 5 },
-    { name: 'Hoàng Văn E', sales: 31000000, orders: 95, upsell: 10 },
+// Fallback mock data nếu chưa có dữ liệu thực trong DB
+const fallbackStaffData: StaffPerformance[] = [
+    { name: 'Chưa có dữ liệu', sales: 0, orders: 0, upsell: 0 },
 ];
 
 const COLORS: Record<string, string> = {
@@ -41,6 +37,7 @@ export default function AdvancedAnalytics() {
     const [menuMatrixData, setMenuMatrixData] = useState<MenuItemStats[]>([]);
     const [sourceData, setSourceData] = useState<BookingSourceData[]>([]);
     const [statusData, setStatusData] = useState<BookingStatusData[]>([]);
+    const [staffData, setStaffData] = useState<StaffPerformance[]>(fallbackStaffData);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -53,17 +50,21 @@ export default function AdvancedAnalytics() {
         let mounted = true;
         async function loadStats() {
             try {
-                const [gh, matrix, sources, statuses] = await Promise.all([
+                const [gh, matrix, sources, statuses, staffPerf] = await Promise.all([
                     reportingService.getGoldenHourData(),
                     reportingService.getMenuMatrixData(),
                     reportingService.getBookingSources(),
-                    reportingService.getBookingLossRate()
+                    reportingService.getBookingLossRate(),
+                    reportingService.getStaffPerformance()
                 ]);
                 if (mounted) {
                     setGoldenHourData(gh);
                     setMenuMatrixData(matrix);
                     setSourceData(sources);
                     setStatusData(statuses);
+                    if (staffPerf.length > 0) {
+                        setStaffData(staffPerf);
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -102,7 +103,7 @@ export default function AdvancedAnalytics() {
                     </div>
 
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <BarChart data={goldenHourData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                                 <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10 }} dy={5} interval={2} />
@@ -217,7 +218,7 @@ export default function AdvancedAnalytics() {
                         </div>
                     </div>
                     <div className="h-64 w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <PieChart>
                                 <Pie
                                     data={sourceData}
@@ -256,7 +257,7 @@ export default function AdvancedAnalytics() {
                         </div>
                     </div>
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <BarChart data={statusData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 10 }} dy={5} />
@@ -313,7 +314,7 @@ export default function AdvancedAnalytics() {
                 </div>
 
                 <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <BarChart data={goldenHourData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                             <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />
@@ -359,7 +360,7 @@ export default function AdvancedAnalytics() {
                     </div>
 
                     <div className="h-80 w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                                 <XAxis type="number" dataKey="x" name="Số lượng bán" unit=" món" stroke="#9CA3AF" fontSize={12} />
@@ -456,7 +457,7 @@ export default function AdvancedAnalytics() {
                         </div>
                     </div>
                     <div className="flex-1 min-h-[300px] relative">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <PieChart>
                                 <Pie
                                     data={sourceData}
@@ -496,7 +497,7 @@ export default function AdvancedAnalytics() {
                         </div>
                     </div>
                     <div className="flex-1 min-h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                             <BarChart data={statusData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} dy={10} />

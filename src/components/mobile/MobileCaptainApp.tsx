@@ -7,7 +7,7 @@ import Settings from '../settings/Settings';
 import AdvancedAnalytics from '../analytics/AdvancedAnalytics';
 import MenuManagement from '../menu/MenuManagement';
 import KitchenDisplay from '../kitchen/KitchenDisplay';
-import { level1Tables, vipRooms, eventHall } from '../../data/mockTables';
+import { level1Tables, vipRooms, level3Tables } from '../../data/mockTables';
 import type { Category, MenuItem, SetMenu } from '../../types';
 import { menuService } from '../../services/menuService';
 import {
@@ -143,7 +143,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       // Fallback to mock data if needed
       setTablesL1(level1Tables as any);
       setVipRoomsList(vipRooms as any);
-      setTablesL3(eventHall as any); // Type assertion hack for fallback
+      setTablesL3(level3Tables as any);
     }
   };
 

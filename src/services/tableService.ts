@@ -52,6 +52,27 @@ export const tableService = {
         })) as FloorZone[];
     },
 
+    // 2.5. Get event halls
+    async getEventHalls() {
+        const { data, error } = await supabase
+            .from('event_halls')
+            .select('*');
+
+        if (error) {
+            console.error('Error fetching event halls:', error);
+            throw error;
+        }
+
+        return (data || []).map(e => ({
+            id: e.id,
+            name: e.name,
+            capacity: e.capacity,
+            status: e.status,
+            customerName: e.customer_name,
+            time: e.time
+        }));
+    },
+
     // 3. Update table status
     async updateTableStatus(id: string, updates: Partial<Table>) {
         const dbUpdates: any = {};
@@ -137,20 +158,30 @@ export const tableService = {
 
     // 7. Listen to real-time changes
     subscribeToTables(callback: () => void) {
-        return supabase
-            .channel('public:tables')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'tables' },
-                (payload) => {
-                    console.log('Tables realtime change received!', payload);
-                    callback();
-                }
-            )
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('Successfully subscribed to tables realtime!');
-                }
-            });
+        const channel = supabase.channel('public:tables_and_halls');
+        
+        channel.on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'tables' },
+            (payload) => {
+                console.log('Tables realtime change received!', payload);
+                callback();
+            }
+        )
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'event_halls' },
+            (payload) => {
+                console.log('Event Halls realtime change received!', payload);
+                callback();
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('Successfully subscribed to tables and halls realtime!');
+            }
+        });
+        
+        return channel;
     }
 };

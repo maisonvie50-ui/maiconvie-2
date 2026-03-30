@@ -154,5 +154,75 @@ export const reportingService = {
             });
         }
         return weeks;
+    },
+
+    getStaffPerformance: async (): Promise<StaffPerformance[]> => {
+        // Lấy tất cả đơn hàng đã hoàn thành kèm waiter_id
+        const { data: orders, error: orderError } = await supabase
+            .from('orders')
+            .select('id, waiter_id, status')
+            .not('waiter_id', 'is', null);
+
+        if (orderError || !orders || orders.length === 0) {
+            return [];
+        }
+
+        // Lấy tất cả order_items để tính doanh thu
+        const orderIds = orders.map(o => o.id);
+        const { data: items, error: itemError } = await supabase
+            .from('order_items')
+            .select('order_id, price, quantity')
+            .in('order_id', orderIds);
+
+        if (itemError) {
+            console.error('Error fetching order items for staff perf:', itemError);
+            return [];
+        }
+
+        // Lấy danh sách nhân viên
+        const { data: employees } = await supabase
+            .from('employees')
+            .select('id, name');
+
+        const empMap = new Map<string, string>();
+        (employees || []).forEach(e => empMap.set(e.id, e.name));
+
+        // Tính toán thống kê theo từng nhân viên
+        const staffStats = new Map<string, { sales: number; orders: number; completedOrders: number }>();
+
+        orders.forEach(order => {
+            const wid = order.waiter_id;
+            if (!wid) return;
+
+            if (!staffStats.has(wid)) {
+                staffStats.set(wid, { sales: 0, orders: 0, completedOrders: 0 });
+            }
+
+            const stat = staffStats.get(wid)!;
+            stat.orders++;
+            if (order.status === 'completed') stat.completedOrders++;
+
+            // Tính doanh thu từ order_items
+            const orderItems = (items || []).filter(i => i.order_id === order.id);
+            orderItems.forEach(item => {
+                stat.sales += (item.price || 0) * (item.quantity || 1);
+            });
+        });
+
+        // Chuyển thành mảng kết quả
+        const result: StaffPerformance[] = [];
+        staffStats.forEach((stat, waiterId) => {
+            const name = empMap.get(waiterId) || 'Nhân viên ẩn';
+            // Upsell % = % đơn completed trên tổng (giả lập chỉ số hiệu suất)
+            const upsell = stat.orders > 0 ? Math.round((stat.completedOrders / stat.orders) * 100) : 0;
+            result.push({
+                name,
+                sales: stat.sales,
+                orders: stat.orders,
+                upsell
+            });
+        });
+
+        return result.sort((a, b) => b.sales - a.sales);
     }
 };

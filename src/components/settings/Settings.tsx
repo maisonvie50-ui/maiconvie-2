@@ -236,7 +236,7 @@ export default function Settings() {
         const updates: any = { title: editCourseTitle, level: editCourseLevel };
         if (editYoutubeId && editYoutubeId !== editingCourse.youtubeId) {
             updates.youtube_id = editYoutubeId;
-            updates.thumbnail_url = `https://img.youtube.com/vi/${editYoutubeId}/maxresdefault.jpg`;
+            updates.thumbnail_url = `https://img.youtube.com/vi/${editYoutubeId}/hqdefault.jpg`;
         }
         await trainingService.updateModule(editingCourse.id, updates);
         await loadData();
@@ -353,7 +353,7 @@ export default function Settings() {
                             <div><label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1"><Link className="w-3.5 h-3.5" />Link YouTube</label><input type="text" value={trainingUrl} onChange={(e) => setTrainingUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." className="w-full px-3 py-2.5 border border-gray-200 bg-gray-50/50 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-teal-500 transition-colors" /></div>
                             {previewId && (
                                 <div className="w-full aspect-video bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                                    <img src={`https://img.youtube.com/vi/${previewId}/hqdefault.jpg`} alt="Preview" className="w-full h-full object-cover" />
+                                    <img src={`https://img.youtube.com/vi/${previewId}/hqdefault.jpg`} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                 </div>
                             )}
                             <button onClick={handleAddCourse} disabled={!previewId || !trainingTitle} className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-200 disabled:text-gray-400 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm"><Plus className="w-5 h-5" />Lưu Khóa Học</button>
@@ -376,7 +376,7 @@ export default function Settings() {
                             {managedCourses.map((course) => (
                                 <div key={course.id} className={`p-4 flex items-start gap-4 hover:bg-gray-50/50 transition-colors ${!course.active ? 'opacity-50 grayscale-[0.5]' : ''}`}>
                                     <div className="relative w-24 aspect-video bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm group">
-                                        <img src={`https://img.youtube.com/vi/${course.youtubeId}/hqdefault.jpg`} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <img src={`https://img.youtube.com/vi/${course.youtubeId}/hqdefault.jpg`} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                         <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><PlaySquare className="w-5 h-5 text-white opacity-90 shadow-sm" /></div>
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col justify-between h-full py-0.5">

@@ -21,7 +21,7 @@ const TRANSLATIONS = {
         fullNamePlaceholder: "Nguyễn Văn A",
         phone: "Số Điện Thoại",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email (Tùy chọn)",
+        emailOptional: "Email",
         reservationHeading: "Thông tin Đặt Bàn",
         date: "Ngày",
         time: "Giờ",
@@ -74,7 +74,7 @@ const TRANSLATIONS = {
         fullNamePlaceholder: "John Doe",
         phone: "Phone Number",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email (Optional)",
+        emailOptional: "Email",
         reservationHeading: "Reservation Details",
         date: "Date",
         time: "Time",
@@ -435,11 +435,12 @@ export default function PublicBookingForm() {
                                 <div className="space-y-1.5 col-span-2">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Mail className="w-4 h-4 text-teal-600" />
-                                        Email (Tùy chọn)
+                                        Email <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         name="email"
+                                        required
                                         value={formData.email}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
@@ -706,7 +707,7 @@ export default function PublicBookingForm() {
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.fullName}</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.phone}</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
-                                {formData.email && <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>}
+                                <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.customerTypeTitle}</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? t.tourLabel : t.retailLabel}</span></div>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">

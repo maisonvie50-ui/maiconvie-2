@@ -221,7 +221,7 @@ export const orderService = {
     },
 
     // 5. Create a new order (from OrderPad)
-    async createOrder(tableName: string, items: { name: string; quantity: number; price: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string) {
+    async createOrder(tableName: string, items: { name: string; quantity: number; price: number; notes?: string[]; category: string }[], tableId?: string, bookingId?: string, waiterId?: string) {
         // Insert the order
         const { data: order, error: orderError } = await supabase
             .from('orders')
@@ -229,6 +229,7 @@ export const orderService = {
                 table_name: tableName,
                 table_id: tableId || null,
                 booking_id: bookingId || null,
+                waiter_id: waiterId || null,
                 status: 'pending',
                 booking_status: 'confirmed',
                 order_time: new Date().toISOString()

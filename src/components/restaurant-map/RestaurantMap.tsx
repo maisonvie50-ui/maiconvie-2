@@ -36,9 +36,10 @@ interface EditingItem {
   category: 'table' | 'vip' | 'area';
 }
 
-import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3, floorZones as mockZones, eventHall as initialEventHall } from '../../data/mockTables';
+import { level1Tables as mockL1, vipRooms as mockVip, level3Tables as mockL3 } from '../../data/mockTables';
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
+import { settingsService } from '../../services/settingsService';
 import CheckoutModal from '../booking/CheckoutModal';
 
 export default function RestaurantMap() {
@@ -48,8 +49,8 @@ export default function RestaurantMap() {
   const [tablesL1, setTablesL1] = useState<Table[]>([]);
   const [tablesL3, setTablesL3] = useState<Table[]>([]);
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
-  const [zones, setZones] = useState(mockZones); // keeping zones static for now or can fetch
-  const [eventHall, setEventHall] = useState(initialEventHall);
+  const [zones, setZones] = useState<any[]>([]);
+  const [eventHall, setEventHall] = useState<any[]>([]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPartitionMenuOpen, setIsPartitionMenuOpen] = useState(false);
@@ -77,6 +78,13 @@ export default function RestaurantMap() {
 
       setTablesL3(allTables.filter(t => t.floor === 3));
 
+      // Fetch Zones and Event Halls
+      const allZones = await tableService.getFloorZones();
+      setZones(allZones);
+      
+      const halls = await tableService.getEventHalls();
+      if (halls.length > 0) setEventHall(halls);
+
     } catch (e) {
       console.error('Failed to load tables, falling back to mock data', e);
       setTablesL1(mockL1);
@@ -85,8 +93,30 @@ export default function RestaurantMap() {
     }
   };
 
+  const [areaConfig, setAreaConfig] = useState<any[]>([]);
+
+  // Drag & Drop State
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const dragType = useRef<'table' | 'vip' | null>(null);
+
+  const loadPartitionConfig = async () => {
+    const config = await settingsService.getAppSettings();
+    if (config?.partitionConfig) {
+      setPartitionConfig(config.partitionConfig as any);
+    }
+    if (config?.areas) {
+      try {
+        setAreaConfig(typeof config.areas === 'string' ? JSON.parse(config.areas) : config.areas);
+      } catch (e) {
+        setAreaConfig([]);
+      }
+    }
+  };
+
   React.useEffect(() => {
     fetchTables();
+    loadPartitionConfig();
 
     // Subscribe to realtime updates
     const subscription = tableService.subscribeToTables(() => {
@@ -98,27 +128,22 @@ export default function RestaurantMap() {
     };
   }, []);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<EditingItem>({ category: 'table' });
-
-  // Move Table State
-  const [movingTableId, setMovingTableId] = useState<string | null>(null);
-
-  // Drag & Drop State
-  const dragItem = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
-  const dragType = useRef<'table' | 'vip' | null>(null);
-
   // Calculate Level 1 Occupancy
-  const totalPaxL1 = 80;
-  const currentPaxL1 = tablesL1.reduce((acc, t) => t.status === 'occupied' ? acc + t.pax : acc, 0);
-  const occupancyRateL1 = Math.round((currentPaxL1 / totalPaxL1) * 100);
+  const safeAreaConfig = Array.isArray(areaConfig) ? areaConfig : [];
+  const totalPaxL1 = safeAreaConfig.find(a => a.id === '1')?.capacity || 80;
+  const currentOccupiedL1 = tablesL1.reduce((acc, t) => t.status === 'occupied' ? acc + t.pax : acc, 0);
+  const currentTotalCapacityL1 = tablesL1.reduce((acc, t) => acc + t.pax, 0);
+  const occupancyRateL1 = Math.round((currentOccupiedL1 / totalPaxL1) * 100);
+
+  // Calculate Level 2 Occupancy
+  const totalPaxL2 = safeAreaConfig.find(a => a.id === '2')?.capacity || 50;
+  const currentTotalCapacityL2 = vipRoomsList.reduce((acc, r) => acc + r.capacity, 0);
 
   // Calculate Level 3 Occupancy
-  const totalPaxL3 = 140;
-  const currentPaxL3 = tablesL3.reduce((acc, t) => t.status === 'occupied' ? acc + t.pax : acc, 0);
-  const occupancyRateL3 = Math.round((currentPaxL3 / totalPaxL3) * 100);
+  const totalPaxL3 = Math.max(safeAreaConfig.find(a => a.id === '3')?.capacity || 140, 140); // Base 140 due to event configs
+  const currentOccupiedL3 = tablesL3.reduce((acc, t) => t.status === 'occupied' ? acc + t.pax : acc, 0);
+  const currentTotalCapacityL3 = tablesL3.reduce((acc, t) => acc + t.pax, 0);
+  const occupancyRateL3 = Math.round((currentOccupiedL3 / totalPaxL3) * 100);
 
   // Calculate Event Hall Capacities based on Config
   const getEventHallCapacities = () => {
@@ -132,6 +157,10 @@ export default function RestaurantMap() {
   };
 
   const hallConfig = getEventHallCapacities();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EditingItem>({ category: 'table' });
+  const [movingTableId, setMovingTableId] = useState<string | null>(null);
 
   const getStatusColor = (status: TableStatus) => {
     switch (status) {
@@ -322,6 +351,51 @@ export default function RestaurantMap() {
   const handleSaveModal = async () => {
     if (!editingItem.name) return;
 
+    // --- CAPACITY VALIDATION ---
+    let targetFloor = activeFloor;
+    let newPax = editingItem.pax || 4;
+    let oldPax = 0;
+
+    if (editingItem.category === 'table') {
+      targetFloor = editingItem.floor || (activeFloor === 2 ? 1 : activeFloor);
+    } else if (editingItem.category === 'vip') {
+      targetFloor = 2;
+      newPax = editingItem.capacity || 6;
+    }
+
+    let currentTotalCapacity = 0;
+    let maxLimit = 100;
+
+    if (targetFloor === 1) {
+      currentTotalCapacity = currentTotalCapacityL1;
+      maxLimit = totalPaxL1;
+      if (editingItem.id) {
+        const oldTable = tablesL1.find(t => t.id === editingItem.id);
+        if (oldTable) oldPax = oldTable.pax;
+      }
+    } else if (targetFloor === 3) {
+      currentTotalCapacity = currentTotalCapacityL3;
+      maxLimit = totalPaxL3;
+      if (editingItem.id) {
+        const oldTable = tablesL3.find(t => t.id === editingItem.id);
+        if (oldTable) oldPax = oldTable.pax;
+      }
+    } else if (targetFloor === 2) {
+      currentTotalCapacity = currentTotalCapacityL2;
+      maxLimit = totalPaxL2;
+      if (editingItem.id) {
+        const oldRoom = vipRoomsList.find(t => t.id === editingItem.id);
+        if (oldRoom) oldPax = oldRoom.capacity;
+      }
+    }
+
+    const futureCapacity = currentTotalCapacity - oldPax + newPax;
+    if (futureCapacity > maxLimit) {
+      alert(`⚠️ QUÁ TẢI SỨC CHỨA SÀN ⚠️\n\nTổng lượng ghế thiết lập (${futureCapacity} Pax) vọt quá giới hạn an toàn của Tầng ${targetFloor} (${maxLimit} Pax) mà Quản Lý đã quy định.\n\nVui lòng cân lưu lại sức chứa hoặc sửa cấu hình Area Settings!`);
+      return; // CHỨC NĂNG CẤM LƯU GIAO DIỆN CHÍNH THỨC!
+    }
+    // --- END CAPACITY VALIDATION ---
+
     if (editingItem.category === 'table') {
       const flr = editingItem.floor || (activeFloor === 2 ? 1 : activeFloor);
 
@@ -399,9 +473,9 @@ export default function RestaurantMap() {
         {/* Floor Tabs */}
         <div className="flex bg-white p-1 rounded-lg border border-gray-200 shadow-sm w-full lg:w-auto overflow-x-auto">
           {[
-            { id: 1, label: 'Tầng 1 (Sảnh)', pax: `${currentPaxL1}/${totalPaxL1}` },
+            { id: 1, label: 'Tầng 1 (Sảnh)', pax: `${currentOccupiedL1}/${totalPaxL1}` },
             { id: 2, label: 'Tầng 2 (VIP)', pax: `${vipRoomsList.filter(r => r.status === 'in-use').length}/4` },
-            { id: 3, label: 'Tầng 3 (Tiệc)', pax: `${currentPaxL3}/${totalPaxL3}` }
+            { id: 3, label: 'Tầng 3 (Tiệc)', pax: `${currentOccupiedL3}/${totalPaxL3}` }
           ].map(tab => (
             <button
               key={tab.id}
@@ -451,19 +525,30 @@ export default function RestaurantMap() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center text-sm">T1</span>
-              Sảnh chung (Tầng 1 - 80 Pax)
+              Sảnh chung (Tầng 1 - {totalPaxL1} Pax)
             </h2>
             <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
               <div className="text-sm font-medium text-gray-600">Tiến độ lấp đầy:</div>
               <div className="w-48 h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                  style={{ width: `${occupancyRateL1}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${currentTotalCapacityL1 > totalPaxL1 ? 'bg-red-500' : 'bg-blue-600'}`}
+                  style={{ width: `${Math.min(occupancyRateL1, 100)}%` }}
                 ></div>
               </div>
-              <div className="text-sm font-bold text-blue-600">{currentPaxL1}/{totalPaxL1} Pax</div>
+              <div className={`text-sm font-bold ${currentTotalCapacityL1 > totalPaxL1 * 0.9 ? 'text-red-600 animate-pulse' : 'text-blue-600'}`}>{currentOccupiedL1}/{totalPaxL1} Lấp đầy</div>
             </div>
           </div>
+          
+          {/* Cảnh Báo Sức Chứa - Hiển thị riêng biệt không đè lên header */}
+          {currentTotalCapacityL1 > totalPaxL1 && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-red-700 font-bold text-sm">⚠️ Cảnh báo: Tổng sức chứa bàn ({currentTotalCapacityL1} Ghế) đã vượt quá giới hạn cho phép ({totalPaxL1} Ghế). Vui lòng xóa bớt bàn hoặc giảm sức chứa.</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-6 gap-y-12 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative pt-10">
 
@@ -711,10 +796,34 @@ export default function RestaurantMap() {
       {/* Level 2: VIP Rooms */}
       {activeFloor === 2 && (
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2 relative z-10">
-            <span className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center text-sm">T2</span>
-            Khu vực VIP (Tầng 2)
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 relative z-10">
+              <span className="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center text-sm">T2</span>
+              Khu vực VIP (Tầng 2 - {totalPaxL2} Pax)
+            </h2>
+            <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+              <div className="text-sm font-medium text-gray-600">Sức chứa đã dùng:</div>
+              <div className="w-48 h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${currentTotalCapacityL2 > totalPaxL2 ? 'bg-red-500' : 'bg-purple-500'}`}
+                  style={{ width: `${Math.min(Math.round((currentTotalCapacityL2 / totalPaxL2) * 100), 100)}%` }}
+                ></div>
+              </div>
+              <div className={`text-sm font-bold ${currentTotalCapacityL2 > totalPaxL2 * 0.9 ? 'text-red-600 animate-pulse' : 'text-purple-600'}`}>{currentTotalCapacityL2}/{totalPaxL2} Pax</div>
+            </div>
+          </div>
+
+          {/* Cảnh Báo Sức Chứa VIP */}
+          {currentTotalCapacityL2 > totalPaxL2 && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-red-700 font-bold text-sm">⚠️ Cảnh báo: Tổng sức chứa phòng VIP ({currentTotalCapacityL2} Pax) đã vượt quá giới hạn ({totalPaxL2} Pax).</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-8 relative pt-4">
             {isEditing && (
               <button
@@ -829,18 +938,18 @@ export default function RestaurantMap() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 relative z-10">
               <span className="w-8 h-8 bg-orange-500 text-white rounded-lg flex items-center justify-center text-sm">T3</span>
-              Sảnh sự kiện (Tầng 3 - 140 Pax)
+              Sảnh sự kiện (Tầng 3 - {totalPaxL3} Pax)
             </h2>
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-4 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm mr-2">
                 <div className="text-sm font-medium text-gray-600">Tiến độ lấp đầy:</div>
                 <div className="w-32 h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-orange-500 rounded-full transition-all duration-500"
-                    style={{ width: `${occupancyRateL3}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${currentTotalCapacityL3 > totalPaxL3 ? 'bg-red-500' : 'bg-orange-500'}`}
+                    style={{ width: `${Math.min(occupancyRateL3, 100)}%` }}
                   ></div>
                 </div>
-                <div className="text-sm font-bold text-orange-600">{currentPaxL3}/{totalPaxL3} Pax</div>
+                <div className={`text-sm font-bold ${currentTotalCapacityL3 > totalPaxL3 * 0.9 ? 'text-red-600 animate-pulse' : 'text-orange-600'}`}>{currentOccupiedL3}/{totalPaxL3} Lấp đầy</div>
               </div>
 
               <div className="relative">
@@ -863,7 +972,11 @@ export default function RestaurantMap() {
                     </div>
                     <div className="p-1">
                       <button
-                        onClick={() => { setPartitionConfig('full'); setIsPartitionMenuOpen(false); }}
+                        onClick={async () => { 
+                          setPartitionConfig('full'); 
+                          setIsPartitionMenuOpen(false); 
+                          await settingsService.updateAppSetting('partitionConfig', 'full'); 
+                        }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === 'full' ? 'bg-orange-50 text-orange-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
                       >
                         <span>Không chia (140 Pax)</span>
@@ -871,21 +984,33 @@ export default function RestaurantMap() {
                       </button>
                       <div className="h-px bg-gray-100 my-1"></div>
                       <button
-                        onClick={() => { setPartitionConfig('70-70'); setIsPartitionMenuOpen(false); }}
+                        onClick={async () => { 
+                          setPartitionConfig('70-70'); 
+                          setIsPartitionMenuOpen(false);
+                          await settingsService.updateAppSetting('partitionConfig', '70-70'); 
+                        }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === '70-70' ? 'bg-orange-50 text-orange-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
                       >
                         <span>Chia đều (70 - 70)</span>
                         {partitionConfig === '70-70' && <Check className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => { setPartitionConfig('60-80'); setIsPartitionMenuOpen(false); }}
+                        onClick={async () => { 
+                          setPartitionConfig('60-80'); 
+                          setIsPartitionMenuOpen(false);
+                          await settingsService.updateAppSetting('partitionConfig', '60-80'); 
+                        }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === '60-80' ? 'bg-orange-50 text-orange-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
                       >
                         <span>Chia lệch (60 - 80)</span>
                         {partitionConfig === '60-80' && <Check className="w-4 h-4" />}
                       </button>
                       <button
-                        onClick={() => { setPartitionConfig('40-100'); setIsPartitionMenuOpen(false); }}
+                        onClick={async () => { 
+                          setPartitionConfig('40-100'); 
+                          setIsPartitionMenuOpen(false);
+                          await settingsService.updateAppSetting('partitionConfig', '40-100'); 
+                        }}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === '40-100' ? 'bg-orange-50 text-orange-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
                       >
                         <span>Chia lệch (40 - 100)</span>
@@ -897,6 +1022,17 @@ export default function RestaurantMap() {
               </div>
             </div>
           </div>
+
+          {/* Cảnh Báo Sức Chứa Tầng 3 */}
+          {currentTotalCapacityL3 > totalPaxL3 && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-red-700 font-bold text-sm">⚠️ Cảnh báo: Tổng sức chứa bàn Tầng 3 ({currentTotalCapacityL3} Ghế) đã vượt quá giới hạn ({totalPaxL3} Ghế).</span>
+            </div>
+          )}
 
           {/* Partition Visualizer Overview */}
           {partitionConfig !== 'full' && (

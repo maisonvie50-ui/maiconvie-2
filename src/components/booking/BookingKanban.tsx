@@ -592,6 +592,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           notes: newBooking.notes,
           area: newBooking.area,
           source: newBooking.source,
+          customerType: newBooking.customerType,
+          selectedMenus: newBooking.selectedMenus,
           tableId: newBooking.tableId,
           tableName: assignedTableName
         } : b));
@@ -606,6 +608,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           notes: newBooking.notes,
           area: newBooking.area,
           source: newBooking.source,
+          customerType: newBooking.customerType,
+          selectedMenus: newBooking.selectedMenus,
           tableId: newBooking.tableId,
           tableName: assignedTableName
         });
@@ -621,7 +625,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           status: 'new' as BookingStatus,
           notes: newBooking.notes,
           area: newBooking.area,
-          source: newBooking.source
+          source: newBooking.source,
+          customerType: newBooking.customerType,
+          selectedMenus: newBooking.selectedMenus
         };
 
         const created = await bookingService.createBooking(bookingData);
@@ -2339,18 +2345,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 <div>
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Nguồn đặt</p>
                   <p className="text-sm font-semibold text-gray-900">
-                    {sourceLabels[viewingBooking.source] || viewingBooking.source}
+                    {sourceLabels[viewingBooking.source] || viewingBooking.source || 'Không rõ'}
                   </p>
                 </div>
               </div>
 
-              {/* Menu block */}
-              {viewingBooking.selectedMenus && viewingBooking.selectedMenus.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <List className="w-4 h-4 text-emerald-500" />
-                    Thực đơn đã chọn
-                  </p>
+              {/* Menu block - ALWAYS SHOW */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <List className="w-4 h-4 text-emerald-500" />
+                  Thực đơn đã chọn
+                  {viewingBooking.selectedMenus && viewingBooking.selectedMenus.length > 0 && (
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                      {viewingBooking.selectedMenus.length} món
+                    </span>
+                  )}
+                </p>
+                {viewingBooking.selectedMenus && viewingBooking.selectedMenus.length > 0 ? (
                   <div className="space-y-2">
                     {viewingBooking.selectedMenus.map((menu: any, idx: number) => (
                       <div key={idx} className="bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm p-3 rounded-lg flex items-center justify-between gap-2">
@@ -2358,22 +2369,42 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <span className="w-6 h-6 bg-emerald-200 text-emerald-800 rounded-md flex items-center justify-center text-xs font-bold shrink-0">
                             {menu.quantity}x
                           </span>
-                          <span>{menu.name}</span>
+                          <div>
+                            <span>{menu.name}</span>
+                            {menu.type && (
+                              <span className={`ml-1.5 text-[9px] font-bold uppercase px-1 py-0.5 rounded ${menu.type === 'tour' ? 'bg-purple-100 text-purple-600' : menu.type === 'set' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                                {menu.type === 'tour' ? 'Đoàn' : menu.type === 'set' ? 'Set' : 'A la carte'}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {menu.price && <span className="text-emerald-600 font-semibold">{menu.price.toLocaleString('vi-VN')}đ</span>}
+                        {menu.price > 0 && <span className="text-emerald-600 font-semibold whitespace-nowrap">{(menu.price * menu.quantity).toLocaleString('vi-VN')}đ</span>}
                       </div>
                     ))}
+                    {/* Total */}
+                    {viewingBooking.selectedMenus.some((m: any) => m.price > 0) && (
+                      <div className="flex justify-between items-center pt-2 border-t border-emerald-200 mt-1">
+                        <span className="text-sm font-bold text-gray-700">Tổng cộng</span>
+                        <span className="text-base font-bold text-emerald-700">
+                          {viewingBooking.selectedMenus.reduce((sum: number, m: any) => sum + ((m.price || 0) * (m.quantity || 1)), 0).toLocaleString('vi-VN')}đ
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center justify-center p-4 bg-gray-50 border border-dashed border-gray-200 rounded-lg text-sm text-gray-400">
+                    Khách chưa chọn thực đơn — sẽ đặt khi đến
+                  </div>
+                )}
+              </div>
 
-              {/* Notes block */}
-              {viewingBooking.notes && viewingBooking.notes.length > 0 && (
-                <div>
-                  <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-amber-500" />
-                    Ghi chú từ khách hàng / hệ thống
-                  </p>
+              {/* Notes block - ALWAYS SHOW */}
+              <div>
+                <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-amber-500" />
+                  Ghi chú / Yêu cầu đặc biệt
+                </p>
+                {viewingBooking.notes && viewingBooking.notes.length > 0 ? (
                   <div className="space-y-2">
                     {viewingBooking.notes.map((note, idx) => (
                       <div key={idx} className="bg-amber-50 border border-amber-100 text-amber-800 text-sm p-3 rounded-lg flex items-start gap-2">
@@ -2382,8 +2413,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center justify-center p-4 bg-gray-50 border border-dashed border-gray-200 rounded-lg text-sm text-gray-400">
+                    Không có ghi chú
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">

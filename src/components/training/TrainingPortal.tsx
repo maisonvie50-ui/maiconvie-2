@@ -406,7 +406,7 @@ export default function TrainingPortal() {
                                         className="bg-white p-2 rounded-lg border border-gray-100 shadow-sm flex gap-3 active:bg-gray-50"
                                     >
                                         <div className="relative w-24 h-16 flex-shrink-0 bg-gray-200 rounded-md overflow-hidden">
-                                            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                                                 <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm">
                                                     <Play className="w-3 h-3 text-teal-600 ml-0.5" />
@@ -436,7 +436,7 @@ export default function TrainingPortal() {
                                         className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all cursor-pointer flex flex-col"
                                     >
                                         <div className="relative aspect-video bg-gray-100 overflow-hidden shrink-0">
-                                            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
+                                            <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                                                 <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg transform scale-0 group-hover:scale-100 transition-transform duration-300">
                                                     <Play className="w-5 h-5 text-teal-600 ml-1" />

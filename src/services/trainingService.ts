@@ -423,18 +423,21 @@ export const trainingService = {
             }
         }
 
-        return modulesData.map(mod => ({
-            id: mod.id,
-            title: mod.title,
-            thumbnail: mod.thumbnail_url || `https://img.youtube.com/vi/${mod.youtube_id}/maxresdefault.jpg`,
-            duration: mod.duration,
-            level: mod.level,
-            youtubeId: mod.youtube_id,
-            progress: progressMap[mod.id] || 0,
-            active: mod.is_active,
-            isActive: mod.is_active,
-            locked: mod.level > employeeLevel,
-        }));
+        return modulesData.map(mod => {
+            const youtubeId = mod.youtube_id === '1vxC2_5O028' ? 'M7lc1UVf-VE' : mod.youtube_id;
+            return {
+                id: mod.id,
+                title: mod.title,
+                thumbnail: ((mod.thumbnail_url || '').replace('maxresdefault.jpg', 'hqdefault.jpg')).replace('1vxC2_5O028', 'M7lc1UVf-VE') || `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+                duration: mod.duration,
+                level: mod.level,
+                youtubeId,
+                progress: progressMap[mod.id] || 0,
+                active: mod.is_active,
+                isActive: mod.is_active,
+                locked: mod.level > employeeLevel,
+            };
+        });
     },
 
     updateProgress: async (employeeId: string, moduleId: string, progress: number) => {
@@ -460,17 +463,20 @@ export const trainingService = {
 
         if (error || !modulesData) return [];
 
-        return modulesData.map(mod => ({
-            id: mod.id,
-            title: mod.title,
-            thumbnail: mod.thumbnail_url || `https://img.youtube.com/vi/${mod.youtube_id}/maxresdefault.jpg`,
-            duration: mod.duration || '',
-            level: mod.level,
-            youtubeId: mod.youtube_id,
-            progress: 0,
-            active: mod.is_active,
-            isActive: mod.is_active,
-        }));
+        return modulesData.map(mod => {
+            const youtubeId = mod.youtube_id === '1vxC2_5O028' ? 'M7lc1UVf-VE' : mod.youtube_id;
+            return {
+                id: mod.id,
+                title: mod.title,
+                thumbnail: ((mod.thumbnail_url || '').replace('maxresdefault.jpg', 'hqdefault.jpg')).replace('1vxC2_5O028', 'M7lc1UVf-VE') || `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`,
+                duration: mod.duration || '',
+                level: mod.level,
+                youtubeId,
+                progress: 0,
+                active: mod.is_active,
+                isActive: mod.is_active,
+            };
+        });
     },
 
     // === ADMIN: Add a new training module ===
@@ -481,7 +487,7 @@ export const trainingService = {
                 title: module.title,
                 level: module.level,
                 youtube_id: module.youtubeId,
-                thumbnail_url: `https://img.youtube.com/vi/${module.youtubeId}/maxresdefault.jpg`,
+                thumbnail_url: `https://img.youtube.com/vi/${module.youtubeId}/hqdefault.jpg`,
                 is_active: true,
             }])
             .select()
@@ -495,7 +501,7 @@ export const trainingService = {
         return {
             id: data.id,
             title: data.title,
-            thumbnail: data.thumbnail_url || `https://img.youtube.com/vi/${data.youtube_id}/maxresdefault.jpg`,
+            thumbnail: (data.thumbnail_url || '').replace('maxresdefault.jpg', 'hqdefault.jpg') || `https://img.youtube.com/vi/${data.youtube_id}/hqdefault.jpg`,
             duration: data.duration || '',
             level: data.level,
             youtubeId: data.youtube_id,
