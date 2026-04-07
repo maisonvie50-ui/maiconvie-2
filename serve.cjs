@@ -1,0 +1,1 @@
+const e=require("express"),p=require("path"),a=e();a.use(e.static("dist"));a.get("/api/health",(q,r)=>r.json({status:"ok"}));a.use((q,r)=>r.sendFile(p.join(__dirname,"dist","index.html")));a.listen(3000,"0.0.0.0",()=>console.log("OK port 3000"));
