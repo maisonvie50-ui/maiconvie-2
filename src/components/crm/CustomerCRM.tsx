@@ -18,7 +18,7 @@ import {
   Upload,
   Download,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2, X, AlertTriangle
 } from 'lucide-react';
 
 export default function CustomerCRM() {
@@ -63,11 +63,11 @@ export default function CustomerCRM() {
   }, []);
 
   const handleDownloadTemplate = () => {
-    const headers = ["Tên khách hàng", "Số điện thoại", "Email", "Nhóm khách", "(Bắt buộc) Nhập tên", "(Bắt buộc) Nhập SĐT", "(Tùy chọn) Nhập Email", "(Tùy chọn) VIP/Regular/New"];
+    const headers = ["TÃªn khÃ¡ch hÃ ng", "Sá»‘ Ä‘iá»‡n thoáº¡i", "Email", "NhÃ³m khÃ¡ch", "(Báº¯t buá»™c) Nháº­p tÃªn", "(Báº¯t buá»™c) Nháº­p SÄT", "(TÃ¹y chá»n) Nháº­p Email", "(TÃ¹y chá»n) VIP/Regular/New"];
     const rows = [
       headers,
-      ["Nguyễn Văn A", "0901234567", "nguyenvana@email.com", "VIP"],
-      ["Trần Thị B", "0987654321", "", "New"]
+      ["Nguyá»…n VÄƒn A", "0901234567", "nguyenvana@email.com", "VIP"],
+      ["Tráº§n Thá»‹ B", "0987654321", "", "New"]
     ];
     
     // Add BOM for Excel UTF-8 reading
@@ -109,7 +109,7 @@ export default function CustomerCRM() {
         }).filter(item => item.name && item.phone && item.phone.length >= 8);
 
         if (parsedData.length === 0) {
-          setImportResult({ success: 0, errors: ["Không tìm thấy dữ liệu hợp lệ trong file"] });
+          setImportResult({ success: 0, errors: ["KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u há»£p lá»‡ trong file"] });
           setIsImporting(false);
           return;
         }
@@ -154,12 +154,12 @@ export default function CustomerCRM() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm khách hàng..."
+              placeholder="TÃ¬m khÃ¡ch hÃ ng..."
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setIsImportModalOpen(true)} className="p-2.5 bg-gray-100 text-teal-600 rounded-xl border border-gray-200 active:bg-gray-200 shadow-sm" title="Nhập dữ liệu">
+            <button onClick={() => setIsImportModalOpen(true)} className="p-2.5 bg-gray-100 text-teal-600 rounded-xl border border-gray-200 active:bg-gray-200 shadow-sm" title="Nháº­p dá»¯ liá»‡u">
               <Upload className="w-5 h-5" />
             </button>
             <button className="p-2.5 bg-gray-100 text-gray-600 rounded-xl border border-gray-200 active:bg-gray-200 shadow-sm">
@@ -228,12 +228,12 @@ export default function CustomerCRM() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Tìm tên, SĐT..."
+                placeholder="TÃ¬m tÃªn, SÄT..."
                 className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 w-64"
               />
             </div>
             <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 px-3 py-2 text-teal-600 hover:bg-teal-50 rounded-lg border border-teal-200 transition-colors font-bold text-sm shadow-sm">
-              <Upload className="w-4 h-4" /> Nhập dữ liệu
+              <Upload className="w-4 h-4" /> Nháº­p dá»¯ liá»‡u
             </button>
             <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg border border-gray-200">
               <Filter className="w-4 h-4" />
@@ -247,10 +247,10 @@ export default function CustomerCRM() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                  <th className="px-6 py-4">Khách hàng</th>
-                  <th className="px-6 py-4">Số điện thoại</th>
-                  <th className="px-6 py-4">Nhóm khách</th>
-                  <th className="px-6 py-4">Lần cuối đến</th>
+                  <th className="px-6 py-4">KhÃ¡ch hÃ ng</th>
+                  <th className="px-6 py-4">Sá»‘ Ä‘iá»‡n thoáº¡i</th>
+                  <th className="px-6 py-4">NhÃ³m khÃ¡ch</th>
+                  <th className="px-6 py-4">Láº§n cuá»‘i Ä‘áº¿n</th>
                   <th className="px-6 py-4 text-center">No-show</th>
                   <th className="px-6 py-4"></th>
                 </tr>
@@ -308,7 +308,7 @@ export default function CustomerCRM() {
         <div className="w-[400px] bg-white border-l border-gray-200 flex flex-col h-full shadow-xl z-10 transition-transform duration-300">
           {/* Drawer Header */}
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <h3 className="font-bold text-gray-800">Hồ sơ khách hàng</h3>
+            <h3 className="font-bold text-gray-800">Há»“ sÆ¡ khÃ¡ch hÃ ng</h3>
             <button
               onClick={() => setSelectedCustomer(null)}
               className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -334,27 +334,27 @@ export default function CustomerCRM() {
               <div className="grid grid-cols-2 gap-4 text-left bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
                   <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> SĐT
+                    <Phone className="w-3 h-3" /> SÄT
                   </div>
                   <div className="text-sm font-medium text-gray-900">{selectedCustomer.phone}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> Lần cuối
+                    <Calendar className="w-3 h-3" /> Láº§n cuá»‘i
                   </div>
                   <div className="text-sm font-medium text-gray-900">{selectedCustomer.lastVisit}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                    <Star className="w-3 h-3" /> Chi tiêu
+                    <Star className="w-3 h-3" /> Chi tiÃªu
                   </div>
                   <div className="text-sm font-medium text-gray-900">{selectedCustomer.totalSpent}</div>
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                    <History className="w-3 h-3" /> Số lần đến
+                    <History className="w-3 h-3" /> Sá»‘ láº§n Ä‘áº¿n
                   </div>
-                  <div className="text-sm font-medium text-gray-900">{selectedCustomer.visitCount} lần</div>
+                  <div className="text-sm font-medium text-gray-900">{selectedCustomer.visitCount} láº§n</div>
                 </div>
               </div>
             </div>
@@ -364,10 +364,10 @@ export default function CustomerCRM() {
               <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-red-700 mb-1">Cảnh báo No-show cao</h4>
+                  <h4 className="text-sm font-bold text-red-700 mb-1">Cáº£nh bÃ¡o No-show cao</h4>
                   <p className="text-xs text-red-600 leading-relaxed">
-                    Khách hàng này có tỷ lệ không đến (No-show) là <span className="font-bold">{selectedCustomer.noShowRate}%</span>.
-                    Vui lòng xác nhận kỹ trước khi giữ bàn.
+                    KhÃ¡ch hÃ ng nÃ y cÃ³ tá»· lá»‡ khÃ´ng Ä‘áº¿n (No-show) lÃ  <span className="font-bold">{selectedCustomer.noShowRate}%</span>.
+                    Vui lÃ²ng xÃ¡c nháº­n ká»¹ trÆ°á»›c khi giá»¯ bÃ n.
                   </p>
                 </div>
               </div>
@@ -377,7 +377,7 @@ export default function CustomerCRM() {
             <div>
               <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                 <Tag className="w-4 h-4 text-gray-400" />
-                Sở thích & Ghi chú
+                Sá»Ÿ thÃ­ch & Ghi chÃº
               </h4>
               <div className="flex flex-wrap gap-2">
                 {selectedCustomer.tags.map((tag, idx) => (
@@ -389,7 +389,7 @@ export default function CustomerCRM() {
                   </span>
                 ))}
                 <button className="px-3 py-1.5 border border-dashed border-gray-300 text-gray-400 text-xs font-medium rounded-lg hover:border-gray-400 hover:text-gray-500 transition-colors">
-                  + Thêm tag
+                  + ThÃªm tag
                 </button>
               </div>
             </div>
@@ -398,7 +398,7 @@ export default function CustomerCRM() {
             <div>
               <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <History className="w-4 h-4 text-gray-400" />
-                Lịch sử đặt bàn
+                Lá»‹ch sá»­ Ä‘áº·t bÃ n
               </h4>
               <div className="relative pl-4 border-l-2 border-gray-100 space-y-6">
                 {selectedCustomer.history.map((item, idx) => (
@@ -409,7 +409,7 @@ export default function CustomerCRM() {
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{item.date}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{item.pax} Pax • {item.amount}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{item.pax} Pax â€¢ {item.amount}</div>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${getStatusColor(item.status)}`}>
                         {item.status}
@@ -427,7 +427,7 @@ export default function CustomerCRM() {
               onClick={handleCreateBooking}
               className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium text-sm transition-colors shadow-sm"
             >
-              Tạo đặt bàn mới
+              Táº¡o Ä‘áº·t bÃ n má»›i
             </button>
           </div>
         </div>
@@ -450,7 +450,7 @@ export default function CustomerCRM() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50 sticky top-0">
-              <h3 className="font-bold text-gray-800">Thông tin khách hàng</h3>
+              <h3 className="font-bold text-gray-800">ThÃ´ng tin khÃ¡ch hÃ ng</h3>
               <button
                 onClick={() => setSelectedCustomer(null)}
                 className="p-2 bg-white rounded-full shadow-sm border border-gray-100"
@@ -472,7 +472,7 @@ export default function CustomerCRM() {
 
                 <div className="grid grid-cols-2 gap-3 text-left">
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    <div className="text-xs text-gray-500 mb-1">Số điện thoại</div>
+                    <div className="text-xs text-gray-500 mb-1">Sá»‘ Ä‘iá»‡n thoáº¡i</div>
                     <div className="font-bold text-gray-900 flex items-center gap-2">
                       {selectedCustomer.phone}
                       <a href={`tel:${selectedCustomer.phone}`} className="ml-auto w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
@@ -481,7 +481,7 @@ export default function CustomerCRM() {
                     </div>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    <div className="text-xs text-gray-500 mb-1">Tổng chi tiêu</div>
+                    <div className="text-xs text-gray-500 mb-1">Tá»•ng chi tiÃªu</div>
                     <div className="font-bold text-gray-900">{selectedCustomer.totalSpent}</div>
                   </div>
                 </div>
@@ -489,13 +489,13 @@ export default function CustomerCRM() {
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-bold text-gray-800 mb-3">Lịch sử gần đây</h4>
+                  <h4 className="font-bold text-gray-800 mb-3">Lá»‹ch sá»­ gáº§n Ä‘Ã¢y</h4>
                   <div className="space-y-3">
                     {selectedCustomer.history.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
                         <div>
                           <div className="font-bold text-gray-900">{item.date}</div>
-                          <div className="text-xs text-gray-500">{item.pax} khách • {item.amount}</div>
+                          <div className="text-xs text-gray-500">{item.pax} khÃ¡ch â€¢ {item.amount}</div>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${getStatusColor(item.status)}`}>
                           {item.status}
@@ -511,7 +511,7 @@ export default function CustomerCRM() {
                 onClick={handleCreateBooking}
                 className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold shadow-lg shadow-teal-200"
               >
-                Đặt bàn mới
+                Äáº·t bÃ n má»›i
               </button>
             </div>
           </div>
@@ -522,33 +522,33 @@ export default function CustomerCRM() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setIsImportModalOpen(false)}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-lg text-gray-800">Nhập dữ liệu khách hàng</h3>
+              <h3 className="font-bold text-lg text-gray-800">Nháº­p dá»¯ liá»‡u khÃ¡ch hÃ ng</h3>
               <button onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6 space-y-6">
               <div>
-                <h4 className="font-bold text-gray-800 text-sm mb-2">1. Tải mẫu về</h4>
+                <h4 className="font-bold text-gray-800 text-sm mb-2">1. Táº£i máº«u vá»</h4>
                 <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
                   <div className="flex-1 text-sm text-gray-600">
-                    Sử dụng file excel mẫu để nhập danh sách khách hàng. <br/>
-                    Bảo đảm định dạng đúng chuẩn (Hỗ trợ tiếng Việt).
+                    Sá»­ dá»¥ng file excel máº«u Ä‘á»ƒ nháº­p danh sÃ¡ch khÃ¡ch hÃ ng. <br/>
+                    Báº£o Ä‘áº£m Ä‘á»‹nh dáº¡ng Ä‘Ãºng chuáº©n (Há»— trá»£ tiáº¿ng Viá»‡t).
                   </div>
                   <button onClick={handleDownloadTemplate} className="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-bold border border-blue-200 hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2 min-w-fit">
-                    <Download className="w-4 h-4" /> Tải file mẫu
+                    <Download className="w-4 h-4" /> Táº£i file máº«u
                   </button>
                 </div>
               </div>
 
               <div>
-                <h4 className="font-bold text-gray-800 text-sm mb-2">2. Tải file lên</h4>
+                <h4 className="font-bold text-gray-800 text-sm mb-2">2. Táº£i file lÃªn</h4>
                 <label className="border-2 border-dashed border-teal-200 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition-all bg-gray-50/50 relative">
                   <Upload className={`w-10 h-10 mb-3 ${importFile ? "text-teal-500" : "text-gray-400"}`} />
                   <span className="text-sm font-medium text-gray-700 text-center">
-                    {importFile ? importFile.name : "Nhấn vào đây để chọn file CSV từ máy tính"}
+                    {importFile ? importFile.name : "Nháº¥n vÃ o Ä‘Ã¢y Ä‘á»ƒ chá»n file CSV tá»« mÃ¡y tÃ­nh"}
                   </span>
-                  <span className="text-xs text-gray-500 mt-2">Chỉ hỗ trợ file .csv (Tối đa 5MB)</span>
+                  <span className="text-xs text-gray-500 mt-2">Chá»‰ há»— trá»£ file .csv (Tá»‘i Ä‘a 5MB)</span>
                   <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
                   {isImporting && (
                     <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center backdrop-blur-sm z-10 transition-all">
@@ -562,16 +562,16 @@ export default function CustomerCRM() {
                 <div className={`p-4 rounded-xl border ${importResult.success > 0 ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}`}>
                   <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                     {importResult.success > 0 ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-orange-600" />}
-                    Kết quả xử lý
+                    Káº¿t quáº£ xá»­ lÃ½
                   </h4>
                   <div className="grid grid-cols-2 gap-4 mt-3">
                     <div className="bg-white p-3 rounded-lg border border-gray-100 flex flex-col items-center shadow-sm">
                       <span className="text-3xl font-black text-green-600">{importResult.success}</span>
-                      <span className="text-xs text-gray-500 font-medium">Thành công</span>
+                      <span className="text-xs text-gray-500 font-medium">ThÃ nh cÃ´ng</span>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-gray-100 flex flex-col items-center shadow-sm">
                       <span className="text-3xl font-black text-red-500">{importResult.errors.length}</span>
-                      <span className="text-xs text-gray-500 font-medium">Lỗi / Trùng lặp</span>
+                      <span className="text-xs text-gray-500 font-medium">Lá»—i / TrÃ¹ng láº·p</span>
                     </div>
                   </div>
                   
@@ -595,7 +595,7 @@ export default function CustomerCRM() {
             {(importFile || importResult) && (
                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
                   <button onClick={() => { setImportFile(null); setImportResult(null); setIsImportModalOpen(false); }} className="w-full py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg transition-colors">
-                     Đóng
+                     ÄÃ³ng
                   </button>
                </div>
             )}
@@ -605,3 +605,4 @@ export default function CustomerCRM() {
     </>
   );
 }
+

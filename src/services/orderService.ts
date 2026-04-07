@@ -1,7 +1,7 @@
-import { supabase } from '../lib/supabase';
+﻿import { supabase } from '../lib/supabase';
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
-type ItemCategory = string; // e.g. 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống' | 'Set Menu' | 'Khác';
+type ItemCategory = string; // e.g. 'Khai vá»‹' | 'MÃ³n chÃ­nh' | 'TrÃ¡ng miá»‡ng' | 'Äá»“ uá»‘ng' | 'Set Menu' | 'KhÃ¡c';
 
 export interface OrderItem {
     id: string;
@@ -378,6 +378,7 @@ export const orderService = {
         }));
     },
 
+
     // 9. Merge two orders
     async mergeOrders(sourceOrderId: string, targetOrderId: string) {
         // Move all items to target order
@@ -409,7 +410,7 @@ export const orderService = {
         const { data: newOrder, error: orderError } = await supabase
             .from('orders')
             .insert({
-                table_name: originalTableName + ' (Tách)',
+                table_name: originalTableName + ' (TÃ¡ch)',
                 table_id: originalTableId || null,
                 status: 'pending',
                 booking_status: 'confirmed',
@@ -448,3 +449,5 @@ export const orderService = {
         return newOrder.id;
     }
 };
+
+

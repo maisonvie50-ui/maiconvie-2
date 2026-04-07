@@ -1595,7 +1595,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             <Filter className="w-3.5 h-3.5" />
           </div>
           {boardColumns.map(col => {
-            const count = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)).length;
+            const count = filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)).length;
             const ColIcon = col.icon;
             return (
               <div key={col.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${col.color} ${col.borderColor.replace('border-', 'text-')}`}>
@@ -1618,7 +1618,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               <Archive className="w-3.5 h-3.5" />
               Xem lịch sử
               <span className="bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px] text-gray-500 font-bold">
-                {bookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status)).length}
+                {filteredBookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status)).length}
               </span>
             </button>
           </div>
@@ -1639,13 +1639,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           >
             Tất cả
             <span className={`ml-1 ${selectedStatuses.length === 0 ? 'text-gray-300' : 'text-gray-400'}`}>
-              {bookings.length}
+              {filteredBookings.length}
             </span>
           </button>
           {columns.map(col => {
             const ColIcon = col.icon;
             const isActive = selectedStatuses.includes(col.id);
-            const count = bookings.filter(b => b.status === col.id).length;
+            const count = filteredBookings.filter(b => b.status === col.id).length;
             return (
               <button
                 key={col.id}
