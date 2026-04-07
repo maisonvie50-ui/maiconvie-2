@@ -811,6 +811,53 @@ export default function RestaurantMap() {
               </div>
               <div className={`text-sm font-bold ${currentTotalCapacityL2 > totalPaxL2 * 0.9 ? 'text-red-600 animate-pulse' : 'text-purple-600'}`}>{currentTotalCapacityL2}/{totalPaxL2} Pax</div>
             </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setIsPartitionMenuOpen(!isPartitionMenuOpen)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border shadow-sm transition-all font-medium text-sm ${partitionConfig !== 'full'
+                  ? 'bg-purple-100 border-purple-300 text-purple-700'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                <Split className="w-4 h-4" />
+                {partitionConfig === 'full' ? 'Cấu hình vách ngăn VIP' : `Đang chia: ${partitionConfig}`}
+              </button>
+
+              {/* Partition Dropdown for Level 2 */}
+              {isPartitionMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-20 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-2 border-b border-gray-50 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Cấu hình vách ngăn VIP 1-2
+                  </div>
+                  <div className="p-1">
+                    <button
+                      onClick={async () => {
+                        setPartitionConfig('full');
+                        setIsPartitionMenuOpen(false);
+                        await settingsService.updateAppSetting('partitionConfig', 'full');
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === 'full' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <span>Mở vách ngăn (Gộp VIP1-VIP2)</span>
+                      {partitionConfig === 'full' && <Check className="w-4 h-4" />}
+                    </button>
+                    <div className="h-px bg-gray-100 my-1"></div>
+                    <button
+                      onClick={async () => {
+                        setPartitionConfig('70-70');
+                        setIsPartitionMenuOpen(false);
+                        await settingsService.updateAppSetting('partitionConfig', '70-70');
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between ${partitionConfig === '70-70' ? 'bg-purple-50 text-purple-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      <span>Đóng vách ngăn (Tách biệt)</span>
+                      {partitionConfig === '70-70' && <Check className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Cảnh Báo Sức Chứa VIP */}
