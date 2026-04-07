@@ -1,0 +1,61 @@
+﻿[dotenv@17.3.1] injecting env (0) from .env -- tip: ≡ƒöÉ prevent building .env in docker: https://dotenvx.com/prebuild
+node.exe : C:\Users\ASUS\D
+ownloads\maison-vie\node_m
+odules\@supabase\supabase-
+js\src\lib\helpers.ts:86
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (C  
+  :\Users\ASUS\D...b\he   
+ lpers.ts:86:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+    throw new 
+Error('supabaseUrl is 
+required.')
+          ^
+
+Error: supabaseUrl is 
+required.
+    at 
+validateSupabaseUrl (C:\Us
+ers\ASUS\Downloads\maison-
+vie\node_modules\@supabase
+\supabase-js\src\lib\helpe
+rs.ts:86:11)
+    at new SupabaseClient 
+(C:\Users\ASUS\Downloads\m
+aison-vie\node_modules\@su
+pabase\supabase-js\src\Sup
+abaseClient.ts:117:21)
+    at createClient (C:\Us
+ers\ASUS\Downloads\maison-
+vie\node_modules\@supabase
+\supabase-js\src\index.ts:
+60:10)
+    at <anonymous> (C:\Use
+rs\ASUS\Downloads\maison-v
+ie\server.ts:11:18)
+    at ModuleJob.run (node
+:internal/modules/esm/modu
+le_job:413:25)
+    at async onImport.trac
+ePromise.__proto__ (node:i
+nternal/modules/esm/loader
+:660:26)
+    at async asyncRunEntry
+PointWithESMLoader (node:i
+nternal/modules/run_main:1
+01:5)
+
+Node.js v24.13.0

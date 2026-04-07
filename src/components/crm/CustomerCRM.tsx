@@ -11,17 +11,26 @@ import {
   Mail,
   Calendar,
   Star,
-  AlertTriangle,
-  X,
   History,
   Tag,
   ChevronRight,
-  PhoneCall
+  PhoneCall,
+  Upload,
+  Download,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function CustomerCRM() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  
+  // States for CSV Import
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{success: number, errors: string[]} | null>(null);
+
   const navigate = useNavigate();
 
   const handleCreateBooking = () => {
@@ -52,6 +61,70 @@ export default function CustomerCRM() {
       unsubscribe();
     };
   }, []);
+
+  const handleDownloadTemplate = () => {
+    const headers = ["Tên khách hàng", "Số điện thoại", "Email", "Nhóm khách", "(Bắt buộc) Nhập tên", "(Bắt buộc) Nhập SĐT", "(Tùy chọn) Nhập Email", "(Tùy chọn) VIP/Regular/New"];
+    const rows = [
+      headers,
+      ["Nguyễn Văn A", "0901234567", "nguyenvana@email.com", "VIP"],
+      ["Trần Thị B", "0987654321", "", "New"]
+    ];
+    
+    // Add BOM for Excel UTF-8 reading
+    const csvContent = "\uFEFF" + rows.map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "maison_vie_customers_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setImportFile(file);
+    setIsImporting(true);
+    setImportResult(null);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        // Skip first line (headers)
+        const lines = text.split(/\r\n|\n/).slice(1).filter(line => line.trim().length > 0);
+        
+        const parsedData = lines.map(line => {
+          const cols = line.split(',');
+          // Cleanup phone number
+          const name = cols[0]?.trim() || '';
+          let phone = cols[1]?.trim() || '';
+          phone = phone.replace(/[^0-9]/g, '');
+          const email = cols[2]?.trim() || '';
+          const group = cols[3]?.trim() || 'New';
+          return { name, phone, email, customer_group: group };
+        }).filter(item => item.name && item.phone && item.phone.length >= 8);
+
+        if (parsedData.length === 0) {
+          setImportResult({ success: 0, errors: ["Không tìm thấy dữ liệu hợp lệ trong file"] });
+          setIsImporting(false);
+          return;
+        }
+
+        const result = await customerService.importCustomers(parsedData);
+        setImportResult(result);
+      } catch (err: any) {
+        setImportResult({ success: 0, errors: [err.message] });
+      } finally {
+        setIsImporting(false);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const isMobile = useIsMobile();
 
   const getGroupBadge = (group: string) => {
@@ -85,9 +158,14 @@ export default function CustomerCRM() {
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
             />
           </div>
-          <button className="p-2.5 bg-gray-100 text-gray-600 rounded-xl border border-gray-200 active:bg-gray-200">
-            <Filter className="w-5 h-5" />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setIsImportModalOpen(true)} className="p-2.5 bg-gray-100 text-teal-600 rounded-xl border border-gray-200 active:bg-gray-200 shadow-sm" title="Nhập dữ liệu">
+              <Upload className="w-5 h-5" />
+            </button>
+            <button className="p-2.5 bg-gray-100 text-gray-600 rounded-xl border border-gray-200 active:bg-gray-200 shadow-sm">
+              <Filter className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,6 +232,9 @@ export default function CustomerCRM() {
                 className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 w-64"
               />
             </div>
+            <button onClick={() => setIsImportModalOpen(true)} className="flex items-center gap-2 px-3 py-2 text-teal-600 hover:bg-teal-50 rounded-lg border border-teal-200 transition-colors font-bold text-sm shadow-sm">
+              <Upload className="w-4 h-4" /> Nhập dữ liệu
+            </button>
             <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg border border-gray-200">
               <Filter className="w-4 h-4" />
             </button>
@@ -433,6 +514,91 @@ export default function CustomerCRM() {
                 Đặt bàn mới
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Import Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setIsImportModalOpen(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-bold text-lg text-gray-800">Nhập dữ liệu khách hàng</h3>
+              <button onClick={() => setIsImportModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <h4 className="font-bold text-gray-800 text-sm mb-2">1. Tải mẫu về</h4>
+                <div className="flex items-center gap-4 bg-blue-50/50 border border-blue-100 p-4 rounded-xl">
+                  <div className="flex-1 text-sm text-gray-600">
+                    Sử dụng file excel mẫu để nhập danh sách khách hàng. <br/>
+                    Bảo đảm định dạng đúng chuẩn (Hỗ trợ tiếng Việt).
+                  </div>
+                  <button onClick={handleDownloadTemplate} className="px-4 py-2 bg-white text-blue-600 rounded-lg text-sm font-bold border border-blue-200 hover:bg-blue-50 transition-colors shadow-sm flex items-center gap-2 min-w-fit">
+                    <Download className="w-4 h-4" /> Tải file mẫu
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-gray-800 text-sm mb-2">2. Tải file lên</h4>
+                <label className="border-2 border-dashed border-teal-200 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-teal-50/50 transition-all bg-gray-50/50 relative">
+                  <Upload className={`w-10 h-10 mb-3 ${importFile ? "text-teal-500" : "text-gray-400"}`} />
+                  <span className="text-sm font-medium text-gray-700 text-center">
+                    {importFile ? importFile.name : "Nhấn vào đây để chọn file CSV từ máy tính"}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-2">Chỉ hỗ trợ file .csv (Tối đa 5MB)</span>
+                  <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                  {isImporting && (
+                    <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center backdrop-blur-sm z-10 transition-all">
+                      <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
+                </label>
+              </div>
+
+              {importResult && (
+                <div className={`p-4 rounded-xl border ${importResult.success > 0 ? "bg-green-50 border-green-200" : "bg-orange-50 border-orange-200"}`}>
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    {importResult.success > 0 ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-orange-600" />}
+                    Kết quả xử lý
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div className="bg-white p-3 rounded-lg border border-gray-100 flex flex-col items-center shadow-sm">
+                      <span className="text-3xl font-black text-green-600">{importResult.success}</span>
+                      <span className="text-xs text-gray-500 font-medium">Thành công</span>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-gray-100 flex flex-col items-center shadow-sm">
+                      <span className="text-3xl font-black text-red-500">{importResult.errors.length}</span>
+                      <span className="text-xs text-gray-500 font-medium">Lỗi / Trùng lặp</span>
+                    </div>
+                  </div>
+                  
+                  {importResult.errors.length > 0 && (
+                    <div className="mt-4 max-h-32 overflow-y-auto pr-2 custom-scrollbar border border-red-100 rounded-lg bg-white">
+                      <table className="w-full text-xs text-left">
+                        <tbody>
+                          {importResult.errors.map((err, idx) => (
+                            <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                              <td className="px-3 py-2 text-red-600 break-words font-medium">{err}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Modal Actions */}
+            {(importFile || importResult) && (
+               <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <button onClick={() => { setImportFile(null); setImportResult(null); setIsImportModalOpen(false); }} className="w-full py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg transition-colors">
+                     Đóng
+                  </button>
+               </div>
+            )}
           </div>
         </div>
       )}

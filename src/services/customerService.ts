@@ -152,5 +152,52 @@ export const customerService = {
         }
 
         return newCustomer?.id || null;
+    },
+
+    /**
+     * Import multiple customers
+     */
+    importCustomers: async (customersList: Array<{ name: string, phone: string, email: string, customer_group: string }>): Promise<{ success: number, errors: string[] }> => {
+        let successCount = 0;
+        const errors: string[] = [];
+
+        // Simple loop to insert one by one to handle duplicates individually
+        for (const cust of customersList) {
+            try {
+                // Check if phone exists
+                const { data: existing } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('phone', cust.phone)
+                    .maybeSingle();
+
+                if (existing) {
+                    errors.push(`Số điện thoại ${cust.phone} đã tồn tại`);
+                    continue;
+                }
+
+                const { error } = await supabase
+                    .from('customers')
+                    .insert({
+                        name: cust.name,
+                        phone: cust.phone,
+                        email: cust.email,
+                        customer_group: cust.customer_group || 'New',
+                        total_spent: 0,
+                        visit_count: 0,
+                        no_show_rate: 0
+                    });
+
+                if (error) {
+                    errors.push(`Lỗi tải lên cho ${cust.name}: ${error.message}`);
+                } else {
+                    successCount++;
+                }
+            } catch (err: any) {
+                errors.push(`Lỗi ngoại lệ với ${cust.name}: ${err.message}`);
+            }
+        }
+
+        return { success: successCount, errors };
     }
 };
