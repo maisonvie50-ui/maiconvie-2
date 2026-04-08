@@ -15,11 +15,6 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
   const [isSplitMergeOpen, setIsSplitMergeOpen] = useState(false);
   const [isOrderSent, setIsOrderSent] = useState(false);
   const [mergeTarget, setMergeTarget] = useState('');
-  
-  const [existingOrder, setExistingOrder] = useState<any>(null);
-  const [isSplitting, setIsSplitting] = useState(false);
-  const [splitSelections, setSplitSelections] = useState<Record<string, number>>({});
-  const [splitTargetTableName, setSplitTargetTableName] = useState('');
 
   const [activeTab, setActiveTab] = useState<'alacarte' | 'set'>('alacarte');
   const [selectedSet, setSelectedSet] = useState<any>(null);
@@ -53,51 +48,6 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     loadData();
     return () => { mounted = false; };
   }, []);
-
-  useEffect(() => {
-    if (isSplitMergeOpen && table?.id) {
-      orderService.getOrdersByTableId(table.id).then(orders => {
-        if (orders.length > 0) setExistingOrder(orders[0]);
-      });
-    }
-  }, [isSplitMergeOpen, table]);
-
-  const handleMerge = async () => {
-    if (!existingOrder || !mergeTarget) return;
-    try {
-      const targetTable = tables.find(t => t.id === mergeTarget);
-      if (!targetTable) return;
-      const targetOrders = await orderService.getOrdersByTableId(targetTable.id);
-      let targetOrderId = targetOrders.length > 0 ? targetOrders[0].id : null;
-      if (!targetOrderId) {
-        const newOrder = await orderService.createOrder(targetTable.name, [], targetTable.id);
-        targetOrderId = newOrder.id;
-      }
-      await orderService.mergeOrders(existingOrder.id, targetOrderId);
-      alert('Đã gộp bàn thành công!');
-      onClose();
-    } catch (e) {
-      alert('Lỗi gộp bàn!');
-    }
-  };
-
-  const handleSplit = async () => {
-    if (!existingOrder) return;
-    const itemsToMove = Object.keys(splitSelections).map(itemId => {
-       const qty = splitSelections[itemId];
-       const item = existingOrder.items.find((i:any) => i.id === itemId);
-       return qty > 0 && item ? { id: item.id, quantity: qty, price: item.price, category: item.category, name: item.name } : null;
-    }).filter(Boolean) as any[];
-    
-    if (itemsToMove.length === 0) return alert('Chưa chọn món nào để tách!');
-    try {
-       await orderService.splitOrder(existingOrder.id, itemsToMove, splitTargetTableName || table.name, undefined);
-       alert('Đã tách sang hóa đơn mới!');
-       onClose();
-    } catch (e) {
-       alert('Lỗi tách đơn');
-    }
-  };
 
   const handleOpenSetMenu = (setMenu: any) => {
     setSelectedSet(setMenu);
@@ -287,8 +237,7 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
                       ))}
                     </select>
                     <button
-                      disabled={!mergeTarget || !existingOrder}
-                      onClick={handleMerge}
+                      disabled={!mergeTarget}
                       className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ArrowRightLeft className="w-4 h-4" />
@@ -308,45 +257,11 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
                 {/* Split Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tách hóa đơn:</label>
-                  <button onClick={() => setIsSplitting(true)} className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 font-medium hover:border-teal-500 hover:text-teal-600 transition-colors flex items-center justify-center gap-2">
+                  <button className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 font-medium hover:border-teal-500 hover:text-teal-600 transition-colors flex items-center justify-center gap-2">
                     <Users className="w-4 h-4" />
                     Chọn món để tách sang đơn mới
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Split Details Modal Overlay */}
-        {isSplitting && (
-          <div className="absolute inset-0 z-20 bg-white/90 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">Tách hóa đơn</h3>
-                <button onClick={() => setIsSplitting(false)} className="text-gray-400 hover:text-gray-600">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6 overflow-y-auto space-y-4">
-                 <div>
-                   <label className="block text-sm font-medium text-gray-700 mb-1">Tên khách / Bàn tách mới:</label>
-                   <input type="text" value={splitTargetTableName} onChange={e => setSplitTargetTableName(e.target.value)} placeholder="VD: Anh Hải bàn 1" className="w-full px-3 py-2 border rounded text-sm"/>
-                 </div>
-                 <div className="space-y-2 mt-4">
-                    {!existingOrder?.items?.length && <p className="text-sm text-gray-500">Chưa có món nào đã order để tách.</p>}
-                    {existingOrder?.items?.map((item: any) => (
-                       <div key={item.id} className="flex justify-between items-center border p-2 rounded">
-                          <div className="text-sm font-medium">{item.name} (Tối đa: {item.quantity})</div>
-                          <div className="flex items-center gap-2">
-                             <button onClick={() => setSplitSelections(p => ({...p, [item.id]: Math.max(0, (p[item.id] || 0) - 1)}))} className="px-2 py-0.5 bg-gray-100 rounded">-</button>
-                             <span className="w-4 text-center font-bold">{splitSelections[item.id] || 0}</span>
-                             <button onClick={() => setSplitSelections(p => ({...p, [item.id]: Math.min(item.quantity, (p[item.id] || 0) + 1)}))} className="px-2 py-0.5 bg-gray-100 rounded">+</button>
-                          </div>
-                       </div>
-                    ))}
-                 </div>
-                 <button onClick={handleSplit} className="w-full py-3 mt-4 bg-teal-600 text-white font-bold rounded hover:bg-teal-700">Xác nhận tách Hóa đơn</button>
               </div>
             </div>
           </div>

@@ -13,8 +13,7 @@ import {
   X,
   BarChart3,
   LogOut,
-  Receipt,
-  Wine
+  Receipt
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,7 +36,6 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
     { path: '/so-do-nha-hang', icon: Map, label: 'Sơ đồ nhà hàng', allowedRoles: ['admin', 'manager', 'receptionist', 'server'] },
     { path: '/thuc-don', icon: BookOpen, label: 'Thực đơn', allowedRoles: ['admin', 'manager'] },
     { path: '/bep', icon: ChefHat, label: 'Bếp (Order)', allowedRoles: ['admin', 'manager', 'kitchen'] },
-    { path: '/bar', icon: Wine, label: 'Bar (Order)', allowedRoles: ['admin', 'manager', 'kitchen'] },
     { path: '/dao-tao', icon: PlaySquare, label: 'Đào tạo nội bộ', allowedRoles: ['admin', 'manager', 'receptionist', 'kitchen', 'server'] },
     { path: '/khach-hang', icon: Users, label: 'Khách hàng (CRM)', allowedRoles: ['admin', 'manager', 'receptionist'] },
     { path: '/cau-hinh', icon: Settings, label: 'Cấu hình', allowedRoles: ['admin', 'manager'] },

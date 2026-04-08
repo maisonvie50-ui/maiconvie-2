@@ -10,7 +10,6 @@ import Header from './components/layout/Header';
 import BookingKanban from './components/booking/BookingKanban';
 import RestaurantMap from './components/restaurant-map/RestaurantMap';
 import KitchenDisplay from './components/kitchen/KitchenDisplay';
-import BarDisplay from './components/bar/BarDisplay';
 import TrainingPortal from './components/training/TrainingPortal';
 import CustomerCRM from './components/crm/CustomerCRM';
 import Settings from './components/settings/Settings';
@@ -70,7 +69,6 @@ function DesktopLayout() {
             } />
             <Route path="thuc-don" element={<RoleGuard allowedRoles={['admin', 'manager']}><MenuManagement /></RoleGuard>} />
             <Route path="bep" element={<RoleGuard allowedRoles={['admin', 'manager', 'kitchen']}><KitchenDisplay /></RoleGuard>} />
-            <Route path="bar" element={<RoleGuard allowedRoles={['admin', 'manager', 'kitchen']}><BarDisplay /></RoleGuard>} />
             <Route path="dao-tao" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist', 'kitchen', 'server']}><TrainingPortal /></RoleGuard>} />
             <Route path="khach-hang" element={<RoleGuard allowedRoles={['admin', 'manager', 'receptionist']}><CustomerCRM /></RoleGuard>} />
             <Route path="cau-hinh" element={<RoleGuard allowedRoles={['admin', 'manager']}><Settings /></RoleGuard>} />

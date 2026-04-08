@@ -45,7 +45,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 status: payload.status || "new",
                 source: payload.source || "email",
                 customer_type: payload.customerType || "retail",
-                booking_code: payload.bookingCode || null,
                 notes: payload.notes || [],
             })
             .select()

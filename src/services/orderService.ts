@@ -1,7 +1,7 @@
-﻿import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 type ItemStatus = 'pending' | 'cooking' | 'done';
-type ItemCategory = string; // e.g. 'Khai vá»‹' | 'MÃ³n chÃ­nh' | 'TrÃ¡ng miá»‡ng' | 'Äá»“ uá»‘ng' | 'Set Menu' | 'KhÃ¡c';
+type ItemCategory = string; // e.g. 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống' | 'Set Menu' | 'Khác';
 
 export interface OrderItem {
     id: string;
@@ -376,78 +376,5 @@ export const orderService = {
                     category: item.category as ItemCategory
                 }))
         }));
-    },
-
-
-    // 9. Merge two orders
-    async mergeOrders(sourceOrderId: string, targetOrderId: string) {
-        // Move all items to target order
-        const { error: moveError } = await supabase
-            .from('order_items')
-            .update({ order_id: targetOrderId, updated_at: new Date().toISOString() })
-            .eq('order_id', sourceOrderId);
-
-        if (moveError) {
-            console.error('Error moving items:', moveError);
-            throw moveError;
-        }
-
-        // Cancel the source order
-        const { error: cancelError } = await supabase
-            .from('orders')
-            .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-            .eq('id', sourceOrderId);
-
-        if (cancelError) {
-            console.error('Error cancelling order:', cancelError);
-            throw cancelError;
-        }
-    },
-
-    // 10. Split order items
-    async splitOrder(originalOrderId: string, itemsToMove: { id: string, quantity: number, price: number, category: string, name: string }[], originalTableName: string, originalTableId?: string) {
-        // 1. Create a new order
-        const { data: newOrder, error: orderError } = await supabase
-            .from('orders')
-            .insert({
-                table_name: originalTableName + ' (TÃ¡ch)',
-                table_id: originalTableId || null,
-                status: 'pending',
-                booking_status: 'confirmed',
-                order_time: new Date().toISOString()
-            })
-            .select()
-            .single();
-            
-        if (orderError || !newOrder) {
-            console.error('Error creating new split order:', orderError);
-            throw orderError;
-        }
-
-        // 2. Iterate items to move
-        for (const item of itemsToMove) {
-            const { data: origItem } = await supabase.from('order_items').select('quantity').eq('id', item.id).single();
-            if (!origItem) continue;
-
-            if (origItem.quantity <= item.quantity) {
-                // Move entirely
-                await supabase.from('order_items').update({ order_id: newOrder.id }).eq('id', item.id);
-            } else {
-                // Reduce old
-                await supabase.from('order_items').update({ quantity: origItem.quantity - item.quantity }).eq('id', item.id);
-                // Insert new
-                await supabase.from('order_items').insert({
-                    order_id: newOrder.id,
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.price,
-                    status: 'pending',
-                    category: item.category
-                });
-            }
-        }
-        return newOrder.id;
     }
 };
-
-

@@ -32,8 +32,7 @@ import {
   Filter,
   MoreVertical,
   Eye,
-  Mail,
-  BarChart3
+  Mail
 } from 'lucide-react';
 import { format, isSameDay, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, parseISO } from 'date-fns';
 import { Booking, BookingStatus } from '../../types';
@@ -44,7 +43,6 @@ import { tableService } from '../../services/tableService';
 import { notificationService } from '../../services/notificationService';
 import { menuService } from '../../services/menuService';
 import { Table } from '../../types';
-import DailyOverview from './DailyOverview';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
@@ -104,7 +102,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [isMobile, setIsMobile] = useState(false);
 
   // View & Filter States
-  const [viewMode, setViewMode] = useState<'kanban' | 'table' | 'overview'>('overview');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
   const [dateFilterMode, setDateFilterMode] = useState<'day' | 'week' | 'month'>('day');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1550,13 +1548,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             >
               <List className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => setViewMode('overview')}
-              className={`p-1.5 rounded-md transition-all ${viewMode === 'overview' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
-              title="Tổng quan ngày"
-            >
-              <BarChart3 className="w-4 h-4" />
-            </button>
           </div>
 
           <div className="w-px h-6 bg-gray-200 mx-1"></div>
@@ -1595,7 +1586,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             <Filter className="w-3.5 h-3.5" />
           </div>
           {boardColumns.map(col => {
-            const count = filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)).length;
+            const count = bookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)).length;
             const ColIcon = col.icon;
             return (
               <div key={col.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${col.color} ${col.borderColor.replace('border-', 'text-')}`}>
@@ -1618,7 +1609,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               <Archive className="w-3.5 h-3.5" />
               Xem lịch sử
               <span className="bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px] text-gray-500 font-bold">
-                {filteredBookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status)).length}
+                {bookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status)).length}
               </span>
             </button>
           </div>
@@ -1639,13 +1630,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           >
             Tất cả
             <span className={`ml-1 ${selectedStatuses.length === 0 ? 'text-gray-300' : 'text-gray-400'}`}>
-              {filteredBookings.length}
+              {bookings.length}
             </span>
           </button>
           {columns.map(col => {
             const ColIcon = col.icon;
             const isActive = selectedStatuses.includes(col.id);
-            const count = filteredBookings.filter(b => b.status === col.id).length;
+            const count = bookings.filter(b => b.status === col.id).length;
             return (
               <button
                 key={col.id}
@@ -1683,17 +1674,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
         ? renderMobileList()
         : viewMode === 'kanban'
           ? renderDesktopKanban()
-          : viewMode === 'overview'
-            ? <DailyOverview 
-                bookings={filteredBookings} 
-                allBookings={bookings} 
-                tables={tables} 
-                selectedDate={selectedDate} 
-                appSettings={appSettings} 
-                onEditBooking={(b) => { setViewingBooking(b); setShowModal(true) }} 
-                onRefresh={fetchBookings} 
-              />
-            : renderDesktopTable()
+          : renderDesktopTable()
       }
 
       {/* Add Booking Modal (Shared) */}
