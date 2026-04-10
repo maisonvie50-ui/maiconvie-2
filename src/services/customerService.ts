@@ -152,5 +152,71 @@ export const customerService = {
         }
 
         return newCustomer?.id || null;
+    },
+
+    /**
+     * Update customer info (name, phone, email, group, tags)
+     */
+    updateCustomer: async (id: string, updates: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'group' | 'tags'>>) => {
+        const payload: any = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.phone !== undefined) payload.phone = updates.phone;
+        if (updates.email !== undefined) payload.email = updates.email;
+        if (updates.group !== undefined) payload.customer_group = updates.group;
+        if (updates.tags !== undefined) payload.tags = updates.tags;
+
+        const { error } = await supabase
+            .from('customers')
+            .update(payload)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating customer:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Bulk import customers from CSV data
+     */
+    importCustomers: async (rows: { name: string; phone: string; email: string; group: string }[]): Promise<{ success: number; skipped: number }> => {
+        let success = 0;
+        let skipped = 0;
+
+        for (const row of rows) {
+            // Check duplicate by phone
+            const { data: existing } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('phone', row.phone)
+                .maybeSingle();
+
+            if (existing) {
+                skipped++;
+                continue;
+            }
+
+            const { error } = await supabase
+                .from('customers')
+                .insert({
+                    name: row.name,
+                    phone: row.phone,
+                    email: row.email || null,
+                    customer_group: row.group || 'New',
+                    total_spent: 0,
+                    visit_count: 0,
+                    no_show_rate: 0,
+                    tags: []
+                });
+
+            if (error) {
+                console.error('Error importing customer:', error);
+                skipped++;
+            } else {
+                success++;
+            }
+        }
+
+        return { success, skipped };
     }
 };
