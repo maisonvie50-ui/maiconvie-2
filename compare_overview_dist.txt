@@ -1,0 +1,461 @@
+> C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7541:function om({
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7542:    bookings: e,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7543:    allBookings: t,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7544:    tables: r,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7545:    selectedDate: n,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7546:    appSettings: a,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7547:    onEditBooking: o,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7548:    onRefresh: i
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7549:}) {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7550:    const [l, d] = S.useState(null), [u, g] = S.useState(""), m = (a == null ? void 0 : a.lunchStart) || 11, p = (a == null ? void 0 : a.lunchEnd) || 14, h = (a == null ? void 0 : a.dinnerStart) || 17, b = (a == null ? void 0 : a.dinnerEnd) || 22, y = S.useMemo(() => t.filter(N => N.bookingDate === n), [t, n]), j = S.useMemo(() => y.filter(N => !["cancelled", "no_show", "completed"].includes(N.status)), [y]), T = N => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7551:        const _ = parseInt((N == null ? void 0 : N.split(":")[0]) || "0", 10);
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7552:        return _ >= m && _ <= p ? "lunch" : _ >= h && _ <= b ? "dinner" : "other"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7553:    }, M = j.filter(N => T(N.time) === "lunch"), A = j.filter(N => T(N.time) === "dinner"), P = j.filter(N => T(N.time) === "other"), R = j.reduce((N, _) => N + (_.pax || 0), 0), B = M.reduce((N, _) => N + (_.pax || 0), 0), V = A.reduce((N, _) => N + (_.pax || 0), 0), Y = j.filter(N => N.tableId).length, se = j.filter(N => !N.tableId).length, G = j.filter(N => ["new", "waiting_info", "change_requested"].includes(N.status)), X = N => !N.selectedMenus || N.selectedMenus.length === 0 ? {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7554:        text: "Chua ch?n menu",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7555:        isEmpty: !0
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7556:    } : {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7557:        text: N.selectedMenus.map(z => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7558:            const be = z.name || z.title || "Menu",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7559:                pe = z.quantity > 1 ? ` x${z.quantity}` : "";
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7560:            return `${be}${pe}`
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7561:        }).join(", "),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7562:        isEmpty: !1
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7563:    }, we = N => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7564:        const _ = [];
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7565:        return N.tableName && _.push(N.tableName), N.linked_table_names && N.linked_table_names.length > 0 && _.push(...N.linked_table_names), _.length === 0 ? null : _
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7566:    }, k = N => !N.notes || N.notes.length === 0 ? !1 : N.notes.some(_ => _ && _.trim().length > 0), me = async (N, _) => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7567:        try {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7568:            await le.updateBooking(N, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7569:                tableId: _.id,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7570:                tableName: _.name
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7571:            }), d(null), g(""), i()
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7572:        } catch (z) {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7573:            alert(z.message || "L?i gán bàn")
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7574:        }
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7575:    }, Z = S.useMemo(() => r.filter(N => N.status === "empty").filter(N => !u || N.name.toLowerCase().includes(u.toLowerCase())), [r, u]), It = (N, _) => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7576:        const z = X(N),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7577:            be = we(N),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7578:            pe = pt[N.status] || pt.new,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7579:            Ee = k(N),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7580:            $e = !N.phone || !N.pax || !N.time;
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7581:        return s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7582:            className: "group flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 hover:border-teal-200 hover:shadow-md transition-all cursor-pointer relative",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7583:            onClick: () => o(N),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7584:            children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7585:                className: "w-16 flex-shrink-0 text-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7586:                children: s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7587:                    className: "text-lg font-bold text-gray-900",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7588:                    children: N.time || "--:--"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7589:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7590:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7591:                className: "w-px h-10 bg-gray-200 flex-shrink-0"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7592:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7593:                className: "flex-1 min-w-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7594:                children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7595:                    className: "flex items-center gap-2 mb-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7596:                    children: [s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7597:                        className: "font-bold text-gray-900 text-sm truncate",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7598:                        children: N.customerName || "Không có tên"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7599:                    }), N.customerType === "tour" && s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7600:                        className: "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7601:                        children: "Ðoàn"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7602:                    }), $e && s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7603:                        className: "px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7604:                        children: "??"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7605:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7606:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7607:                    className: "flex items-center gap-3 text-xs text-gray-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7608:                    children: [s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7609:                        className: "flex items-center gap-1",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7610:                        children: [s.jsx(ke, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7611:                            className: "w-3 h-3"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7612:                        }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7613:                            className: "font-bold text-gray-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7614:                            children: N.pax || 0
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7615:                        }), " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7616:                    }), N.phone && s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7617:                        className: "text-gray-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7618:                        children: N.phone
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7619:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7620:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7621:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7622:                className: "w-40 flex-shrink-0 hidden lg:block",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7623:                children: s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7624:                    className: `text-xs truncate ${z.isEmpty?"text-gray-400 italic":"text-gray-700 font-medium"}`,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7625:                    children: [s.jsx(Ja, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7626:                        className: "w-3 h-3 inline mr-1 opacity-50"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7627:                    }), z.text]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7628:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7629:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7630:                className: "w-36 flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7631:                onClick: K => K.stopPropagation(),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7632:                children: [be ? s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7633:                    className: "flex items-center gap-1 flex-wrap",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7634:                    children: be.map((K, Ue) => s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7635:                        className: `px-2 py-0.5 rounded text-[11px] font-bold ${Ue===0?"bg-teal-100 text-teal-800":"bg-blue-50 text-blue-700"}`,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7636:                        children: K
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7637:                    }, Ue))
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7638:                }) : s.jsxs("button", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7639:                    onClick: K => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7640:                        K.stopPropagation(), d(l === N.id ? null : N.id), g("")
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7641:                    },
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7642:                    className: "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7643:                    children: [s.jsx(Cn, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7644:                        className: "w-3 h-3"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7645:                    }), "X?p bàn", s.jsx(us, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7646:                        className: "w-3 h-3"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7647:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7648:                }), l === N.id && s.jsxs(s.Fragment, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7649:                    children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7650:                        className: "fixed inset-0 z-40",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7651:                        onClick: () => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7652:                            d(null), g("")
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7653:                        }
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7654:                    }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7655:                        className: "absolute right-4 mt-1 z-50 bg-white rounded-xl border border-gray-200 shadow-2xl w-64 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7656:                        children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7657:                            className: "p-2 border-b border-gray-100",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7658:                            children: s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7659:                                className: "relative",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7660:                                children: [s.jsx(Xe, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7661:                                    className: "w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7662:                                }), s.jsx("input", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7663:                                    type: "text",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7664:                                    placeholder: "Tìm bàn...",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7665:                                    value: u,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7666:                                    onChange: K => g(K.target.value),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7667:                                    className: "w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7668:                                    autoFocus: !0,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7669:                                    onClick: K => K.stopPropagation()
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7670:                                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7671:                            })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7672:                        }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7673:                            className: "max-h-48 overflow-y-auto p-1.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7674:                            children: Z.length === 0 ? s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7675:                                className: "text-xs text-gray-400 text-center py-4",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7676:                                children: "Không có bàn tr?ng"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7677:                            }) : Z.map(K => s.jsxs("button", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7678:                                onClick: Ue => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7679:                                    Ue.stopPropagation(), me(N.id, K)
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7680:                                },
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7681:                                className: "w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg hover:bg-teal-50 transition-colors text-left",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7682:                                children: [s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7683:                                    className: "font-bold text-gray-800",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7684:                                    children: K.name
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7685:                                }), s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7686:                                    className: "text-gray-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7687:                                    children: [K.pax, " Pax"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7688:                                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7689:                            }, K.id))
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7690:                        })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7691:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7692:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7693:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7694:                className: "w-8 flex-shrink-0 flex justify-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7695:                children: Ee && s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7696:                    className: "relative group/note",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7697:                    children: [s.jsx(ps, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7698:                        className: "w-4 h-4 text-amber-500"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7699:                    }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7700:                        className: "absolute bottom-full right-0 mb-2 w-48 bg-gray-900 text-white text-[11px] rounded-lg p-2.5 opacity-0 group-hover/note:opacity-100 transition-opacity pointer-events-none z-30 shadow-xl",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7701:                        children: [(N.notes || []).filter(K => K).join(" · "), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7702:                            className: "absolute top-full right-3 border-4 border-transparent border-t-gray-900"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7703:                        })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7704:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7705:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7706:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7707:                className: "w-28 flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7708:                children: s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7709:                    className: `inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-bold ${pe.color} ${pe.textColor}`,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7710:                    children: pe.label
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7711:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7712:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7713:        }, N.id)
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7714:    }, Le = (N, _, z, be, pe) => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7715:        if (z.length === 0) return null;
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7716:        const Ee = [...z].sort(($e, K) => ($e.time || "").localeCompare(K.time || ""));
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7717:        return s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7718:            className: "mb-8",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7719:            children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7720:                className: "flex items-center gap-3 mb-3 px-2",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7721:                children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7722:                    className: `flex items-center gap-2 px-3 py-1.5 rounded-lg ${pe}`,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7723:                    children: [_, s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7724:                        className: "font-bold text-sm",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7725:                        children: N
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7726:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7727:                }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7728:                    className: "flex-1 h-px bg-gray-200"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7729:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7730:                    className: "flex items-center gap-3 text-xs text-gray-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7731:                    children: [s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7732:                        className: "font-bold",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7733:                        children: [z.length, " booking"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7734:                    }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7735:                        children: "·"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7736:                    }), s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7737:                        className: "flex items-center gap-1",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7738:                        children: [s.jsx(ke, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7739:                            className: "w-3 h-3"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7740:                        }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7741:                            className: "font-bold text-gray-800",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7742:                            children: be
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7743:                        }), " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7744:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7745:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7746:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7747:                className: "space-y-2",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7748:                children: Ee.map(($e, K) => It($e))
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7749:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7750:        })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7751:    }, Fe = N => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7752:        try {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7753:            const _ = new Date(N + "T00:00:00");
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7754:            return `${["Ch? nh?t","Th? 2","Th? 3","Th? 4","Th? 5","Th? 6","Th? 7"][_.getDay()]}, ${_.getDate()}/${_.getMonth()+1}/${_.getFullYear()}`
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7755:        } catch {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7756:            return N
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7757:        }
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7758:    };
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7759:    return s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7760:        className: "flex-1 overflow-y-auto p-6 bg-gray-50/80",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7761:        children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7762:            className: "flex items-center justify-between mb-6",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7763:            children: s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7764:                className: "flex items-center gap-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7765:                children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7766:                    className: "w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7767:                    children: s.jsx(vn, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7768:                        className: "w-5 h-5 text-white"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7769:                    })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7770:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7771:                    children: [s.jsx("h2", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7772:                        className: "text-lg font-bold text-gray-900",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7773:                        children: "T?ng quan ngày"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7774:                    }), s.jsx("p", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7775:                        className: "text-sm text-gray-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7776:                        children: Fe(n)
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7777:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7778:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7779:            })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7780:        }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7781:            className: "grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7782:            children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7783:                className: "bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7784:                children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7785:                    className: "flex items-center justify-between mb-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7786:                    children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7787:                        className: "w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7788:                        children: s.jsx(vn, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7789:                            className: "w-5 h-5 text-gray-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7790:                        })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7791:                    }), G.length > 0 && s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7792:                        className: "flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-bold animate-pulse",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7793:                        children: [s.jsx(Oe, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7794:                            className: "w-3 h-3"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7795:                        }), G.length, " c?n x? lý"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7796:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7797:                }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7798:                    className: "text-3xl font-black text-gray-900",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7799:                    children: j.length
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7800:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7801:                    className: "text-xs text-gray-500 mt-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7802:                    children: ["booking · ", s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7803:                        className: "font-bold text-gray-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7804:                        children: R
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7805:                    }), " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7806:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7807:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7808:                className: "bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7809:                children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7810:                    className: "flex items-center justify-between mb-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7811:                    children: s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7812:                        className: "w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7813:                        children: s.jsx(Er, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7814:                            className: "w-5 h-5 text-amber-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7815:                        })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7816:                    })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7817:                }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7818:                    className: "text-3xl font-black text-amber-600",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7819:                    children: M.length
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7820:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7821:                    className: "text-xs text-gray-500 mt-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7822:                    children: ["ca trua · ", s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7823:                        className: "font-bold text-gray-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7824:                        children: B
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7825:                    }), " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7826:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7827:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7828:                className: "bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7829:                children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7830:                    className: "flex items-center justify-between mb-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7831:                    children: s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7832:                        className: "w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7833:                        children: s.jsx(kr, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7834:                            className: "w-5 h-5 text-indigo-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7835:                        })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7836:                    })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7837:                }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7838:                    className: "text-3xl font-black text-indigo-600",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7839:                    children: A.length
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7840:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7841:                    className: "text-xs text-gray-500 mt-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7842:                    children: ["ca t?i · ", s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7843:                        className: "font-bold text-gray-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7844:                        children: V
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7845:                    }), " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7846:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7847:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7848:                className: "bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7849:                children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7850:                    className: "flex items-center justify-between mb-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7851:                    children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7852:                        className: "w-9 h-9 bg-teal-50 rounded-lg flex items-center justify-center",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7853:                        children: s.jsx(Cn, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7854:                            className: "w-5 h-5 text-teal-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7855:                        })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7856:                    }), se > 0 && s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7857:                        className: "flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7858:                        children: [se, " chua x?p"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7859:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7860:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7861:                    className: "text-3xl font-black text-teal-600",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7862:                    children: [Y, s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7863:                        className: "text-lg text-gray-400 font-medium",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7864:                        children: ["/", j.length]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7865:                    })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7866:                }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7867:                    className: "text-xs text-gray-500 mt-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7868:                    children: "dã gán bàn"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7869:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7870:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7871:        }), G.length > 0 && s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7872:            className: "mb-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl flex items-center gap-3",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7873:            children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7874:                className: "w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7875:                children: s.jsx(Oe, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7876:                    className: "w-5 h-5 text-red-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7877:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7878:            }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7879:                className: "flex-1",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7880:                children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7881:                    className: "font-bold text-red-800 text-sm",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7882:                    children: "C?n x? lý ngay"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7883:                }), s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7884:                    className: "text-xs text-red-600 mt-0.5",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7885:                    children: [G.map(N => N.customerName || "Không tên").join(", "), " — dang ch? xác nh?n ho?c thi?u thông tin"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7886:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7887:            }), s.jsx("button", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7888:                onClick: () => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7889:                    G[0] && o(G[0])
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7890:                },
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7891:                className: "px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex-shrink-0",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7892:                children: "X? lý"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7893:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7894:        }), Le(`Ca Trua (${m}:00 - ${p}:00)`, s.jsx(Er, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7895:            className: "w-4 h-4 text-amber-700"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7896:        }), M, B, "bg-amber-50 text-amber-800"), Le(`Ca T?i (${h}:00 - ${b}:00)`, s.jsx(kr, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7897:            className: "w-4 h-4 text-indigo-700"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7898:        }), A, V, "bg-indigo-50 text-indigo-800"), P.length > 0 && Le("Khung gi? khác", s.jsx(Qe, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7899:            className: "w-4 h-4 text-gray-600"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7900:        }), P, P.reduce((N, _) => N + (_.pax || 0), 0), "bg-gray-100 text-gray-700"), j.length === 0 && s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7901:            className: "flex flex-col items-center justify-center py-20 text-gray-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7902:            children: [s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7903:                className: "w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-4",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7904:                children: s.jsx(bo, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7905:                    className: "w-10 h-10 opacity-30"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7906:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7907:            }), s.jsx("p", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7908:                className: "text-lg font-bold text-gray-300 mb-1",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7909:                children: "Chua có booking nào"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7910:            }), s.jsxs("p", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7911:                className: "text-sm",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7912:                children: ["Ngày ", Fe(n), " hi?n chua có don d?t bàn"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7913:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7914:        }), y.filter(N => ["completed", "cancelled", "no_show"].includes(N.status)).length > 0 && s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7915:            className: "mt-4 pt-4 border-t border-gray-200",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7916:            children: [s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7917:                className: "flex items-center gap-2 text-xs text-gray-400 mb-2 px-2",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7918:                children: [s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7919:                    className: "font-medium",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7920:                    children: "Ðã k?t thúc / H?y"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7921:                }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7922:                    className: "bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7923:                    children: y.filter(N => ["completed", "cancelled", "no_show"].includes(N.status)).length
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7924:                })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7925:            }), s.jsx("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7926:                className: "space-y-1.5 opacity-60",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7927:                children: y.filter(N => ["completed", "cancelled", "no_show"].includes(N.status)).sort((N, _) => (N.time || "").localeCompare(_.time || "")).map((N, _) => {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7928:                    var z, be, pe;
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7929:                    return s.jsxs("div", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7930:                        className: "flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-sm cursor-pointer hover:bg-gray-100 transition-colors",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7931:                        onClick: () => o(N),
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7932:                        children: [s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7933:                            className: "w-12 text-gray-400 font-medium text-xs",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7934:                            children: N.time
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7935:                        }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7936:                            className: "text-gray-500 line-through",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7937:                            children: N.customerName
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7938:                        }), s.jsxs("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7939:                            className: "text-xs text-gray-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7940:                            children: [N.pax, " khách"]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7941:                        }), s.jsx("span", {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7942:                            className: `ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold ${(z=pt[N.status])==null?void 0:z.color} ${(be=pt[N.status])==null?void 0:be.textColor}`,
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7943:                            children: (pe = pt[N.status]) == null ? void 0 : pe.label
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7944:                        })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7945:                    }, N.id)
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7946:                })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7947:            })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7948:        })]
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7949:    })
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7950:}
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7951:const Ke = {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7952:        website: "Website",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7953:        web: "Website",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7954:        facebook: "Fanpage",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7955:        fb: "Facebook",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7956:        whatsapp: "WhatsApp",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7957:        zalo: "Zalo",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7958:        hotline: "Hotline",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7959:        walk_in: "Walk-in",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7960:        ota: "OTA",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7961:        email: "Email"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7962:    },
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7963:    $t = {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7964:        website: "bg-blue-100 text-blue-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7965:        web: "bg-blue-100 text-blue-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7966:        facebook: "bg-indigo-100 text-indigo-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7967:        fb: "bg-indigo-100 text-indigo-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7968:        whatsapp: "bg-green-100 text-green-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7969:        zalo: "bg-blue-100 text-blue-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7970:        hotline: "bg-green-100 text-green-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7971:        walk_in: "bg-orange-100 text-orange-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7972:        ota: "bg-purple-100 text-purple-700",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7973:        email: "bg-rose-100 text-rose-700"
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7974:    },
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7975:    Me = [{
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7976:        id: "new",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7977:        label: "M?i nh?n",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7978:        color: "bg-blue-50",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7979:        borderColor: "border-blue-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7980:        icon: Wt
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7981:    }, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7982:        id: "waiting_info",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7983:        label: "Ch? b? sung",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7984:        color: "bg-yellow-50",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7985:        borderColor: "border-yellow-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7986:        icon: ms
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7987:    }, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7988:        id: "pending",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7989:        label: "Ch? xác nh?n",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7990:        color: "bg-orange-50",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7991:        borderColor: "border-orange-400",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7992:        icon: Qe
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7993:    }, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7994:        id: "confirmed",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7995:        label: "Ðã xác nh?n",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7996:        color: "bg-green-50",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7997:        borderColor: "border-green-500",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7998:        icon: Ie
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:7999:    }, {
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:8000:        id: "change_requested",
+  C:\Users\ASUS\Downloads\maison-vie\kanban_beautified.js:8001:        label: "Ð?i gi?/ngày",

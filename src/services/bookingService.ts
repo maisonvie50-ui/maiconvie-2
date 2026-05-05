@@ -138,7 +138,11 @@ export const bookingService = {
             customerType: b.customer_type,
             selectedMenus: b.selected_menus || [],
             tableId: b.table_id,
-            tableName: b.table_name
+            tableName: b.table_name,
+            bookingCode: b.booking_code,
+            linked_table_ids: b.linked_table_ids || [],
+            linked_table_names: b.linked_table_names || [],
+            changeRequestData: b.change_request_data || b.changeRequestData || undefined
         })) as Booking[];
     },
 
@@ -179,6 +183,11 @@ export const bookingService = {
                 source: booking.source,
                 customer_type: booking.customerType || 'retail',
                 selected_menus: booking.selectedMenus || [],
+                booking_code: booking.bookingCode,
+                table_id: booking.tableId || null,
+                table_name: booking.tableName || null,
+                linked_table_ids: booking.linked_table_ids || [],
+                linked_table_names: booking.linked_table_names || [],
                 customer_id: customerId // Liên kết với CRM
             })
             .select()
@@ -202,7 +211,12 @@ export const bookingService = {
             area: data.area,
             source: data.source,
             customerType: data.customer_type,
-            selectedMenus: data.selected_menus || []
+            selectedMenus: data.selected_menus || [],
+            tableId: data.table_id,
+            tableName: data.table_name,
+            bookingCode: data.booking_code,
+            linked_table_ids: data.linked_table_ids || [],
+            linked_table_names: data.linked_table_names || []
         } as Booking;
 
         // Fire-and-forget: thông báo booking mới qua webhook/email
@@ -472,8 +486,11 @@ export const bookingService = {
         if (updates.source) dbUpdates.source = updates.source;
         if (updates.customerType) dbUpdates.customer_type = updates.customerType;
         if (updates.selectedMenus) dbUpdates.selected_menus = updates.selectedMenus;
-        if (updates.tableId !== undefined) dbUpdates.table_id = updates.tableId;
-        if (updates.tableName !== undefined) dbUpdates.table_name = updates.tableName;
+        if (updates.tableId !== undefined) dbUpdates.table_id = updates.tableId || null;
+        if (updates.tableName !== undefined) dbUpdates.table_name = updates.tableName || null;
+        if (updates.bookingCode !== undefined) dbUpdates.booking_code = updates.bookingCode;
+        if (updates.linked_table_ids !== undefined) dbUpdates.linked_table_ids = updates.linked_table_ids;
+        if (updates.linked_table_names !== undefined) dbUpdates.linked_table_names = updates.linked_table_names;
 
         dbUpdates.updated_at = new Date().toISOString();
 
@@ -538,6 +555,63 @@ export const bookingService = {
         }
     },
 
+    // 5.1. Duyệt yêu cầu đổi giờ/ngày từ khách
+    async approveChangeRequest(id: string) {
+        const { data: booking, error: fetchError } = await supabase
+            .from('bookings')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) {
+            console.error('Error fetching booking for change approval:', fetchError);
+            throw fetchError;
+        }
+
+        const requestData = booking?.change_request_data || booking?.changeRequestData;
+        if (!requestData) {
+            await bookingService.updateBookingStatus(id, 'confirmed');
+            return;
+        }
+
+        const updates: any = {
+            status: 'confirmed',
+            change_request_data: null,
+            updated_at: new Date().toISOString()
+        };
+
+        if (requestData.requested_time) updates.time = requestData.requested_time;
+        if (requestData.requested_date) updates.booking_date = requestData.requested_date;
+        if (requestData.requested_pax) updates.pax = requestData.requested_pax;
+
+        const { error } = await supabase
+            .from('bookings')
+            .update(updates)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error approving change request:', error);
+            throw error;
+        }
+    },
+
+    // 5.2. Từ chối yêu cầu đổi giờ/ngày từ khách
+    async rejectChangeRequest(id: string) {
+        const { error } = await supabase
+            .from('bookings')
+            .update({
+                status: 'confirmed',
+                change_request_data: null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error rejecting change request:', error);
+            throw error;
+        }
+    },
+
     // 5. Nghe sự kiện thay đổi Realtime
     subscribeToBookings(callback: (payload: any) => void) {
         return supabase
@@ -590,6 +664,10 @@ export const bookingService = {
             selectedMenus: b.selected_menus || [],
             tableId: b.table_id,
             tableName: b.table_name,
+            bookingCode: b.booking_code,
+            linked_table_ids: b.linked_table_ids || [],
+            linked_table_names: b.linked_table_names || [],
+            changeRequestData: b.change_request_data || b.changeRequestData || undefined,
             createdAt: b.created_at
         })) as (Booking & { createdAt?: string })[];
     },

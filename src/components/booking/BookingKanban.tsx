@@ -32,7 +32,8 @@ import {
   Filter,
   MoreVertical,
   Eye,
-  Mail
+  Mail,
+  BarChart2
 } from 'lucide-react';
 import { format, isSameDay, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, parseISO } from 'date-fns';
 import { Booking, BookingStatus } from '../../types';
@@ -102,7 +103,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [isMobile, setIsMobile] = useState(false);
 
   // View & Filter States
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table' | 'overview'>('kanban');
   const [dateFilterMode, setDateFilterMode] = useState<'day' | 'week' | 'month'>('day');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -149,15 +150,26 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [availableSetMenus, setAvailableSetMenus] = useState<any[]>([]);
   const [availableTourMenus, setAvailableTourMenus] = useState<any[]>([]);
   const [availableAlaCarteItems, setAvailableAlaCarteItems] = useState<any[]>([]);
+  const [availableBarItems, setAvailableBarItems] = useState<any[]>([]);
 
   const fetchMenus = async () => {
     try {
-      const sets = await menuService.getSetMenus();
-      const tours = await menuService.getTourMenus();
-      const items = await menuService.getMenuItems();
+      const [sets, tours, items, categories] = await Promise.all([
+        menuService.getSetMenus(),
+        menuService.getTourMenus(),
+        menuService.getMenuItems(),
+        menuService.getCategories()
+      ]);
+      const barCategoryIds = categories
+        .filter((cat: any) => /bar|đồ uống|do uong|drink|beverage|wine|rượu|ruou|cocktail|bia|beer|nước|nuoc/i.test(cat.name || ''))
+        .map((cat: any) => cat.id);
+      const barItems = items.filter((item: any) => barCategoryIds.includes(item.categoryId));
+      const alaCarteItems = items.filter((item: any) => !barCategoryIds.includes(item.categoryId));
+
       setAvailableSetMenus(sets.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
       setAvailableTourMenus(tours.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
-      setAvailableAlaCarteItems(items.filter((m: any) => m.inStock !== false));
+      setAvailableAlaCarteItems(alaCarteItems.filter((m: any) => m.inStock !== false));
+      setAvailableBarItems(barItems.filter((m: any) => m.inStock !== false));
     } catch (err) {
       console.error('Failed to load menus', err);
     }
@@ -321,7 +333,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       const matchSearch =
         (b.customerName || '').toLowerCase().includes(query) ||
         (b.phone || '').includes(query) ||
-        (b.email || '').toLowerCase().includes(query);
+        (b.email || '').toLowerCase().includes(query) ||
+        (b.bookingCode || '').toLowerCase().includes(query);
       if (!matchSearch) return false;
     }
 
@@ -352,10 +365,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     bookingDate: new Date().toISOString().split('T')[0],
     pax: 2,
     notes: [],
-    source: 'hotline',
+    source: 'walk_in',
+    customerType: 'retail',
     selectedMenus: [],
     tableId: '',
-    tableName: ''
+    tableName: '',
+    bookingCode: '',
+    linked_table_ids: [],
+    linked_table_names: []
   });
   const [noteInput, setNoteInput] = useState('');
 
@@ -450,7 +467,24 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   useEffect(() => {
     if (!showModal) {
       setEditingId(null);
-      setNewBooking({ customerName: '', phone: '', email: '', time: '', bookingDate: selectedDate, pax: 2, notes: [], area: undefined, source: 'hotline' });
+      setNewBooking({
+        customerName: '',
+        phone: '',
+        email: '',
+        time: '',
+        bookingDate: selectedDate,
+        pax: 2,
+        notes: [],
+        area: undefined,
+        source: 'walk_in',
+        customerType: 'retail',
+        selectedMenus: [],
+        tableId: '',
+        tableName: '',
+        bookingCode: '',
+        linked_table_ids: [],
+        linked_table_names: []
+      });
       setPendingStatusUpdate(null);
     }
   }, [showModal]);
@@ -541,6 +575,48 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   };
 
+  const handleApproveChangeRequest = async (bookingId: string) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    const request = booking?.changeRequestData;
+
+    setBookings(bookings.map(b => b.id === bookingId ? {
+      ...b,
+      status: 'confirmed',
+      time: request?.requested_time || b.time,
+      bookingDate: request?.requested_date || b.bookingDate,
+      pax: request?.requested_pax || b.pax,
+      changeRequestData: undefined,
+    } : b));
+    setViewingBooking(null);
+    setSelectedBooking(null);
+
+    try {
+      await bookingService.approveChangeRequest(bookingId);
+      fetchBookings();
+    } catch (error) {
+      fetchBookings();
+      alert('Lỗi duyệt yêu cầu thay đổi');
+    }
+  };
+
+  const handleRejectChangeRequest = async (bookingId: string) => {
+    setBookings(bookings.map(b => b.id === bookingId ? {
+      ...b,
+      status: 'confirmed',
+      changeRequestData: undefined,
+    } : b));
+    setViewingBooking(null);
+    setSelectedBooking(null);
+
+    try {
+      await bookingService.rejectChangeRequest(bookingId);
+      fetchBookings();
+    } catch (error) {
+      fetchBookings();
+      alert('Lỗi từ chối yêu cầu thay đổi');
+    }
+  };
+
   const submitCheckout = async () => {
     if (!checkoutBooking) return;
 
@@ -574,7 +650,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       let assignedTableName = '';
       if (newBooking.tableId) {
         const matchedTable = tables.find(t => t.id === newBooking.tableId);
-        assignedTableName = matchedTable ? matchedTable.name : '';
+        assignedTableName = matchedTable ? matchedTable.name : (newBooking.tableName || '');
       }
 
       if (editingId) {
@@ -595,7 +671,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           customerType: newBooking.customerType,
           selectedMenus: newBooking.selectedMenus,
           tableId: newBooking.tableId,
-          tableName: assignedTableName
+          tableName: assignedTableName,
+          bookingCode: newBooking.bookingCode,
+          linked_table_ids: newBooking.linked_table_ids,
+          linked_table_names: newBooking.linked_table_names
         } : b));
 
         await bookingService.updateBooking(editingId, {
@@ -611,7 +690,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           customerType: newBooking.customerType,
           selectedMenus: newBooking.selectedMenus,
           tableId: newBooking.tableId,
-          tableName: assignedTableName
+          tableName: assignedTableName,
+          bookingCode: newBooking.bookingCode,
+          linked_table_ids: newBooking.linked_table_ids,
+          linked_table_names: newBooking.linked_table_names
         });
       } else {
         // Create new booking
@@ -627,7 +709,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           area: newBooking.area,
           source: newBooking.source,
           customerType: newBooking.customerType,
-          selectedMenus: newBooking.selectedMenus
+          selectedMenus: newBooking.selectedMenus,
+          tableId: newBooking.tableId,
+          tableName: assignedTableName,
+          bookingCode: newBooking.bookingCode,
+          linked_table_ids: newBooking.linked_table_ids,
+          linked_table_names: newBooking.linked_table_names
         };
 
         const created = await bookingService.createBooking(bookingData);
@@ -676,7 +763,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       area: booking.area,
       source: booking.source,
       customerType: booking.customerType,
-      selectedMenus: booking.selectedMenus
+      selectedMenus: booking.selectedMenus,
+      tableId: booking.tableId || '',
+      tableName: booking.tableName || '',
+      bookingCode: booking.bookingCode || '',
+      linked_table_ids: booking.linked_table_ids || [],
+      linked_table_names: booking.linked_table_names || []
     });
     setSelectedBooking(null); // Close mobile sheet if open
     setShowModal(true);
@@ -788,7 +880,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
         <div className="relative">
           <input
             type="text"
-            placeholder="Tìm tên khách, SĐT, Email..."
+            placeholder="Tìm tên khách, SĐT, Email, Mã đơn..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -1245,6 +1337,402 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     );
   };
 
+  const renderDailyOverview = () => {
+    const lunchStart = appSettings?.lunchStart || 11;
+    const lunchEnd = appSettings?.lunchEnd || 14;
+    const dinnerStart = appSettings?.dinnerStart || 17;
+    const dinnerEnd = appSettings?.dinnerEnd || 22;
+
+    const dayBookings = bookings.filter(b => b.bookingDate === selectedDate);
+    const activeDayBookings = dayBookings.filter(b => !['cancelled', 'no_show', 'completed'].includes(b.status));
+
+    const getShift = (time?: string) => {
+      const hour = parseInt((time?.split(':')[0]) || '0', 10);
+      if (hour >= lunchStart && hour <= lunchEnd) return 'lunch';
+      if (hour >= dinnerStart && hour <= dinnerEnd) return 'dinner';
+      return 'other';
+    };
+
+    const lunchBookings = activeDayBookings.filter(b => getShift(b.time) === 'lunch');
+    const dinnerBookings = activeDayBookings.filter(b => getShift(b.time) === 'dinner');
+    const otherBookings = activeDayBookings.filter(b => getShift(b.time) === 'other');
+
+    const totalPax = activeDayBookings.reduce((sum, b) => sum + (b.pax || 0), 0);
+    const lunchPax = lunchBookings.reduce((sum, b) => sum + (b.pax || 0), 0);
+    const dinnerPax = dinnerBookings.reduce((sum, b) => sum + (b.pax || 0), 0);
+    const assignedCount = activeDayBookings.filter(b => b.tableId).length;
+    const unassignedCount = activeDayBookings.filter(b => !b.tableId).length;
+    const actionNeeded = activeDayBookings.filter(b => ['new', 'waiting_info', 'change_requested'].includes(b.status));
+    const endedBookings = dayBookings.filter(b => ['completed', 'cancelled', 'no_show'].includes(b.status));
+
+    const formatDay = (dateStr: string) => {
+      try {
+        const d = new Date(dateStr + 'T00:00:00');
+        const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+        return `${days[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+      } catch {
+        return dateStr;
+      }
+    };
+
+    const getMenuSummary = (booking: Booking) => {
+      if (!booking.selectedMenus || booking.selectedMenus.length === 0) {
+        return { text: 'Chưa chọn menu', isEmpty: true };
+      }
+
+      return {
+        text: booking.selectedMenus.map((menu: any) => {
+          const name = menu.name || menu.title || 'Menu';
+          const quantity = menu.quantity > 1 ? ` x${menu.quantity}` : '';
+          return `${name}${quantity}`;
+        }).join(', '),
+        isEmpty: false
+      };
+    };
+
+    const getTableNames = (booking: Booking) => {
+      const names: string[] = [];
+      if (booking.tableName) names.push(booking.tableName);
+      if (booking.linked_table_names && booking.linked_table_names.length > 0) names.push(...booking.linked_table_names);
+      return names.length > 0 ? names : null;
+    };
+
+    const hasNotes = (booking: Booking) => {
+      return !!booking.notes && booking.notes.length > 0 && booking.notes.some(note => note && note.trim().length > 0);
+    };
+
+    const availableTables = tables
+      .filter(table => table.status === 'empty')
+      .filter(table => !historyDropBooking || !searchQuery || table.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const assignTable = async (bookingId: string, table: Table) => {
+      try {
+        await bookingService.updateBooking(bookingId, {
+          tableId: table.id,
+          tableName: table.name
+        });
+        setHistoryDropBooking(null);
+        setSearchQuery('');
+        fetchBookings();
+      } catch (error: any) {
+        alert(error.message || 'Lỗi gán bàn');
+      }
+    };
+
+    const renderBookingRow = (booking: Booking) => {
+      const menuSummary = getMenuSummary(booking);
+      const tableNames = getTableNames(booking);
+      const statusConfig = columns.find(c => c.id === booking.status) || columns[0];
+      const notesAvailable = hasNotes(booking);
+      const missingInfo = !booking.phone || !booking.pax || !booking.time;
+
+      return (
+        <div
+          key={booking.id}
+          className="group flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 hover:border-teal-200 hover:shadow-md transition-all cursor-pointer relative"
+          onClick={() => handleEditBooking(booking)}
+        >
+          <div className="w-16 flex-shrink-0 text-center">
+            <div className="text-lg font-bold text-gray-900">{booking.time || '--:--'}</div>
+          </div>
+          <div className="w-px h-10 bg-gray-200 flex-shrink-0" />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="font-bold text-gray-900 text-sm truncate">{booking.customerName || 'Không có tên'}</span>
+              {booking.customerType === 'tour' && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Đoàn</span>
+              )}
+              {missingInfo && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 flex-shrink-0">⚠</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                <span className="font-bold text-gray-700">{booking.pax || 0}</span> khách
+              </span>
+              {booking.phone && <span className="text-gray-400">{booking.phone}</span>}
+            </div>
+          </div>
+
+          <div className="w-40 flex-shrink-0 hidden lg:block">
+            <div className={`text-xs truncate ${menuSummary.isEmpty ? 'text-gray-400 italic' : 'text-gray-700 font-medium'}`}>
+              <MessageSquare className="w-3 h-3 inline mr-1 opacity-50" />
+              {menuSummary.text}
+            </div>
+          </div>
+
+          <div className="w-36 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            {tableNames ? (
+              <div className="flex items-center gap-1 flex-wrap">
+                {tableNames.map((name, index) => (
+                  <span
+                    key={index}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold ${index === 0 ? 'bg-teal-100 text-teal-800' : 'bg-blue-50 text-blue-700'}`}
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setHistoryDropBooking(historyDropBooking?.id === booking.id ? null : booking);
+                  setSearchQuery('');
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+              >
+                <LayoutGrid className="w-3 h-3" />
+                Xếp bàn
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            )}
+
+            {historyDropBooking?.id === booking.id && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => {
+                    setHistoryDropBooking(null);
+                    setSearchQuery('');
+                  }}
+                />
+                <div className="absolute right-4 mt-1 z-50 bg-white rounded-xl border border-gray-200 shadow-2xl w-64 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-2 border-b border-gray-100">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Tìm bàn..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto p-1.5 custom-scrollbar">
+                    {availableTables.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-xs text-gray-400">Không còn bàn trống</div>
+                    ) : (
+                      availableTables.map(table => (
+                        <button
+                          key={table.id}
+                          onClick={() => assignTable(booking.id, table)}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm hover:bg-teal-50 transition-colors"
+                        >
+                          <span className="font-bold text-gray-700">{table.name}</span>
+                          <span className="text-xs text-gray-400">{table.pax} chỗ</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="w-28 flex-shrink-0 hidden md:block">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${statusConfig.color} ${statusConfig.borderColor.replace('border-', 'text-')}`}>
+              {statusConfig.label}
+            </span>
+          </div>
+
+          {notesAvailable && (
+            <div className="w-8 flex-shrink-0 text-amber-500" title={booking.notes?.join(', ')}>
+              <MessageSquare className="w-4 h-4" />
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const renderShiftSection = (title: string, icon: React.ReactNode, sectionBookings: Booking[], pax: number, colorClass: string) => {
+      if (sectionBookings.length === 0) return null;
+
+      return (
+        <div className="mb-6">
+          <div className={`flex items-center justify-between px-4 py-2 rounded-t-xl ${colorClass}`}>
+            <div className="flex items-center gap-2 font-bold text-sm">
+              {icon}
+              {title}
+            </div>
+            <div className="text-xs font-bold">
+              {sectionBookings.length} booking · <span className="font-bold text-gray-800">{pax}</span> khách
+            </div>
+          </div>
+          <div className="space-y-2">
+            {sectionBookings
+              .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+              .map(booking => renderBookingRow(booking))}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="flex-1 overflow-y-auto p-6 bg-gray-50/80">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
+              <CalendarIcon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Tổng quan ngày</h2>
+              <p className="text-sm text-gray-500">{formatDay(selectedDate)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+                <CalendarIcon className="w-5 h-5 text-gray-600" />
+              </div>
+              {actionNeeded.length > 0 && (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-bold animate-pulse">
+                  <AlertCircle className="w-3 h-3" />
+                  {actionNeeded.length} cần xử lý
+                </span>
+              )}
+            </div>
+            <div className="text-3xl font-black text-gray-900">{activeDayBookings.length}</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              booking · <span className="font-bold text-gray-700">{totalPax}</span> khách
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-amber-50 rounded-lg flex items-center justify-center">
+                <Sun className="w-5 h-5 text-amber-600" />
+              </div>
+            </div>
+            <div className="text-3xl font-black text-amber-600">{lunchBookings.length}</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              ca trưa · <span className="font-bold text-gray-700">{lunchPax}</span> khách
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center">
+                <Moon className="w-5 h-5 text-indigo-600" />
+              </div>
+            </div>
+            <div className="text-3xl font-black text-indigo-600">{dinnerBookings.length}</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              ca tối · <span className="font-bold text-gray-700">{dinnerPax}</span> khách
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 bg-teal-50 rounded-lg flex items-center justify-center">
+                <LayoutGrid className="w-5 h-5 text-teal-600" />
+              </div>
+              {unassignedCount > 0 && (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold">
+                  {unassignedCount} chưa xếp
+                </span>
+              )}
+            </div>
+            <div className="text-3xl font-black text-teal-600">
+              {assignedCount}<span className="text-lg text-gray-400 font-medium">/{activeDayBookings.length}</span>
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">đã gán bàn</div>
+          </div>
+        </div>
+
+        {actionNeeded.length > 0 && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <div className="font-bold text-red-800 text-sm">Cần xử lý ngay</div>
+              <div className="text-xs text-red-600 mt-0.5">
+                {actionNeeded.map(b => b.customerName || 'Không tên').join(', ')} — đang chờ xác nhận hoặc thiếu thông tin
+              </div>
+            </div>
+            <button
+              onClick={() => actionNeeded[0] && handleEditBooking(actionNeeded[0])}
+              className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 transition-colors flex-shrink-0"
+            >
+              Xử lý
+            </button>
+          </div>
+        )}
+
+        {renderShiftSection(
+          `Ca Trưa (${lunchStart}:00 - ${lunchEnd}:00)`,
+          <Sun className="w-4 h-4 text-amber-700" />,
+          lunchBookings,
+          lunchPax,
+          'bg-amber-50 text-amber-800'
+        )}
+
+        {renderShiftSection(
+          `Ca Tối (${dinnerStart}:00 - ${dinnerEnd}:00)`,
+          <Moon className="w-4 h-4 text-indigo-700" />,
+          dinnerBookings,
+          dinnerPax,
+          'bg-indigo-50 text-indigo-800'
+        )}
+
+        {otherBookings.length > 0 && renderShiftSection(
+          'Khung giờ khác',
+          <Clock className="w-4 h-4 text-gray-600" />,
+          otherBookings,
+          otherBookings.reduce((sum, b) => sum + (b.pax || 0), 0),
+          'bg-gray-100 text-gray-700'
+        )}
+
+        {activeDayBookings.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+              <Search className="w-10 h-10 opacity-30" />
+            </div>
+            <p className="text-lg font-bold text-gray-300 mb-1">Chưa có booking nào</p>
+            <p className="text-sm">Ngày {formatDay(selectedDate)} hiện chưa có đơn đặt bàn</p>
+          </div>
+        )}
+
+        {endedBookings.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 px-2">
+              <span className="font-medium">Đã kết thúc / Hủy</span>
+              <span className="bg-gray-100 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{endedBookings.length}</span>
+            </div>
+            <div className="space-y-1.5 opacity-60">
+              {endedBookings
+                .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+                .map(booking => {
+                  const statusConfig = columns.find(c => c.id === booking.status);
+                  return (
+                    <div
+                      key={booking.id}
+                      className="flex items-center gap-3 px-4 py-2 bg-gray-50 rounded-lg text-sm cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleEditBooking(booking)}
+                    >
+                      <span className="w-12 text-gray-400 font-medium text-xs">{booking.time}</span>
+                      <span className="text-gray-500 line-through">{booking.customerName}</span>
+                      <span className="text-xs text-gray-400">{booking.pax} khách</span>
+                      <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold ${statusConfig?.color} ${statusConfig?.borderColor.replace('border-', 'text-')}`}>
+                        {statusConfig?.label}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // --- Desktop Kanban View (3 Columns) ---
 
   const renderDesktopKanban = () => (
@@ -1523,7 +2011,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Tìm tên, SĐT..."
+              placeholder="Tìm tên, SĐT, Mã đơn..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
@@ -1547,6 +2035,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               title="Bảng"
             >
               <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('overview')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'overview' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
+              title="Tổng quan ngày"
+            >
+              <BarChart2 className="w-4 h-4" />
             </button>
           </div>
 
@@ -1672,19 +2167,21 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       {/* Conditional Rendering */}
       {isMobile
         ? renderMobileList()
-        : viewMode === 'kanban'
-          ? renderDesktopKanban()
-          : renderDesktopTable()
+        : viewMode === 'overview'
+          ? renderDailyOverview()
+          : viewMode === 'kanban'
+            ? renderDesktopKanban()
+            : renderDesktopTable()
       }
 
       {/* Add Booking Modal (Shared) */}
       {showModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm md:p-4"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white w-full h-full md:h-auto md:rounded-xl shadow-xl md:max-w-md md:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom md:zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
@@ -1704,6 +2201,19 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   value={newBooking.customerName}
                   onChange={(e) => setNewBooking({ ...newBooking, customerName: e.target.value })}
                   placeholder="VD: Nguyễn Văn A"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mã Booking <span className="text-gray-400 font-normal">(Tùy chọn)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newBooking.bookingCode || ''}
+                  onChange={(e) => setNewBooking({ ...newBooking, bookingCode: e.target.value })}
+                  placeholder="VD: LVS8-MH, TNNO-0311..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
@@ -1910,9 +2420,50 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       </div>
                     )}
 
+                    {/* Bar (for retail) */}
+                    {newBooking.customerType !== 'tour' && availableBarItems.length > 0 && (
+                      <div>
+                        <div className="px-3 py-2 bg-emerald-50 border-b border-emerald-100 sticky top-0 z-10">
+                          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">🍸 Bar / Đồ uống ({availableBarItems.length})</span>
+                        </div>
+                        {availableBarItems.map(item => {
+                          const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === item.name);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                const currentMenus = newBooking.selectedMenus || [];
+                                const existingIndex = currentMenus.findIndex((m: any) => m.name === item.name);
+                                let updatedMenus = [...currentMenus];
+                                if (existingIndex >= 0) {
+                                  updatedMenus[existingIndex] = { ...updatedMenus[existingIndex], quantity: updatedMenus[existingIndex].quantity + 1 };
+                                } else {
+                                  updatedMenus.push({ name: item.name, quantity: 1, price: item.price || 0, type: 'bar' });
+                                }
+                                setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-emerald-50/50 active:bg-emerald-100 transition-colors text-left group"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-800 truncate">{item.name}</div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                {existing && (
+                                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">×{existing.quantity}</span>
+                                )}
+                                <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{item.price?.toLocaleString()}₫</span>
+                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-emerald-500 group-hover:text-white text-gray-400 text-sm font-bold transition-colors">+</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {/* Empty state */}
                     {((newBooking.customerType === 'tour' && availableTourMenus.length === 0) ||
-                      (newBooking.customerType !== 'tour' && availableSetMenus.length === 0 && availableAlaCarteItems.length === 0)) && (
+                      (newBooking.customerType !== 'tour' && availableSetMenus.length === 0 && availableAlaCarteItems.length === 0 && availableBarItems.length === 0)) && (
                         <div className="px-4 py-8 text-center text-gray-400 text-sm">
                           Chưa có thực đơn nào. Vui lòng thêm trong phần Quản lý thực đơn.
                         </div>
@@ -2043,7 +2594,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     {/* Nút bỏ chọn */}
                     <button
                       type="button"
-                      onClick={() => setNewBooking({ ...newBooking, tableId: '', tableName: '' })}
+                      onClick={() => setNewBooking({
+                        ...newBooking,
+                        tableId: '',
+                        tableName: '',
+                        linked_table_ids: [],
+                        linked_table_names: []
+                      })}
                       className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm border-b border-gray-100 transition-colors ${!newBooking.tableId ? 'bg-gray-100 text-gray-800 font-bold' : 'text-gray-500 hover:bg-gray-50'
                         }`}
                     >
@@ -2072,8 +2629,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <div className="grid grid-cols-2 gap-1.5 p-2">
                             {floorTables.map(table => {
                               const isSelected = newBooking.tableId === table.id;
+                              const isLinked = (newBooking.linked_table_ids || []).includes(table.id);
+                              const isActiveSelection = isSelected || isLinked;
                               const conflict = getTableConflict(table.id);
-                              const isBlocked = !!conflict && !isSelected;
+                              const isBlocked = !!conflict && !isActiveSelection;
                               return (
                                 <button
                                   key={table.id}
@@ -2081,20 +2640,61 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                   disabled={isBlocked}
                                   onClick={() => {
                                     if (isBlocked) return;
-                                    setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name });
+                                    const linkedIds = newBooking.linked_table_ids || [];
+                                    const linkedNames = newBooking.linked_table_names || [];
+
+                                    if (isSelected) {
+                                      if (linkedIds.length > 0) {
+                                        setNewBooking({
+                                          ...newBooking,
+                                          tableId: linkedIds[0],
+                                          tableName: linkedNames[0] || '',
+                                          linked_table_ids: linkedIds.slice(1),
+                                          linked_table_names: linkedNames.slice(1)
+                                        });
+                                      } else {
+                                        setNewBooking({
+                                          ...newBooking,
+                                          tableId: '',
+                                          tableName: '',
+                                          linked_table_ids: [],
+                                          linked_table_names: []
+                                        });
+                                      }
+                                    } else if (linkedIds.includes(table.id)) {
+                                      const index = linkedIds.indexOf(table.id);
+                                      setNewBooking({
+                                        ...newBooking,
+                                        linked_table_ids: linkedIds.filter((_, i) => i !== index),
+                                        linked_table_names: linkedNames.filter((_, i) => i !== index)
+                                      });
+                                    } else if (newBooking.tableId) {
+                                      setNewBooking({
+                                        ...newBooking,
+                                        linked_table_ids: [...linkedIds, table.id],
+                                        linked_table_names: [...linkedNames, table.name]
+                                      });
+                                    } else {
+                                      setNewBooking({ ...newBooking, tableId: table.id, tableName: table.name });
+                                    }
                                   }}
                                   className={`relative px-2.5 py-2 rounded-lg text-left border-2 transition-all text-xs ${isSelected
                                     ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-200 shadow-sm'
-                                    : isBlocked
-                                      ? 'border-red-200 bg-red-50/50 opacity-60 cursor-not-allowed'
-                                      : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
+                                    : isLinked
+                                      ? 'border-teal-300 bg-teal-50/70 shadow-sm'
+                                      : isBlocked
+                                        ? 'border-red-200 bg-red-50/50 opacity-60 cursor-not-allowed'
+                                        : 'border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/30'
                                     }`}
                                   title={isBlocked ? `🔒 ${conflict.customerName} (${conflict.time}-${conflict.endTime}, ${conflict.pax} khách)` : ''}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <span className={`font-bold ${isSelected ? 'text-teal-700' : isBlocked ? 'text-red-400' : 'text-gray-800'}`}>{table.name}</span>
+                                    <span className={`font-bold ${isActiveSelection ? 'text-teal-700' : isBlocked ? 'text-red-400' : 'text-gray-800'}`}>{table.name}</span>
                                     {isSelected && (
-                                      <span className="w-4 h-4 bg-teal-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold">✓</span>
+                                      <span className="px-1 bg-teal-500 text-white rounded flex items-center justify-center text-[9px] font-bold">Chính</span>
+                                    )}
+                                    {isLinked && (
+                                      <span className="w-4 h-4 bg-teal-300 text-white rounded-full flex items-center justify-center text-[9px] font-bold">✓</span>
                                     )}
                                     {isBlocked && (
                                       <span className="text-[10px]">🔒</span>
@@ -2311,6 +2911,54 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   </span>
                 )}
               </div>
+
+              {/* Change Request UI */}
+              {viewingBooking.status === 'change_requested' && viewingBooking.changeRequestData && (
+                <div className="mb-6 border-2 border-purple-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="bg-purple-100 px-4 py-2 flex items-center justify-between">
+                    <span className="font-bold text-purple-800 flex items-center gap-1.5">
+                      <AlertCircle className="w-4 h-4" /> YÊU CẦU THAY ĐỔI TỪ KHÁCH HÀNG
+                    </span>
+                    <span className="text-[10px] bg-white text-purple-600 px-2 py-0.5 rounded-full font-semibold border border-purple-200">
+                      {new Date(viewingBooking.changeRequestData.requested_at || new Date()).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="p-4 bg-purple-50 space-y-3">
+                    <div className="grid grid-cols-2 gap-4 text-sm relative">
+                      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-purple-200 -translate-x-1/2"></div>
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hiện tại</div>
+                        <div className="font-medium line-through opacity-70">Giờ: {viewingBooking.time || '--:--'}</div>
+                        <div className="font-medium line-through opacity-70">Khách: {viewingBooking.pax || 0}</div>
+                      </div>
+                      <div className="space-y-1 pl-2">
+                        <div className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Mong muốn</div>
+                        <div className="font-bold text-purple-900">Giờ: {viewingBooking.changeRequestData.requested_time || viewingBooking.time}</div>
+                        <div className="font-bold text-purple-900">Khách: {viewingBooking.changeRequestData.requested_pax || viewingBooking.pax}</div>
+                      </div>
+                    </div>
+                    {viewingBooking.changeRequestData.requested_notes && (
+                      <div className="bg-white p-2 rounded border border-purple-100 text-sm italic text-gray-700">
+                        "{viewingBooking.changeRequestData.requested_notes}"
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 mt-4 pt-2">
+                      <button
+                        onClick={() => handleApproveChangeRequest(viewingBooking.id)}
+                        className="flex items-center justify-center gap-1.5 py-2.5 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 shadow-sm active:transform active:scale-95 transition-all"
+                      >
+                        <CheckCircle className="w-5 h-5" /> Duyệt thay đổi
+                      </button>
+                      <button
+                        onClick={() => handleRejectChangeRequest(viewingBooking.id)}
+                        className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 shadow-sm active:transform active:scale-95 transition-all"
+                      >
+                        <X className="w-5 h-5" /> Từ chối
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Time & Info block */}
               <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">

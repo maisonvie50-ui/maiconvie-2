@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, Search, ShoppingBag, Send, SplitSquareHorizontal, CheckCircle, ArrowRightLeft, Users, ChevronRight } from 'lucide-react';
+import { X, Plus, Minus, Search, ShoppingBag, Send, SplitSquareHorizontal, CheckCircle, ArrowRightLeft, Users, ChevronRight, Utensils, Wine } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { menuService } from '../../services/menuService';
 import { tableService } from '../../services/tableService';
@@ -16,12 +16,13 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
   const [isOrderSent, setIsOrderSent] = useState(false);
   const [mergeTarget, setMergeTarget] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'alacarte' | 'set'>('alacarte');
+  const [activeTab, setActiveTab] = useState<'alacarte' | 'bar' | 'set' | 'tour'>('alacarte');
   const [selectedSet, setSelectedSet] = useState<any>(null);
   const [setSelections, setSetSelections] = useState<Record<string, any>>({});
 
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [setMenus, setSetMenus] = useState<any[]>([]);
+  const [tourMenus, setTourMenus] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [tables, setTables] = useState<any[]>([]);
 
@@ -29,16 +30,18 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
     let mounted = true;
     async function loadData() {
       try {
-        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTables] = await Promise.all([
+        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTours, fetchedTables] = await Promise.all([
           menuService.getCategories(),
           menuService.getMenuItems(),
           menuService.getSetMenus(),
+          menuService.getTourMenus(),
           tableService.getTables()
         ]);
         if (mounted) {
           setCategories(fetchedCategories);
           setMenuItems(fetchedItems.filter(i => i.inStock));
           setSetMenus(fetchedSets.filter(s => s.status === 'available'));
+          setTourMenus(fetchedTours.filter(s => s.status === 'available'));
           setTables(fetchedTables);
         }
       } catch (err) {
@@ -93,6 +96,16 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
       ...item,
       category: categories.find(c => c.id === item.categoryId)?.name || 'Khác'
     }));
+
+  const alacarteMenu = filteredMenu.filter(item => {
+    const cat = item.category.toLowerCase();
+    return !cat.includes('uống') && !cat.includes('vang') && !cat.includes('bar');
+  });
+
+  const barMenu = filteredMenu.filter(item => {
+    const cat = item.category.toLowerCase();
+    return cat.includes('uống') || cat.includes('vang') || cat.includes('bar');
+  });
 
   const addItem = (item: any) => {
     const existing = orderItems.find(i => i.id === item.id);
@@ -358,7 +371,13 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
               className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'alacarte' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
               onClick={() => setActiveTab('alacarte')}
             >
-              Gọi Món Lẻ
+              À La Carte (Ăn)
+            </button>
+            <button
+              className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'bar' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('bar')}
+            >
+              Bar Order
             </button>
             <button
               className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'set' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
@@ -366,28 +385,78 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
             >
               Set Menu
             </button>
+            <button
+              className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'tour' ? 'border-amber-600 text-amber-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+              onClick={() => setActiveTab('tour')}
+            >
+              Set Tour
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            {activeTab === 'alacarte' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {filteredMenu.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => addItem(item)}
-                    className="flex flex-col text-left p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-teal-500 hover:shadow-md transition-all active:scale-95"
-                  >
-                    <span className="text-xs font-medium text-teal-600 mb-1">{item.category}</span>
-                    <span className="font-bold text-gray-800 mb-2 line-clamp-2">{item.name}</span>
-                    <span className="text-sm font-semibold text-gray-500 mt-auto">
-                      {item.price.toLocaleString('vi-VN')}đ
-                    </span>
-                  </button>
-                ))}
+            {(activeTab === 'alacarte' || activeTab === 'bar') ? (
+              <div className="space-y-6">
+                {activeTab === 'alacarte' && alacarteMenu.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Utensils className="w-4 h-4 text-orange-600" />
+                      </div>
+                      <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wider">Đồ ăn</h3>
+                      <span className="text-xs text-gray-400 font-medium">({alacarteMenu.length} món)</span>
+                      <div className="flex-1 h-px bg-gray-200 ml-2"></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {alacarteMenu.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => addItem(item)}
+                          className="flex flex-col text-left p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-teal-500 hover:shadow-md transition-all active:scale-95"
+                        >
+                          <span className="text-xs font-medium text-teal-600 mb-1">{item.category}</span>
+                          <span className="font-bold text-gray-800 mb-2 line-clamp-2">{item.name}</span>
+                          <span className="text-sm font-semibold text-gray-500 mt-auto">
+                            {item.price.toLocaleString('vi-VN')}đ
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'bar' && barMenu.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Wine className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <h3 className="font-bold text-gray-700 text-sm uppercase tracking-wider">Đồ uống</h3>
+                      <span className="text-xs text-gray-400 font-medium">({barMenu.length} món)</span>
+                      <div className="flex-1 h-px bg-gray-200 ml-2"></div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {barMenu.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => addItem(item)}
+                          className="flex flex-col text-left p-3 bg-white rounded-xl border border-gray-200 shadow-sm hover:border-blue-500 hover:shadow-md transition-all active:scale-95"
+                        >
+                          <span className="text-xs font-medium text-blue-600 mb-1">{item.category}</span>
+                          <span className="font-bold text-gray-800 mb-2 line-clamp-2">{item.name}</span>
+                          <span className="text-sm font-semibold text-gray-500 mt-auto">
+                            {item.price.toLocaleString('vi-VN')}đ
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {((activeTab === 'alacarte' && alacarteMenu.length === 0) || (activeTab === 'bar' && barMenu.length === 0)) && (
+                  <div className="text-center p-8 text-gray-400">Không tìm thấy món ăn/đồ uống phù hợp.</div>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
-                {setMenus
+                {(activeTab === 'set' ? setMenus : tourMenus)
                   .filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map(set => (
                     <button
@@ -399,20 +468,20 @@ export default function OrderPad({ table, onClose }: OrderPadProps) {
                         <span className="font-bold text-lg text-gray-800 group-hover:text-teal-700 transition-colors">{set.name}</span>
                         {set.courses && (
                           <div className="text-sm text-gray-500 line-clamp-2 mt-1 pr-2">
-                            Gồm {set.courses.length} món: {set.courses.map(c => c.title.split('|')[0].trim()).join(', ')}
+                            Gồm {set.courses.length} món: {set.courses.map((c: any) => c.title.split('|')[0].trim()).join(', ')}
                           </div>
                         )}
                       </div>
                       <div className="pl-4 flex flex-col items-end shrink-0 gap-2">
-                        <span className="text-lg font-bold text-teal-600">{set.price.toLocaleString('vi-VN')}đ</span>
-                        <div className="flex items-center text-xs font-medium text-gray-400 group-hover:text-teal-600 transition-colors">
+                        <span className={`text-lg font-bold ${activeTab === 'tour' ? 'text-amber-600' : 'text-teal-600'}`}>{set.price.toLocaleString('vi-VN')}đ</span>
+                        <div className={`flex items-center text-xs font-medium text-gray-400 transition-colors ${activeTab === 'tour' ? 'group-hover:text-amber-600' : 'group-hover:text-teal-600'}`}>
                           Tùy chọn <ChevronRight className="w-4 h-4 ml-1" />
                         </div>
                       </div>
                     </button>
                   ))}
-                {setMenus.filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                  <div className="text-center p-8 text-gray-400">Không tìm thấy Set Menu phù hợp.</div>
+                {(activeTab === 'set' ? setMenus : tourMenus).filter(set => set.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                  <div className="text-center p-8 text-gray-400">Không tìm thấy {activeTab === 'set' ? 'Set Menu' : 'Set Tour'} phù hợp.</div>
                 )}
               </div>
             )}

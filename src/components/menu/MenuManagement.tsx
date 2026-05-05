@@ -124,6 +124,63 @@ export default function MenuManagement() {
     includedDrink: ''
   });
 
+  // Category Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const newCat = await menuService.createCategory(newCategoryName.trim());
+      setCategories([...categories, newCat]);
+      setNewCategoryName('');
+      setIsCategoryModalOpen(false);
+      setActiveCategory(newCat.id);
+    } catch (err) {
+      console.error("Error creating category:", err);
+      alert("Lỗi khi tạo danh mục. Vui lòng thử lại.");
+    }
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategoryId || !newCategoryName.trim()) return;
+    try {
+      await menuService.updateCategory(editingCategoryId, newCategoryName.trim());
+      setCategories(categories.map(c => c.id === editingCategoryId ? { ...c, name: newCategoryName.trim() } : c));
+      setEditingCategoryId(null);
+      setNewCategoryName('');
+      setIsCategoryModalOpen(false);
+    } catch (err) {
+      console.error("Error renaming category:", err);
+      alert("Lỗi khi đổi tên danh mục.");
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const cat = categories.find(c => c.id === id);
+    const itemsCount = items.filter(i => i.categoryId === id).length;
+    
+    if (itemsCount > 0) {
+      alert(`Không thể xóa danh mục "${cat?.name}" vì vẫn còn ${itemsCount} món bên trong. Hãy xóa hoặc chuyển hết món ra trước.`);
+      return;
+    }
+    
+    if (confirm(`Bạn có chắc muốn xóa danh mục "${cat?.name}"?`)) {
+      try {
+        await menuService.deleteCategory(id);
+        const newCats = categories.filter(c => c.id !== id);
+        setCategories(newCats);
+        if (activeCategory === id && newCats.length > 0) {
+          setActiveCategory(newCats[0].id);
+        }
+      } catch (err) {
+        console.error("Error deleting category:", err);
+        alert("Lỗi khi xóa danh mục.");
+      }
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
@@ -592,7 +649,15 @@ export default function MenuManagement() {
           <div className="hidden md:flex w-64 bg-white border-r border-gray-200 flex-col flex-shrink-0">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-bold text-gray-800">Danh mục món</h3>
-              <button className="p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
+              <button 
+                onClick={() => {
+                  setNewCategoryName('');
+                  setEditingCategoryId(null);
+                  setIsCategoryModalOpen(true);
+                }}
+                className="p-1 hover:bg-teal-50 hover:text-teal-600 rounded text-gray-500 transition-colors"
+                title="Thêm danh mục mới"
+              >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
@@ -605,14 +670,37 @@ export default function MenuManagement() {
                     onClick={() => setActiveCategory(cat.id)}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors group ${activeCategory === cat.id ? 'bg-teal-50 text-teal-700' : 'hover:bg-gray-50 text-gray-700'} ${count === 0 ? 'opacity-50 grayscale' : ''}`}
                   >
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 cursor-grab" />
-                      <span className="font-medium text-sm">{cat.name}</span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 cursor-grab shrink-0" />
+                      <span className="font-medium text-sm truncate">{cat.name}</span>
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${activeCategory === cat.id ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                      {count}
-                    </span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCategoryId(cat.id);
+                          setNewCategoryName(cat.name);
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                        title="Đổi tên"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(cat.id);
+                        }}
+                        className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                        title="Xóa danh mục"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${activeCategory === cat.id ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {count}
+                      </span>
+                    </div>
                   </div>
                 )
               })}
@@ -1519,6 +1607,49 @@ export default function MenuManagement() {
             </div>
           </div>
         )}
+      {/* Category Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-800">
+                {editingCategoryId ? 'Đổi tên danh mục' : 'Tạo danh mục mới'}
+              </h3>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục</label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Ví dụ: Đồ uống, Rượu Vang, Cocktail..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                autoFocus
+              />
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={editingCategoryId ? handleUpdateCategory : handleCreateCategory}
+                className="px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-lg font-medium transition-colors shadow-sm"
+              >
+                {editingCategoryId ? 'Lưu cập nhật' : 'Tạo mới'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

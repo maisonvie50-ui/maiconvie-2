@@ -15,6 +15,7 @@ const VIEW_TITLES: Record<string, string> = {
   '/so-do-nha-hang': 'Sơ đồ nhà hàng',
   '/thuc-don': 'Quản lý Thực đơn',
   '/bep': 'Bếp (Order)',
+  '/bar': 'Bar (Order)',
   '/dao-tao': 'Đào tạo nội bộ',
   '/khach-hang': 'Khách hàng (CRM)',
   '/cau-hinh': 'Cấu hình hệ thống',

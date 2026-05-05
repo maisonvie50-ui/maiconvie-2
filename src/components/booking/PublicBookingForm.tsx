@@ -15,13 +15,13 @@ const TRANSLATIONS = {
         subtitle: "Hoàn tất biểu mẫu dưới đây, chúng tôi sẽ liên hệ để xác nhận ngay.",
         customerTypeHeading: "Đối tượng Khách hàng",
         retail: "Khách Lẻ",
-        tour: "Khách Đoàn",
+        tour: "Khách Tour",
         contactInfoHeading: "Thông tin liên hệ",
         fullName: "Họ và Tên",
         fullNamePlaceholder: "Nguyễn Văn A",
         phone: "Số Điện Thoại",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email",
+        emailOptional: "Email (Tùy chọn)",
         reservationHeading: "Thông tin Đặt Bàn",
         date: "Ngày",
         time: "Giờ",
@@ -58,7 +58,7 @@ const TRANSLATIONS = {
         backToHome: "Về Trang Chủ",
         errorSubmit: "Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.",
         guest: "người",
-        tourLabel: "Khách Đoàn",
+        tourLabel: "Khách Tour",
         retailLabel: "Khách Lẻ",
     },
     en: {
@@ -74,7 +74,7 @@ const TRANSLATIONS = {
         fullNamePlaceholder: "John Doe",
         phone: "Phone Number",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email",
+        emailOptional: "Email (Optional)",
         reservationHeading: "Reservation Details",
         date: "Date",
         time: "Time",
@@ -316,7 +316,7 @@ export default function PublicBookingForm() {
                         onClick={() => window.location.reload()}
                         className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition duration-300"
                     >
-                        Về Trang Chủ
+                        {t.backToHome}
                     </button>
                 </div>
             </div>
@@ -435,12 +435,11 @@ export default function PublicBookingForm() {
                                 <div className="space-y-1.5 col-span-2">
                                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                                         <Mail className="w-4 h-4 text-teal-600" />
-                                        Email <span className="text-red-500">*</span>
+                                        {t.emailOptional}
                                     </label>
                                     <input
                                         type="email"
                                         name="email"
-                                        required
                                         value={formData.email}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
@@ -543,7 +542,7 @@ export default function PublicBookingForm() {
                         {/* CHỌN THỰC ĐƠN TRƯỚC */}
                         <div className="space-y-4 pt-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">
-                                Chọn Thực đơn (Không bắt buộc)
+                                {t.menuHeading}
                             </h3>
 
                             {formData.customerType === 'retail' && (
@@ -641,7 +640,7 @@ export default function PublicBookingForm() {
                             disabled={isChecking || (isAvailable === false && appSettings?.strictMode)}
                             className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 transition-all ${(isChecking || (isAvailable === false && appSettings?.strictMode)) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.98] shadow-lg shadow-teal-500/30'}`}
                         >
-                            Tiếp tục
+                            {t.continueBtn}
                             <ArrowRight className="w-5 h-5" />
                         </button>
                     </form>
@@ -689,7 +688,7 @@ export default function PublicBookingForm() {
                     </div>
                     <div className="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
                         <button onClick={() => setMenuDetailItem(null)} className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold text-base hover:bg-teal-700 transition-colors">
-                            Đóng
+                            {t.close}
                         </button>
                     </div>
                 </div>
@@ -741,7 +740,7 @@ export default function PublicBookingForm() {
                                 onClick={() => setShowSummary(false)}
                                 className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
                             >
-                                Quay lại
+                                {t.backBtn}
                             </button>
                             <button
                                 type="button"

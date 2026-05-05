@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Phone, User, Clock, Users, CalendarIcon, Loader2, X, ChevronDown, ChevronUp, Mail } from 'lucide-react';
+import { Search, Phone, User, Clock, Users, Loader2, X, Mail } from 'lucide-react';
 import { bookingService } from '../../services/bookingService';
 import { Booking, BookingStatus } from '../../types';
 

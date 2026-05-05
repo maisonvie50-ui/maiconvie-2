@@ -1,0 +1,61 @@
+'Mới nhận'
+'Chờ bổ sung'
+'Chờ xác nhận'
+'Đã xác nhận'
+'Đổi giờ/ngày'
+'Đã đến'
+'Không đến'
+'Đã hủy'
+'Hoàn thành'
+'Cần xử lý'
+'Đã chốt'
+'Đang phục vụ'
+'Lịch sử'
+'Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!'
+'Lỗi cập nhật trạng thái'
+'Lỗi duyệt yêu cầu thay đổi'
+'Lỗi từ chối yêu cầu thay đổi'
+'Đã xảy ra lỗi khi lưu đặt bàn'
+`Khách hàng: ${newBookingAlert.name}`
+'Có đơn đặt bàn mới'
+"Chọn ngày"
+"Tìm tên khách, SĐT, Email..."
+'Không có tên'
+'Khách hàng'
+'Trong nhà'
+'Ngoài trời'
+'Sân thượng'
+"Chỉnh sửa"
+"Chủ nhật"
+"Thứ 2"
+"Thứ 3"
+"Thứ 4"
+"Thứ 5"
+"Thứ 6"
+"Thứ 7"
+'Không tên'
+"Đổi trạng thái nhanh"
+"Xem chi tiết"
+"Chế độ xem"
+"Tìm tên, SĐT..."
+"Bảng"
+"Tổng quan ngày"
+'Cập nhật thông tin'
+'Thêm đặt bàn mới'
+"VD: Nguyễn Văn A"
+'KHÁCH ĐOÀN'
+'KHÁCH LẺ'
+"Xóa món"
+'🚌 Thêm Menu Đoàn'
+'🍽️ Thêm món / Set Menu'
+'🏠 Tầng 1'
+'🏢 Tầng 2'
+'🌟 Tầng 3'
+`🔒 ${conflict.customerName} (${conflict.time}-${conflict.endTime}, ${conflict.pax} khách)`
+"Nhập ghi chú"
+"VD: Sinh nhật, Dị ứng..."
+'Lưu thay đổi'
+'Lưu đặt bàn'
+'Đoàn'
+'Lẻ'
+'Không rõ'

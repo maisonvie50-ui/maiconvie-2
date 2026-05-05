@@ -24,6 +24,39 @@ export const menuService = {
         }));
     },
 
+    async createCategory(name: string) {
+        const { data, error } = await supabase
+            .from('menu_categories')
+            .insert([{ name, sort_order: 99 }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return {
+            id: data.id,
+            name: data.name,
+            count: 0
+        };
+    },
+
+    async updateCategory(id: string, name: string) {
+        const { error } = await supabase
+            .from('menu_categories')
+            .update({ name })
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async deleteCategory(id: string) {
+        const { error } = await supabase
+            .from('menu_categories')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
     // Menu Items (A La Carte)
     async getMenuItems() {
         const { data, error } = await supabase

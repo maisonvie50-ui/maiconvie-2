@@ -16,4 +16,14 @@ export interface Booking {
   selectedMenus?: any[];
   tableId?: string;
   tableName?: string;
+  bookingCode?: string;
+  linked_table_ids?: string[];
+  linked_table_names?: string[];
+  changeRequestData?: {
+    requested_at?: string;
+    requested_time?: string;
+    requested_date?: string;
+    requested_pax?: number;
+    requested_notes?: string;
+  };
 }

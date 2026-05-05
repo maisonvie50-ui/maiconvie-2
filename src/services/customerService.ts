@@ -155,68 +155,92 @@ export const customerService = {
     },
 
     /**
-     * Update customer info (name, phone, email, group, tags)
+     * Import multiple customers from CSV
      */
-    updateCustomer: async (id: string, updates: Partial<Pick<Customer, 'name' | 'phone' | 'email' | 'group' | 'tags'>>) => {
-        const payload: any = {};
-        if (updates.name !== undefined) payload.name = updates.name;
-        if (updates.phone !== undefined) payload.phone = updates.phone;
-        if (updates.email !== undefined) payload.email = updates.email;
-        if (updates.group !== undefined) payload.customer_group = updates.group;
-        if (updates.tags !== undefined) payload.tags = updates.tags;
+    importCustomers: async (customers: any[]) => {
+        let successCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+
+        // 1. Get existing phones to avoid duplicates
+        const { data: existingPhones, error: fetchError } = await supabase
+            .from('customers')
+            .select('phone');
+
+        if (fetchError) {
+            console.error('Error fetching existing phones:', fetchError);
+            return { success: 0, skipped: 0, errors: [fetchError] };
+        }
+
+        const phoneSet = new Set(existingPhones.map(c => c.phone));
+        const newCustomersToInsert = [];
+        const validGroups = ['VIP', 'Regular', 'New'];
+
+        for (const c of customers) {
+            if (!c.phone || phoneSet.has(c.phone)) {
+                skippedCount++;
+                continue;
+            }
+            if (newCustomersToInsert.some(nc => nc.phone === c.phone)) {
+                skippedCount++;
+                continue;
+            }
+
+            const group = validGroups.includes(c.group || '') ? c.group : 'New';
+
+            newCustomersToInsert.push({
+                name: c.name || 'Khách hàng',
+                phone: c.phone,
+                email: c.email || null,
+                customer_group: group,
+                total_spent: 0,
+                visit_count: 0,
+                no_show_rate: 0
+            });
+        }
+
+        if (newCustomersToInsert.length === 0) {
+            return { success: 0, skipped: skippedCount, errors: [] };
+        }
+
+        const batchSize = 500;
+        for (let i = 0; i < newCustomersToInsert.length; i += batchSize) {
+            const batch = newCustomersToInsert.slice(i, i + batchSize);
+            const { error: insertError } = await supabase
+                .from('customers')
+                .insert(batch);
+
+            if (insertError) {
+                console.error('Batch insert error:', insertError);
+                errors.push(insertError);
+            } else {
+                successCount += batch.length;
+            }
+        }
+
+        return { success: successCount, skipped: skippedCount, errors };
+    },
+
+    /**
+     * Update customer
+     */
+    updateCustomer: async (id: string, updates: Partial<Customer>) => {
+        const updateData: any = {};
+        
+        if (updates.name !== undefined) updateData.name = updates.name;
+        if (updates.phone !== undefined) updateData.phone = updates.phone;
+        if (updates.email !== undefined) updateData.email = updates.email;
+        if (updates.group !== undefined) updateData.customer_group = updates.group;
+        if (updates.tags !== undefined) updateData.tags = updates.tags;
 
         const { error } = await supabase
             .from('customers')
-            .update(payload)
+            .update(updateData)
             .eq('id', id);
 
         if (error) {
             console.error('Error updating customer:', error);
             throw error;
         }
-    },
-
-    /**
-     * Bulk import customers from CSV data
-     */
-    importCustomers: async (rows: { name: string; phone: string; email: string; group: string }[]): Promise<{ success: number; skipped: number }> => {
-        let success = 0;
-        let skipped = 0;
-
-        for (const row of rows) {
-            // Check duplicate by phone
-            const { data: existing } = await supabase
-                .from('customers')
-                .select('id')
-                .eq('phone', row.phone)
-                .maybeSingle();
-
-            if (existing) {
-                skipped++;
-                continue;
-            }
-
-            const { error } = await supabase
-                .from('customers')
-                .insert({
-                    name: row.name,
-                    phone: row.phone,
-                    email: row.email || null,
-                    customer_group: row.group || 'New',
-                    total_spent: 0,
-                    visit_count: 0,
-                    no_show_rate: 0,
-                    tags: []
-                });
-
-            if (error) {
-                console.error('Error importing customer:', error);
-                skipped++;
-            } else {
-                success++;
-            }
-        }
-
-        return { success, skipped };
     }
 };
