@@ -280,18 +280,18 @@ export const orderService = {
     },
 
     // 7. Subscribe to realtime changes on orders
-    subscribeToOrders(callback: () => void) {
+    subscribeToOrders(callback: (payload?: any) => void) {
         return supabase
             .channel('kitchen-orders')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'orders' },
-                () => callback()
+                (payload) => callback(payload)
             )
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'order_items' },
-                () => callback()
+                (payload) => callback(payload)
             )
             .subscribe((status) => {
                 if (status === 'SUBSCRIBED') {

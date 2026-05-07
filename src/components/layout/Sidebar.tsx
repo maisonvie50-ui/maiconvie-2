@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
     { path: '/bar', icon: Wine, label: 'Bar (Order)', allowedRoles: ['admin', 'manager', 'kitchen'] },
     { path: '/dao-tao', icon: PlaySquare, label: 'Đào tạo nội bộ', allowedRoles: ['admin', 'manager', 'receptionist', 'kitchen', 'server'] },
     { path: '/khach-hang', icon: Users, label: 'Khách hàng (CRM)', allowedRoles: ['admin', 'manager', 'receptionist'] },
-    { path: '/cau-hinh', icon: Settings, label: 'Cấu hình', allowedRoles: ['admin', 'manager'] },
+    // { path: '/cau-hinh', icon: Settings, label: 'Cấu hình', allowedRoles: ['admin', 'manager'] },
   ];
 
   const menuItems = allMenuItems.filter(item => item.allowedRoles.includes(userRole));

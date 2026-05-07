@@ -157,7 +157,7 @@ export const tableService = {
     },
 
     // 7. Listen to real-time changes
-    subscribeToTables(callback: () => void) {
+    subscribeToTables(callback: (payload?: any) => void) {
         const channel = supabase.channel('public:tables_and_halls');
         
         channel.on(
@@ -165,7 +165,7 @@ export const tableService = {
             { event: '*', schema: 'public', table: 'tables' },
             (payload) => {
                 console.log('Tables realtime change received!', payload);
-                callback();
+                callback(payload);
             }
         )
         .on(
@@ -173,7 +173,7 @@ export const tableService = {
             { event: '*', schema: 'public', table: 'event_halls' },
             (payload) => {
                 console.log('Event Halls realtime change received!', payload);
-                callback();
+                callback(payload);
             }
         )
         .subscribe((status) => {

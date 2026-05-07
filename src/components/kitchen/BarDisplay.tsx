@@ -56,9 +56,47 @@ export default function BarDisplay() {
     }
   };
 
+  const handleOrderRealtimePayload = (payload?: any) => {
+    if (!payload) {
+      loadOrders();
+      return;
+    }
+
+    if (payload.table === 'order_items' && payload.eventType === 'UPDATE') {
+      const item = payload.new;
+      setOrders(prev => prev.map(order => ({
+        ...order,
+        items: order.items.map(i => i.id === item.id ? { ...i, status: item.status } : i)
+      })));
+      return;
+    }
+
+    if (payload.table === 'orders' && payload.eventType === 'UPDATE') {
+      const order = payload.new;
+      if (order.status !== 'pending') {
+        setOrders(prev => prev.filter(o => o.id !== order.id));
+        return;
+      }
+      setOrders(prev => prev.map(o => o.id === order.id ? {
+        ...o,
+        table: order.table_name,
+        bookingStatus: order.booking_status || 'confirmed',
+        orderTime: new Date(order.order_time)
+      } : o));
+      return;
+    }
+
+    if (payload.table === 'orders' && payload.eventType === 'DELETE') {
+      setOrders(prev => prev.filter(o => o.id !== payload.old?.id));
+      return;
+    }
+
+    loadOrders();
+  };
+
   useEffect(() => {
     loadOrders();
-    const sub = orderService.subscribeToOrders(() => loadOrders());
+    const sub = orderService.subscribeToOrders(handleOrderRealtimePayload);
     return () => { sub.unsubscribe(); };
   }, []);
 

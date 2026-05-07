@@ -150,7 +150,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [availableSetMenus, setAvailableSetMenus] = useState<any[]>([]);
   const [availableTourMenus, setAvailableTourMenus] = useState<any[]>([]);
   const [availableAlaCarteItems, setAvailableAlaCarteItems] = useState<any[]>([]);
-  const [availableBarItems, setAvailableBarItems] = useState<any[]>([]);
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
 
   const fetchMenus = async () => {
     try {
@@ -169,7 +169,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       setAvailableSetMenus(sets.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
       setAvailableTourMenus(tours.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
       setAvailableAlaCarteItems(alaCarteItems.filter((m: any) => m.inStock !== false));
-      setAvailableBarItems(barItems.filter((m: any) => m.inStock !== false));
     } catch (err) {
       console.error('Failed to load menus', err);
     }
@@ -956,9 +955,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <h4 className="font-bold text-sm text-gray-900 truncate">{booking.customerName || 'Không có tên'}</h4>
                         {booking.customerType === 'tour' ? (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 shrink-0">Đoàn</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 shrink-0">Dégustation</span>
                         ) : booking.customerType === 'retail' ? (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 shrink-0">Lẻ</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 shrink-0">A la carte</span>
                         ) : null}
                         {isMissingInfo(booking) && (
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 shrink-0">⚠</span>
@@ -1179,9 +1178,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
                             {booking.customerType === 'tour' ? (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Đoàn</span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Dégustation</span>
                             ) : booking.customerType === 'retail' ? (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">Lẻ</span>
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">A la carte</span>
                             ) : null}
                           </div>
                           {isMissingInfo(booking) && (
@@ -1441,7 +1440,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             <div className="flex items-center gap-2 mb-0.5">
               <span className="font-bold text-gray-900 text-sm truncate">{booking.customerName || 'Không có tên'}</span>
               {booking.customerType === 'tour' && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Đoàn</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Dégustation</span>
               )}
               {missingInfo && (
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600 flex-shrink-0">⚠</span>
@@ -1792,10 +1791,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <h4 className="font-semibold text-gray-900 text-sm truncate">{booking.customerName || 'Không tên'}</h4>
                                       {booking.customerType === 'tour' && (
-                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Đoàn</span>
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Dégustation</span>
                                       )}
                                       {booking.customerType === 'retail' && (
-                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">Lẻ</span>
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">A la carte</span>
                                       )}
                                       {isMissingInfo(booking) && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0">!</span>
@@ -2223,7 +2222,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
                     <span>Thực đơn khách đã chọn</span>
                     {newBooking.customerType ? (
-                      <span className={`${newBooking.customerType === 'tour' ? 'text-purple-700 bg-purple-100 border-purple-200' : 'text-blue-700 bg-blue-100 border-blue-200'} text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase`}>{newBooking.customerType === 'tour' ? 'KHÁCH ĐOÀN' : 'KHÁCH LẺ'}</span>
+                      <span className={`${newBooking.customerType === 'tour' ? 'text-purple-700 bg-purple-100 border-purple-200' : 'text-blue-700 bg-blue-100 border-blue-200'} text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase`}>{newBooking.customerType === 'tour' ? 'DÉGUSTATION' : 'A LA CARTE'}</span>
                     ) : null}
                   </label>
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
@@ -2264,7 +2263,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
               {/* Loại khách */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Loại khách</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Thực đơn mong muốn</label>
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -2274,7 +2273,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                   >
-                    🧑 Khách lẻ
+                    🍽️ A la carte
                   </button>
                   <button
                     type="button"
@@ -2284,7 +2283,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                   >
-                    🚌 Lữ hành
+                    ✨ Dégustation
                   </button>
                 </div>
               </div>
@@ -2292,18 +2291,38 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               {/* Chọn thực đơn - Visual Card Picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {newBooking.customerType === 'tour' ? '🚌 Thêm Menu Đoàn' : '🍽️ Thêm món / Set Menu'}
+                  {newBooking.customerType === 'tour' ? '✨ Thêm Dégustation Menu' : '🍽️ Thêm A la carte / Set Menu'}
                 </label>
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-                  <div className="max-h-[240px] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
+                  <div className="px-3 py-2 bg-white border-b border-gray-200">
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Tìm món..."
+                        value={menuSearchQuery}
+                        onChange={(e) => setMenuSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-8 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      />
+                      {menuSearchQuery && (
+                        <button
+                          onClick={() => setMenuSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="max-h-[360px] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
 
                     {/* Set Menus (for retail) */}
-                    {newBooking.customerType !== 'tour' && availableSetMenus.length > 0 && (
+                    {newBooking.customerType !== 'tour' && availableSetMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length > 0 && (
                       <div>
                         <div className="px-3 py-2 bg-blue-50 border-b border-blue-100 sticky top-0 z-10">
-                          <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">📋 Set Menu ({availableSetMenus.length})</span>
+                          <span className="text-xs font-bold text-blue-700 uppercase tracking-wide">📋 Set Menu ({availableSetMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length})</span>
                         </div>
-                        {availableSetMenus.map(menu => {
+                        {availableSetMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).map(menu => {
                           const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === menu.name);
                           return (
                             <button
@@ -2339,12 +2358,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     )}
 
                     {/* Tour Menus (for tour) */}
-                    {newBooking.customerType === 'tour' && availableTourMenus.length > 0 && (
+                    {newBooking.customerType === 'tour' && availableTourMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length > 0 && (
                       <div>
                         <div className="px-3 py-2 bg-purple-50 border-b border-purple-100 sticky top-0 z-10">
-                          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">🚌 Menu Đoàn ({availableTourMenus.length})</span>
+                          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">✨ Dégustation Menu ({availableTourMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length})</span>
                         </div>
-                        {availableTourMenus.map(menu => {
+                        {availableTourMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).map(menu => {
                           const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === menu.name);
                           return (
                             <button
@@ -2380,12 +2399,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     )}
 
                     {/* A La Carte (for retail) */}
-                    {newBooking.customerType !== 'tour' && availableAlaCarteItems.length > 0 && (
+                    {newBooking.customerType !== 'tour' && availableAlaCarteItems.filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length > 0 && (
                       <div>
                         <div className="px-3 py-2 bg-amber-50 border-b border-amber-100 sticky top-0 z-10">
-                          <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">🍽️ Món lẻ ({availableAlaCarteItems.length})</span>
+                          <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">🍽️ A la carte ({availableAlaCarteItems.filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length})</span>
                         </div>
-                        {availableAlaCarteItems.map(item => {
+                        {availableAlaCarteItems.filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).map(item => {
                           const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === item.name);
                           return (
                             <button
@@ -2420,52 +2439,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       </div>
                     )}
 
-                    {/* Bar (for retail) */}
-                    {newBooking.customerType !== 'tour' && availableBarItems.length > 0 && (
-                      <div>
-                        <div className="px-3 py-2 bg-emerald-50 border-b border-emerald-100 sticky top-0 z-10">
-                          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">🍸 Bar / Đồ uống ({availableBarItems.length})</span>
-                        </div>
-                        {availableBarItems.map(item => {
-                          const existing = (newBooking.selectedMenus || []).find((m: any) => m.name === item.name);
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                const currentMenus = newBooking.selectedMenus || [];
-                                const existingIndex = currentMenus.findIndex((m: any) => m.name === item.name);
-                                let updatedMenus = [...currentMenus];
-                                if (existingIndex >= 0) {
-                                  updatedMenus[existingIndex] = { ...updatedMenus[existingIndex], quantity: updatedMenus[existingIndex].quantity + 1 };
-                                } else {
-                                  updatedMenus.push({ name: item.name, quantity: 1, price: item.price || 0, type: 'bar' });
-                                }
-                                setNewBooking({ ...newBooking, selectedMenus: updatedMenus });
-                              }}
-                              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-emerald-50/50 active:bg-emerald-100 transition-colors text-left group"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-800 truncate">{item.name}</div>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0 ml-2">
-                                {existing && (
-                                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded">×{existing.quantity}</span>
-                                )}
-                                <span className="text-xs font-semibold text-emerald-600 whitespace-nowrap">{item.price?.toLocaleString()}₫</span>
-                                <span className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 group-hover:bg-emerald-500 group-hover:text-white text-gray-400 text-sm font-bold transition-colors">+</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
                     {/* Empty state */}
-                    {((newBooking.customerType === 'tour' && availableTourMenus.length === 0) ||
-                      (newBooking.customerType !== 'tour' && availableSetMenus.length === 0 && availableAlaCarteItems.length === 0 && availableBarItems.length === 0)) && (
+                    {((newBooking.customerType === 'tour' && availableTourMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length === 0) ||
+                      (newBooking.customerType !== 'tour' && availableSetMenus.filter(menu => menu.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length === 0 && availableAlaCarteItems.filter(item => item.name.toLowerCase().includes(menuSearchQuery.toLowerCase())).length === 0)) && (
                         <div className="px-4 py-8 text-center text-gray-400 text-sm">
-                          Chưa có thực đơn nào. Vui lòng thêm trong phần Quản lý thực đơn.
+                          {menuSearchQuery ? 'Không tìm thấy món phù hợp' : 'Chưa có thực đơn nào. Vui lòng thêm trong phần Quản lý thực đơn.'}
                         </div>
                       )}
                   </div>
@@ -2907,7 +2885,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
                 {viewingBooking.customerType && (
                   <span className={`px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${viewingBooking.customerType === 'tour' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                    Khách {viewingBooking.customerType === 'tour' ? 'Đoàn' : 'Lẻ'}
+                    {viewingBooking.customerType === 'tour' ? 'Dégustation' : 'A la carte'}
                   </span>
                 )}
               </div>
@@ -3021,7 +2999,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                             <span>{menu.name}</span>
                             {menu.type && (
                               <span className={`ml-1.5 text-[9px] font-bold uppercase px-1 py-0.5 rounded ${menu.type === 'tour' ? 'bg-purple-100 text-purple-600' : menu.type === 'set' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
-                                {menu.type === 'tour' ? 'Đoàn' : menu.type === 'set' ? 'Set' : 'A la carte'}
+                                {menu.type === 'tour' ? 'Dégustation' : menu.type === 'set' ? 'Set' : 'A la carte'}
                               </span>
                             )}
                           </div>

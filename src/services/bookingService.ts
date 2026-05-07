@@ -639,7 +639,7 @@ export const bookingService = {
         const { data, error } = await supabase
             .from('bookings')
             .select('*')
-            .or(`customer_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,email.ilike.%${trimmed}%`)
+            .or(`customer_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%,email.ilike.%${trimmed}%,booking_code.ilike.%${trimmed}%`)
             .order('created_at', { ascending: false })
             .limit(10);
 
@@ -670,6 +670,115 @@ export const bookingService = {
             changeRequestData: b.change_request_data || b.changeRequestData || undefined,
             createdAt: b.created_at
         })) as (Booking & { createdAt?: string })[];
+    },
+
+    async searchBookingSecure(query: string, phoneLast4: string) {
+        const trimmed = query.trim();
+        const last4 = phoneLast4.replace(/\D/g, '').slice(-4);
+        if (!trimmed || last4.length !== 4) return [];
+
+        const isPhoneQuery = /\d/.test(trimmed) && trimmed.replace(/\D/g, '').length >= 4;
+        const phoneDigits = trimmed.replace(/\D/g, '');
+
+        let request = supabase
+            .from('bookings')
+            .select('*');
+
+        if (isPhoneQuery) {
+            request = request.or(`phone.eq.${phoneDigits},phone.like.%${phoneDigits}`);
+        } else {
+            request = request.or(`email.eq.${trimmed},booking_code.eq.${trimmed}`);
+        }
+
+        const { data, error } = await request
+            .like('phone', `%${last4}`)
+            .neq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (error) {
+            console.error('Error searching bookings securely:', error);
+            throw error;
+        }
+
+        return (data || []).map(b => ({
+            id: b.id,
+            customerName: b.customer_name,
+            phone: b.phone,
+            email: b.email,
+            time: b.time,
+            bookingDate: b.booking_date,
+            pax: b.pax,
+            status: b.status,
+            notes: b.notes || [],
+            area: b.area,
+            source: b.source,
+            customerType: b.customer_type,
+            selectedMenus: b.selected_menus || [],
+            tableId: b.table_id,
+            tableName: b.table_name,
+            bookingCode: b.booking_code || '',
+            linked_table_ids: b.linked_table_ids || [],
+            linked_table_names: b.linked_table_names || [],
+            createdAt: b.created_at,
+            changeRequestData: b.change_request_data
+        })) as (Booking & { createdAt?: string; changeRequestData?: any })[];
+    },
+
+    async submitChangeRequest(id: string, requestData: any) {
+        const { error } = await supabase
+            .from('bookings')
+            .update({ change_request_data: requestData, status: 'change_requested' })
+            .eq('id', id);
+        if (error) {
+            console.error('Error submitting change request:', error);
+            throw error;
+        }
+    },
+
+    async updateBookingMenus(id: string, selectedMenus: any[]) {
+        const { error } = await supabase
+            .from('bookings')
+            .update({ selected_menus: selectedMenus })
+            .eq('id', id);
+        if (error) {
+            console.error('Error updating booking menus:', error);
+            throw error;
+        }
+    },
+
+    async cancelBookingByCustomer(booking: Booking) {
+        if (booking.status === 'arrived' || booking.status === 'completed') {
+            throw new Error('Đơn đã được xử lý hoặc hoàn thành không thể hủy.');
+        }
+
+        if (booking.bookingDate && booking.time) {
+            const now = new Date();
+            let normalizedDate = booking.bookingDate;
+            if (normalizedDate.includes('/')) {
+                const parts = normalizedDate.split('/');
+                if (parts.length === 3) normalizedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            const bookingAt = new Date(`${normalizedDate}T${booking.time}:00`);
+            if (!Number.isNaN(bookingAt.getTime())) {
+                const hoursUntilBooking = (bookingAt.getTime() - now.getTime()) / 36e5;
+                if (hoursUntilBooking < 2 && hoursUntilBooking >= 0) {
+                    throw new Error('Đã quá thời hạn hệ thống (chỉ hỗ trợ ít nhất 2 giờ trước giờ đặt). Xin vui lòng liên hệ hotline.');
+                }
+                if (hoursUntilBooking < 0) {
+                    throw new Error('Đơn đặt bàn trong quá khứ không thể hủy trên hệ thống.');
+                }
+            }
+        }
+
+        const { error } = await supabase
+            .from('bookings')
+            .update({ status: 'cancelled' })
+            .eq('id', booking.id);
+        if (error) {
+            console.error('Error cancelling booking:', error);
+            throw error;
+        }
     },
 
     // 6. Kiểm tra chỗ trống và gợi ý giờ

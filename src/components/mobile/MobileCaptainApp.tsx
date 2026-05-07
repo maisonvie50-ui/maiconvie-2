@@ -799,6 +799,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         </button>
       )}
 
+      {/* Ẩn nút Cấu hình (admin)
       {isAdminOrManager && (
         <button
           onClick={() => handleSetView('settings')}
@@ -810,6 +811,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           <span className="font-bold text-gray-800">Cấu hình</span>
         </button>
       )}
+      */}
 
       {isAdminOrManager && (
         <button

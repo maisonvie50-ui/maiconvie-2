@@ -10,6 +10,7 @@ interface Table {
   type: 'circle' | 'square';
   status: TableStatus;
   pax: number;
+  floor?: 1 | 2 | 3;
   customerName?: string;
   time?: string; // Arrival time or Reservation time
   duration?: string; // For occupied tables
@@ -93,6 +94,32 @@ export default function RestaurantMap() {
     }
   };
 
+  const mapTableRecord = (record: any): Table => ({
+    id: record.id,
+    name: record.name,
+    type: record.type,
+    status: record.status,
+    pax: record.pax,
+    floor: record.floor,
+    x: record.x || 0,
+    y: record.y || 0,
+    customerName: record.customer_name,
+    time: record.time,
+    duration: record.duration,
+    notes: record.notes,
+    bookingId: record.booking_id
+  } as Table);
+
+  const mapVipRecord = (record: any): VipRoom => ({
+    id: record.id,
+    name: record.name,
+    capacity: record.pax,
+    status: (record.status === 'occupied' || record.status === 'reserved') ? 'in-use' : 'empty',
+    customerName: record.customer_name,
+    time: record.time || undefined,
+    notes: record.notes || undefined
+  });
+
   const [areaConfig, setAreaConfig] = useState<any[]>([]);
 
   // Drag & Drop State
@@ -114,14 +141,58 @@ export default function RestaurantMap() {
     }
   };
 
+  const handleTablesRealtimePayload = (payload?: any) => {
+    if (!payload || payload.table !== 'tables') {
+      fetchTables();
+      return;
+    }
+
+    const record = payload.eventType === 'DELETE' ? payload.old : payload.new;
+    if (!record?.id) {
+      fetchTables();
+      return;
+    }
+
+    if (payload.eventType === 'DELETE') {
+      setTablesL1(prev => prev.filter(t => t.id !== record.id));
+      setTablesL3(prev => prev.filter(t => t.id !== record.id));
+      setVipRoomsList(prev => prev.filter(r => r.id !== record.id));
+      return;
+    }
+
+    if (record.floor === 1 || record.floor === 3) {
+      const mapped = mapTableRecord(record);
+      const updateTableList = (prev: Table[]) => {
+        const withoutCurrent = prev.filter(t => t.id !== mapped.id);
+        return mapped.floor === record.floor ? [...withoutCurrent, mapped].sort((a, b) => a.name.localeCompare(b.name)) : withoutCurrent;
+      };
+
+      setTablesL1(prev => record.floor === 1 ? updateTableList(prev) : prev.filter(t => t.id !== mapped.id));
+      setTablesL3(prev => record.floor === 3 ? updateTableList(prev) : prev.filter(t => t.id !== mapped.id));
+      setVipRoomsList(prev => prev.filter(r => r.id !== mapped.id));
+      return;
+    }
+
+    if (record.floor === 2) {
+      const mapped = mapVipRecord(record);
+      setVipRoomsList(prev => {
+        const withoutCurrent = prev.filter(r => r.id !== mapped.id);
+        return [...withoutCurrent, mapped].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      setTablesL1(prev => prev.filter(t => t.id !== mapped.id));
+      setTablesL3(prev => prev.filter(t => t.id !== mapped.id));
+      return;
+    }
+
+    fetchTables();
+  };
+
   React.useEffect(() => {
     fetchTables();
     loadPartitionConfig();
 
     // Subscribe to realtime updates
-    const subscription = tableService.subscribeToTables(() => {
-      fetchTables();
-    });
+    const subscription = tableService.subscribeToTables(handleTablesRealtimePayload);
 
     return () => {
       subscription.unsubscribe();
@@ -137,6 +208,7 @@ export default function RestaurantMap() {
 
   // Calculate Level 2 Occupancy
   const totalPaxL2 = safeAreaConfig.find(a => a.id === '2')?.capacity || 50;
+  const currentOccupiedL2 = vipRoomsList.reduce((acc, r) => r.status === 'in-use' ? acc + r.capacity : acc, 0);
   const currentTotalCapacityL2 = vipRoomsList.reduce((acc, r) => acc + r.capacity, 0);
 
   // Calculate Level 3 Occupancy
@@ -805,11 +877,11 @@ export default function RestaurantMap() {
               <div className="text-sm font-medium text-gray-600">Sức chứa đã dùng:</div>
               <div className="w-48 h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${currentTotalCapacityL2 > totalPaxL2 ? 'bg-red-500' : 'bg-purple-500'}`}
-                  style={{ width: `${Math.min(Math.round((currentTotalCapacityL2 / totalPaxL2) * 100), 100)}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${currentOccupiedL2 > totalPaxL2 ? 'bg-red-500' : 'bg-purple-500'}`}
+                  style={{ width: `${Math.min(Math.round((currentOccupiedL2 / totalPaxL2) * 100), 100)}%` }}
                 ></div>
               </div>
-              <div className={`text-sm font-bold ${currentTotalCapacityL2 > totalPaxL2 * 0.9 ? 'text-red-600 animate-pulse' : 'text-purple-600'}`}>{currentTotalCapacityL2}/{totalPaxL2} Pax</div>
+              <div className={`text-sm font-bold ${currentOccupiedL2 > totalPaxL2 * 0.9 ? 'text-red-600 animate-pulse' : 'text-purple-600'}`}>{currentOccupiedL2}/{totalPaxL2} Pax</div>
             </div>
           </div>
 

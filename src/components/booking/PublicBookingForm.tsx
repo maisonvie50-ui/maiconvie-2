@@ -13,15 +13,15 @@ const TRANSLATIONS = {
         lookup: "Tra cứu đơn đặt bàn",
         title: "ĐẶT BÀN ONLINE",
         subtitle: "Hoàn tất biểu mẫu dưới đây, chúng tôi sẽ liên hệ để xác nhận ngay.",
-        customerTypeHeading: "Đối tượng Khách hàng",
-        retail: "Khách Lẻ",
-        tour: "Khách Tour",
+        customerTypeHeading: "Thực đơn mong muốn",
+        retail: "A la carte",
+        tour: "Dégustation Menu",
         contactInfoHeading: "Thông tin liên hệ",
         fullName: "Họ và Tên",
         fullNamePlaceholder: "Nguyễn Văn A",
         phone: "Số Điện Thoại",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email (Tùy chọn)",
+        emailOptional: "Email",
         reservationHeading: "Thông tin Đặt Bàn",
         date: "Ngày",
         time: "Giờ",
@@ -58,23 +58,23 @@ const TRANSLATIONS = {
         backToHome: "Về Trang Chủ",
         errorSubmit: "Đã xảy ra lỗi khi đặt bàn. Vui lòng thử lại sau hoặc liên hệ Hotline.",
         guest: "người",
-        tourLabel: "Khách Tour",
-        retailLabel: "Khách Lẻ",
+        tourLabel: "Dégustation Menu",
+        retailLabel: "A la carte",
     },
     en: {
         appName: "Maison Vie",
         lookup: "Lookup Booking",
         title: "BOOK A TABLE ONLINE",
         subtitle: "Fill out the form below, we will contact you shortly to confirm.",
-        customerTypeHeading: "Customer Type",
-        retail: "Retail",
-        tour: "Tour",
+        customerTypeHeading: "Desired Menu",
+        retail: "A la carte",
+        tour: "Dégustation Menu",
         contactInfoHeading: "Contact Information",
         fullName: "Full Name",
         fullNamePlaceholder: "John Doe",
         phone: "Phone Number",
         phonePlaceholder: "090 123 4567",
-        emailOptional: "Email (Optional)",
+        emailOptional: "Email",
         reservationHeading: "Reservation Details",
         date: "Date",
         time: "Time",
@@ -111,8 +111,8 @@ const TRANSLATIONS = {
         backToHome: "Back to Home",
         errorSubmit: "An error occurred while booking. Please try again later.",
         guest: "people",
-        tourLabel: "Tour",
-        retailLabel: "Regular",
+        tourLabel: "Dégustation Menu",
+        retailLabel: "A la carte",
     }
 };
 
@@ -312,12 +312,12 @@ export default function PublicBookingForm() {
                         </div>
                     </div>
 
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition duration-300"
+                    <a
+                        href="https://maisonvie.vn"
+                        className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition duration-300 block text-center"
                     >
                         {t.backToHome}
-                    </button>
+                    </a>
                 </div>
             </div>
         );
@@ -396,13 +396,13 @@ export default function PublicBookingForm() {
                         </div>
 
                         {/* THÔNG TIN CÁ NHÂN */}
-                        <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.contactInfoHeading}</h3>
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pb-1.5 border-b border-gray-100">{t.contactInfoHeading}</h3>
 
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <User className="w-4 h-4 text-teal-600" />
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                        <User className="w-3.5 h-3.5 text-teal-600" />
                                         {t.fullName} <span className="text-red-500">*</span>
                                     </label>
                                     <input
@@ -411,14 +411,14 @@ export default function PublicBookingForm() {
                                         required
                                         value={formData.customerName}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
                                         placeholder={t.fullNamePlaceholder}
                                     />
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <Phone className="w-4 h-4 text-teal-600" />
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                        <Phone className="w-3.5 h-3.5 text-teal-600" />
                                         {t.phone} <span className="text-red-500">*</span>
                                     </label>
                                     <input
@@ -427,22 +427,23 @@ export default function PublicBookingForm() {
                                         required
                                         value={formData.phone}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
                                         placeholder={t.phonePlaceholder}
                                     />
                                 </div>
 
-                                <div className="space-y-1.5 col-span-2">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <Mail className="w-4 h-4 text-teal-600" />
-                                        {t.emailOptional}
+                                <div className="space-y-1 col-span-2">
+                                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                        <Mail className="w-3.5 h-3.5 text-teal-600" />
+                                        Email <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="email"
                                         name="email"
+                                        required
                                         value={formData.email}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
                                         placeholder="nguyenvana@example.com"
                                     />
                                 </div>
@@ -450,13 +451,13 @@ export default function PublicBookingForm() {
                         </div>
 
                         {/* THỜI GIAN & SỐ LƯỢNG */}
-                        <div className="space-y-4 pt-4">
-                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">{t.reservationHeading}</h3>
+                        <div className="space-y-3 pt-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pb-1.5 border-b border-gray-100">{t.reservationHeading}</h3>
 
                             {/* Ngày — full width */}
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                    <CalendarIcon className="w-4 h-4 text-teal-600" />
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                    <CalendarIcon className="w-3.5 h-3.5 text-teal-600" />
                                     {t.date} <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -465,22 +466,22 @@ export default function PublicBookingForm() {
                                     required
                                     value={formData.date}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white"
                                 />
                             </div>
 
                             {/* Giờ + Số khách — cùng hàng */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <Clock className="w-4 h-4 text-teal-600" />
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 text-teal-600" />
                                         {t.time} <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="time"
                                         value={formData.time}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white appearance-none"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white appearance-none"
                                     >
                                         {timeSlots.map(time => (
                                             <option key={time} value={time}>{time}</option>
@@ -488,16 +489,16 @@ export default function PublicBookingForm() {
                                     </select>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                                        <Users className="w-4 h-4 text-teal-600" />
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                        <Users className="w-3.5 h-3.5 text-teal-600" />
                                         {t.pax} <span className="text-red-500">*</span>
                                     </label>
                                     <select
                                         name="pax"
                                         value={formData.pax}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all font-medium text-gray-900 bg-gray-50/50 hover:bg-white appearance-none"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all text-sm font-medium text-gray-900 bg-gray-50/50 hover:bg-white appearance-none"
                                     >
                                         {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
                                             <option key={num} value={num}>{num} {num === 20 && '+'}</option>
@@ -542,7 +543,7 @@ export default function PublicBookingForm() {
                         {/* CHỌN THỰC ĐƠN TRƯỚC */}
                         <div className="space-y-4 pt-4">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-100">
-                                {t.menuHeading}
+                                Chọn Thực đơn (Không bắt buộc)
                             </h3>
 
                             {formData.customerType === 'retail' && (
@@ -640,7 +641,7 @@ export default function PublicBookingForm() {
                             disabled={isChecking || (isAvailable === false && appSettings?.strictMode)}
                             className={`w-full py-4 mt-6 text-white rounded-xl font-black text-lg flex items-center justify-center gap-2 transition-all ${(isChecking || (isAvailable === false && appSettings?.strictMode)) ? 'bg-gray-400 cursor-not-allowed shadow-none' : 'bg-teal-600 hover:bg-teal-700 active:scale-[0.98] shadow-lg shadow-teal-500/30'}`}
                         >
-                            {t.continueBtn}
+                            Tiếp tục
                             <ArrowRight className="w-5 h-5" />
                         </button>
                     </form>
@@ -688,7 +689,7 @@ export default function PublicBookingForm() {
                     </div>
                     <div className="p-4 bg-gray-50 border-t border-gray-100 shrink-0">
                         <button onClick={() => setMenuDetailItem(null)} className="w-full py-3 bg-teal-600 text-white rounded-xl font-bold text-base hover:bg-teal-700 transition-colors">
-                            {t.close}
+                            Đóng
                         </button>
                     </div>
                 </div>
@@ -706,7 +707,7 @@ export default function PublicBookingForm() {
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.fullName}</span><span className="font-semibold text-gray-800">{formData.customerName}</span></div>
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.phone}</span><span className="font-semibold text-gray-800">{formData.phone}</span></div>
-                                <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>
+                                {formData.email && <div className="flex justify-between text-sm"><span className="text-gray-500">Email</span><span className="font-semibold text-gray-800">{formData.email}</span></div>}
                                 <div className="flex justify-between text-sm"><span className="text-gray-500">{t.customerTypeTitle}</span><span className="font-semibold text-gray-800">{formData.customerType === 'tour' ? t.tourLabel : t.retailLabel}</span></div>
                             </div>
                             <div className="bg-gray-50 p-4 rounded-xl space-y-2">
@@ -740,7 +741,7 @@ export default function PublicBookingForm() {
                                 onClick={() => setShowSummary(false)}
                                 className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
                             >
-                                {t.backBtn}
+                                Quay lại
                             </button>
                             <button
                                 type="button"
