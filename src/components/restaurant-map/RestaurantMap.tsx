@@ -195,15 +195,33 @@ export default function RestaurantMap() {
     // Subscribe to realtime updates
     const subscription = tableService.subscribeToTables(handleTablesRealtimePayload);
     const bookingSub = bookingService.subscribeToBookings((payload) => {
-      if (payload && payload.eventType === 'UPDATE' && payload.new?.status === 'arrived' && payload.new?.table_id) {
-         const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? { 
-             ...t, 
-             status: 'occupied', 
-             customerName: payload.new.customer_name 
-         } : t);
-         setTablesL1(updateList);
-         setTablesL3(updateList);
-         setVipRoomsList(updateList as any);
+      if (payload && payload.eventType === 'UPDATE' && payload.new) {
+         const newStatus = payload.new.status;
+         let tableStatus = 'reserved';
+         if (newStatus === 'arrived') tableStatus = 'occupied';
+         else if (['completed', 'cancelled', 'no_show'].includes(newStatus)) tableStatus = 'empty';
+
+         if (payload.new.table_id) {
+             const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? { 
+                 ...t, 
+                 status: tableStatus, 
+                 customerName: tableStatus === 'empty' ? undefined : payload.new.customer_name 
+             } : t);
+             setTablesL1(updateList);
+             setTablesL3(updateList);
+             setVipRoomsList(updateList as any);
+         }
+
+         if (payload.old && payload.old.table_id && payload.old.table_id !== payload.new.table_id) {
+             const clearOldTableList = (prev: any[]) => prev.map(t => t.id === payload.old.table_id ? { 
+                 ...t, 
+                 status: 'empty', 
+                 customerName: undefined 
+             } : t);
+             setTablesL1(clearOldTableList);
+             setTablesL3(clearOldTableList);
+             setVipRoomsList(clearOldTableList as any);
+         }
       }
       fetchTables();
     });
