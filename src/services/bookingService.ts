@@ -613,20 +613,26 @@ export const bookingService = {
     },
 
     // 5. Nghe sự kiện thay đổi Realtime
+    // Counter ensures each subscriber gets a unique channel name to avoid conflicts
+    _bookingsChannelCounter: 0,
     subscribeToBookings(callback: (payload: any) => void) {
+        const channelName = `bookings-rt-${++this._bookingsChannelCounter}-${Date.now()}`;
         return supabase
-            .channel('public:bookings')
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'bookings' },
                 (payload) => {
-                    console.log('Realtime change received!', payload);
+                    console.log(`[${channelName}] Realtime change received!`, payload);
                     callback(payload);
                 }
             )
             .subscribe((status, err) => {
                 if (status === 'SUBSCRIBED') {
-                    console.log('Successfully subscribed to bookings realtime!');
+                    console.log(`[${channelName}] Successfully subscribed to bookings realtime!`);
+                }
+                if (err) {
+                    console.error(`[${channelName}] Subscription error:`, err);
                 }
             });
     },

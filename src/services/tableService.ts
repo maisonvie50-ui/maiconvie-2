@@ -157,14 +157,17 @@ export const tableService = {
     },
 
     // 7. Listen to real-time changes
+    // Counter ensures each subscriber gets a unique channel name to avoid conflicts
+    _tablesChannelCounter: 0,
     subscribeToTables(callback: (payload?: any) => void) {
-        const channel = supabase.channel('public:tables_and_halls');
+        const channelName = `tables-rt-${++this._tablesChannelCounter}-${Date.now()}`;
+        const channel = supabase.channel(channelName);
         
         channel.on(
             'postgres_changes',
             { event: '*', schema: 'public', table: 'tables' },
             (payload) => {
-                console.log('Tables realtime change received!', payload);
+                console.log(`[${channelName}] Tables realtime change received!`, payload);
                 callback(payload);
             }
         )
@@ -172,13 +175,16 @@ export const tableService = {
             'postgres_changes',
             { event: '*', schema: 'public', table: 'event_halls' },
             (payload) => {
-                console.log('Event Halls realtime change received!', payload);
+                console.log(`[${channelName}] Event Halls realtime change received!`, payload);
                 callback(payload);
             }
         )
-        .subscribe((status) => {
+        .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
-                console.log('Successfully subscribed to tables and halls realtime!');
+                console.log(`[${channelName}] Successfully subscribed to tables and halls realtime!`);
+            }
+            if (err) {
+                console.error(`[${channelName}] Subscription error:`, err);
             }
         });
         
