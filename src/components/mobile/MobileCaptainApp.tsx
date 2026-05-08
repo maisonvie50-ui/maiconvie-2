@@ -42,6 +42,7 @@ import { useAuth, UserRole } from '../../hooks/useAuth';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
 import BarDisplay from '../kitchen/BarDisplay';
+import { bookingService } from '../../services/bookingService';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
 interface Table {
@@ -187,6 +188,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       fetchTables();
     });
 
+    const bookingSub = bookingService.subscribeToBookings(() => {
+      fetchTables();
+    });
+
     const unsubscribeMenu = menuService.subscribeToMenuChanges(() => {
       fetchMenuData();
     });
@@ -218,6 +223,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
     return () => {
       subscription.unsubscribe();
+      bookingSub.unsubscribe();
       unsubscribeMenu();
       if (unsubscribeKitchen) unsubscribeKitchen();
     };
@@ -333,11 +339,15 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const handleConfirmOpenTable = async () => {
     if (!openTableTarget) return;
     try {
-      await tableService.updateTableStatus(openTableTarget.id, {
-        status: 'occupied' as any,
-        customerName: openTableCustomerName || 'Khách vãng lai',
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      });
+      if (openTableTarget.bookingId) {
+        await bookingService.updateBookingStatus(openTableTarget.bookingId, 'arrived');
+      } else {
+        await tableService.updateTableStatus(openTableTarget.id, {
+          status: 'occupied' as any,
+          customerName: openTableCustomerName || 'Khách vãng lai',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        });
+      }
       setSelectedTable({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
       setOpenTableTarget(null);
       setOpenTableCustomerName('');

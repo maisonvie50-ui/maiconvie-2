@@ -764,11 +764,16 @@ export default function TrainingPortal() {
                                 <div className="absolute inset-0 flex items-center justify-center text-gray-500">Video không khả dụng</div>
                             )}
                         </div>
-                        <div className="p-4 bg-gray-900 flex justify-between items-center">
-                            <p className="text-gray-400 text-sm">Hãy xem hết video để hoàn thành bài học này nhé!</p>
-                            <button onClick={handleCompleteVideo} className="bg-teal-600 hover:bg-teal-500 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-teal-900/20">
-                                <CheckCircle className="w-5 h-5" />
-                                Tôi đã xem xong
+                        <div className={`${isMobile ? 'p-3 gap-3 flex-col items-stretch' : 'p-4 justify-between items-center'} bg-gray-900 flex`}>
+                            <p className={`${isMobile ? 'text-xs text-center leading-relaxed' : 'text-sm'} text-gray-400`}>
+                                Hãy xem hết video để hoàn thành bài học này nhé!
+                            </p>
+                            <button
+                                onClick={handleCompleteVideo}
+                                className={`${isMobile ? 'w-full min-h-[48px] px-4 py-3 text-sm' : 'px-6 py-2.5'} bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors shadow-lg shadow-teal-900/20 whitespace-nowrap shrink-0`}
+                            >
+                                <CheckCircle className="w-5 h-5 shrink-0" />
+                                <span>Tôi đã xem xong</span>
                             </button>
                         </div>
                     </div>

@@ -42,6 +42,7 @@ import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
 import { settingsService } from '../../services/settingsService';
 import CheckoutModal from '../booking/CheckoutModal';
+import { bookingService } from '../../services/bookingService';
 
 export default function RestaurantMap() {
   const [activeFloor, setActiveFloor] = useState<1 | 2 | 3>(1);
@@ -193,9 +194,13 @@ export default function RestaurantMap() {
 
     // Subscribe to realtime updates
     const subscription = tableService.subscribeToTables(handleTablesRealtimePayload);
+    const bookingSub = bookingService.subscribeToBookings(() => {
+      fetchTables();
+    });
 
     return () => {
       subscription.unsubscribe();
+      bookingSub.unsubscribe();
     };
   }, []);
 
@@ -259,11 +264,15 @@ export default function RestaurantMap() {
   const handleConfirmOpenTableDesktop = async () => {
     if (!openTableTarget) return;
     try {
-      await tableService.updateTableStatus(openTableTarget.id, {
-        status: 'occupied' as any,
-        customerName: openTableCustomerName || 'Khách vãng lai',
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      });
+      if (openTableTarget.bookingId) {
+        await bookingService.updateBookingStatus(openTableTarget.bookingId, 'arrived');
+      } else {
+        await tableService.updateTableStatus(openTableTarget.id, {
+          status: 'occupied' as any,
+          customerName: openTableCustomerName || 'Khách vãng lai',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        });
+      }
       setSelectedTableForOrder({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
       setOpenTableTarget(null);
       setOpenTableCustomerName('');
@@ -638,7 +647,7 @@ export default function RestaurantMap() {
             {tablesL1.map((table, index) => (
               <div
                 key={table.id}
-                className={`relative group flex flex-col items-center z-10 ${isEditing ? 'cursor-move' : ''}`}
+                className={`relative group flex flex-col items-center z-10 hover:z-[1000] ${isEditing ? 'cursor-move' : ''}`}
                 draggable={isEditing}
                 onDragStart={(e) => handleDragStart(e, index, 'table')}
                 onDragEnter={(e) => handleDragEnter(e, index)}
@@ -722,35 +731,40 @@ export default function RestaurantMap() {
                   )}
 
                   {/* Tooltip (Only in View Mode) */}
-                  {!isEditing && !movingTableId && (table.status === 'occupied' || table.status === 'reserved') && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                      <div className="font-bold text-sm mb-1">{table.customerName}</div>
-                      <div className="flex items-center gap-1.5 text-gray-300 mb-1">
-                        <Clock className="w-3 h-3" />
-                        {table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}
-                      </div>
-                      {table.notes && (
-                        <div className="flex items-start gap-1.5 text-yellow-400 mt-1 border-t border-gray-700 pt-1">
-                          <Info className="w-3 h-3 mt-0.5" />
-                          {table.notes}
+                  {!isEditing && !movingTableId && (table.status === 'occupied' || table.status === 'reserved') && (() => {
+                    const showTooltipBelow = index < 6;
+                    return (
+                      <div
+                        className={`absolute left-1/2 -translate-x-1/2 w-56 max-w-[calc(100vw-3rem)] bg-gray-900 text-white text-xs rounded-xl p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl ${showTooltipBelow ? 'top-full mt-3' : 'bottom-full mb-3'}`}
+                      >
+                        <div className="font-bold text-sm mb-1 break-words">{table.customerName}</div>
+                        <div className="flex items-center gap-1.5 text-gray-300 mb-1">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          <span>{table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}</span>
                         </div>
-                      )}
-                      {table.status === 'occupied' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTableCheckoutId(table.id);
-                          }}
-                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
-                        >
-                          <Receipt className="w-3.5 h-3.5" />
-                          Thanh toán
-                        </button>
-                      )}
-                      {/* Arrow */}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
-                    </div>
-                  )}
+                        {table.notes && (
+                          <div className="flex items-start gap-1.5 text-yellow-400 mt-2 border-t border-gray-700 pt-2 leading-snug break-words whitespace-normal max-h-24 overflow-y-auto pr-1">
+                            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span>{table.notes}</span>
+                          </div>
+                        )}
+                        {table.status === 'occupied' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTableCheckoutId(table.id);
+                            }}
+                            className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            Thanh toán
+                          </button>
+                        )}
+                        {/* Arrow */}
+                        <div className={`absolute left-1/2 -translate-x-1/2 border-4 border-transparent pointer-events-none ${showTooltipBelow ? 'bottom-full border-b-gray-900' : 'top-full border-t-gray-900'}`}></div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Chairs simulation */}
@@ -911,7 +925,7 @@ export default function RestaurantMap() {
               <div
                 key={room.id}
                 className={`
-                relative group p-6 rounded-2xl border-2 shadow-sm transition-all flex flex-col justify-between h-40 z-10
+                relative group p-6 rounded-2xl border-2 shadow-sm transition-all flex flex-col justify-between h-40 z-10 hover:z-[1000]
                 ${room.status === 'in-use' && !isEditing ? 'bg-purple-50 border-purple-400' : 'bg-white border-gray-200'}
                 ${isEditing ? 'cursor-move animate-pulse border-dashed border-gray-400' : 'hover:border-purple-200 cursor-pointer'}
               `}
@@ -973,16 +987,16 @@ export default function RestaurantMap() {
 
                 {/* Tooltip for VIP */}
                 {!isEditing && room.status === 'in-use' && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-56 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                    <div className="font-bold text-sm mb-1">{room.customerName}</div>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-60 max-w-[calc(100vw-3rem)] bg-gray-900 text-white text-xs rounded-xl p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl">
+                    <div className="font-bold text-sm mb-1 break-words">{room.customerName}</div>
                     <div className="flex items-center gap-1.5 text-gray-300 mb-1">
-                      <Clock className="w-3 h-3" />
-                      Đến lúc: {room.time}
+                      <Clock className="w-3 h-3 flex-shrink-0" />
+                      <span>Đến lúc: {room.time}</span>
                     </div>
                     {room.notes && (
-                      <div className="flex items-start gap-1.5 text-yellow-400 mt-1 border-t border-gray-700 pt-1">
-                        <Info className="w-3 h-3 mt-0.5" />
-                        {room.notes}
+                      <div className="flex items-start gap-1.5 text-yellow-400 mt-2 border-t border-gray-700 pt-2 leading-snug break-words whitespace-normal max-h-24 overflow-y-auto pr-1">
+                        <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{room.notes}</span>
                       </div>
                     )}
                     <button
@@ -1130,7 +1144,7 @@ export default function RestaurantMap() {
             {tablesL3.map((table, index) => (
               <div
                 key={table.id}
-                className={`relative group flex flex-col items-center z-10 ${isEditing ? 'cursor-move' : ''}`}
+                className={`relative group flex flex-col items-center z-10 hover:z-[1000] ${isEditing ? 'cursor-move' : ''}`}
                 draggable={isEditing}
                 onDragStart={(e) => handleDragStart(e, index, 'table')}
                 onDragEnter={(e) => handleDragEnter(e, index)}
@@ -1200,28 +1214,39 @@ export default function RestaurantMap() {
                   )}
 
                   {/* Tooltip */}
-                  {!isEditing && !movingTableId && (table.status === 'occupied' || table.status === 'reserved') && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                      <div className="font-bold text-sm mb-1">{table.customerName}</div>
-                      <div className="flex items-center gap-1.5 text-gray-300 mb-1">
-                        <Clock className="w-3 h-3" />
-                        {table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}
+                  {!isEditing && !movingTableId && (table.status === 'occupied' || table.status === 'reserved') && (() => {
+                    const showTooltipBelow = index < 6;
+                    return (
+                      <div
+                        className={`absolute left-1/2 -translate-x-1/2 w-56 max-w-[calc(100vw-3rem)] bg-gray-900 text-white text-xs rounded-xl p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[999] shadow-2xl ${showTooltipBelow ? 'top-full mt-3' : 'bottom-full mb-3'}`}
+                      >
+                        <div className="font-bold text-sm mb-1 break-words">{table.customerName}</div>
+                        <div className="flex items-center gap-1.5 text-gray-300 mb-1">
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          <span>{table.status === 'occupied' ? `Đã ngồi: ${table.duration}` : `Đến lúc: ${table.time}`}</span>
+                        </div>
+                        {table.notes && (
+                          <div className="flex items-start gap-1.5 text-yellow-400 mt-2 border-t border-gray-700 pt-2 leading-snug break-words whitespace-normal max-h-24 overflow-y-auto pr-1">
+                            <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span>{table.notes}</span>
+                          </div>
+                        )}
+                        {table.status === 'occupied' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setTableCheckoutId(table.id);
+                            }}
+                            className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                            Thanh toán
+                          </button>
+                        )}
+                        <div className={`absolute left-1/2 -translate-x-1/2 border-4 border-transparent pointer-events-none ${showTooltipBelow ? 'bottom-full border-b-gray-900' : 'top-full border-t-gray-900'}`}></div>
                       </div>
-                      {table.status === 'occupied' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTableCheckoutId(table.id);
-                          }}
-                          className="mt-2 w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-1.5 px-2 rounded flex items-center justify-center gap-1.5 pointer-events-auto transition-colors"
-                        >
-                          <Receipt className="w-3.5 h-3.5" />
-                          Thanh toán
-                        </button>
-                      )}
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 pointer-events-none"></div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
                 {/* Chairs */}
