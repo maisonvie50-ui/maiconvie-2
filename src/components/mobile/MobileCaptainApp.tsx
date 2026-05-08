@@ -184,11 +184,31 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     fetchMenuData();
     notificationService.requestNotificationPermission();
 
-    const subscription = tableService.subscribeToTables(() => {
+    const subscription = tableService.subscribeToTables((payload) => {
+      if (payload && payload.eventType === 'UPDATE' && payload.new) {
+        const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.id ? { 
+             ...t, 
+             ...payload.new,
+             customerName: payload.new.customer_name 
+        } : t);
+        setTablesL1(updateList);
+        setTablesL3(updateList);
+        setVipRoomsList(updateList as any);
+      }
       fetchTables();
     });
 
-    const bookingSub = bookingService.subscribeToBookings(() => {
+    const bookingSub = bookingService.subscribeToBookings((payload) => {
+      if (payload && payload.eventType === 'UPDATE' && payload.new?.status === 'arrived' && payload.new?.table_id) {
+         const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? { 
+             ...t, 
+             status: 'occupied', 
+             customerName: payload.new.customer_name 
+         } : t);
+         setTablesL1(updateList);
+         setTablesL3(updateList);
+         setVipRoomsList(updateList as any);
+      }
       fetchTables();
     });
 
@@ -338,25 +358,36 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const handleConfirmOpenTable = async () => {
     if (!openTableTarget) return;
+    
+    // 1. Optimistic Update (Instant UI)
+    const updateData = {
+      status: 'occupied' as any,
+      customerName: openTableCustomerName || 'Khách vãng lai',
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    };
+    
+    const updateList = (prev: any[]) => prev.map(t => t.id === openTableTarget.id ? { ...t, ...updateData } : t);
+    setTablesL1(updateList);
+    setTablesL3(updateList);
+    setVipRoomsList(updateList as any);
+    setSelectedTable({ ...openTableTarget, ...updateData });
+    setOpenTableTarget(null);
+    setOpenTableCustomerName('');
+    setOpenTablePax('');
+    handleSetView('menu');
+
+    // 2. Background Sync
     try {
       if (openTableTarget.bookingId) {
         await bookingService.updateBookingStatus(openTableTarget.bookingId, 'arrived');
       } else {
-        await tableService.updateTableStatus(openTableTarget.id, {
-          status: 'occupied' as any,
-          customerName: openTableCustomerName || 'Khách vãng lai',
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        });
+        await tableService.updateTableStatus(openTableTarget.id, updateData);
       }
-      setSelectedTable({ ...openTableTarget, status: 'occupied', customerName: openTableCustomerName || 'Khách vãng lai' });
-      setOpenTableTarget(null);
-      setOpenTableCustomerName('');
-      setOpenTablePax('');
-      handleSetView('menu');
       fetchTables();
     } catch (err) {
       console.error('Failed to open table', err);
-      alert('Lỗi: Không thể mở bàn.');
+      alert('Lỗi: Không thể mở bàn. Vui lòng thử lại.');
+      fetchTables(); // revert if failed
     }
   };
 
