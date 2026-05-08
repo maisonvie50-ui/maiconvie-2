@@ -32,6 +32,7 @@ import {
   ChefHat,
   LogOut,
   Receipt,
+  Wine,
   X
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
@@ -40,6 +41,7 @@ import { notificationService } from '../../services/notificationService';
 import { useAuth, UserRole } from '../../hooks/useAuth';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
+import BarDisplay from '../kitchen/BarDisplay';
 
 type TableStatus = 'empty' | 'occupied' | 'reserved';
 interface Table {
@@ -65,7 +67,7 @@ interface VipRoom {
   notes?: string;
 }
 
-type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen' | 'order-history';
+type ViewState = 'tables' | 'menu' | 'cart' | 'success' | 'bookings' | 'more' | 'training' | 'crm' | 'settings' | 'reports' | 'menu-management' | 'kitchen' | 'bar' | 'order-history';
 
 interface MobileCaptainAppProps {
   onLogout?: () => void;
@@ -154,7 +156,21 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         menuService.getMenuItems(),
         menuService.getSetMenus()
       ]);
-      setMenuCategories(categories);
+      const categoryMap = new Map<string, Category>();
+      categories.forEach(category => {
+        categoryMap.set(category.id, category);
+      });
+      items.forEach(item => {
+        if (!categoryMap.has(item.categoryId)) {
+          categoryMap.set(item.categoryId, {
+            id: item.categoryId,
+            name: item.categoryId,
+            count: 0
+          });
+        }
+      });
+
+      setMenuCategories(Array.from(categoryMap.values()));
       setMenuItemsList(items);
       setSetMenusList(setMenus);
     } catch (e) {
@@ -228,6 +244,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     const path = location.pathname;
     if (path.includes('/quan-ly-thuc-don')) setView('menu-management');
     else if (path.includes('/bep')) setView('kitchen');
+    else if (path.includes('/bar')) setView('bar');
     else if (path.includes('/thuc-don')) setView('menu');
     else if (path.includes('/dat-ban')) setView('bookings');
     else if (path.includes('/dao-tao')) setView('training');
@@ -249,6 +266,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       case 'reports': navigate('/bao-cao'); break;
       case 'menu-management': navigate('/quan-ly-thuc-don'); break;
       case 'kitchen': navigate('/bep'); break;
+      case 'bar': navigate('/bar'); break;
       case 'more':
       case 'cart':
       case 'success':
@@ -777,6 +795,18 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         </button>
       )}
 
+      {(isAdminOrManager || userRole === 'kitchen') && (
+        <button
+          onClick={() => handleSetView('bar')}
+          className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
+        >
+          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-3">
+            <Wine className="w-7 h-7" />
+          </div>
+          <span className="font-bold text-gray-800">Bar (KDS)</span>
+        </button>
+      )}
+
       <button
         onClick={() => handleSetView('training')}
         className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
@@ -799,19 +829,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         </button>
       )}
 
-      {/* Ẩn nút Cấu hình (admin)
       {isAdminOrManager && (
         <button
           onClick={() => handleSetView('settings')}
           className="flex flex-col items-center justify-center p-6 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform h-40"
         >
-          <div className="w-14 h-14 bg-gray-50 text-gray-600 rounded-full flex items-center justify-center mb-3">
+          <div className="w-14 h-14 bg-slate-50 text-slate-600 rounded-full flex items-center justify-center mb-3">
             <SettingsIcon className="w-7 h-7" />
           </div>
           <span className="font-bold text-gray-800">Cấu hình</span>
         </button>
       )}
-      */}
 
       {isAdminOrManager && (
         <button
@@ -849,7 +877,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     </div>
   );
 
-  const isFullScreenView = ['training', 'crm', 'settings', 'reports', 'menu-management', 'kitchen'].includes(view);
+  const isFullScreenView = ['training', 'crm', 'settings', 'reports', 'menu-management', 'kitchen', 'bar'].includes(view);
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col font-sans">
@@ -890,7 +918,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
               <div className={`w-8 h-8 ${roleColors[userRole]} rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm`}>
                 {userInitials}
               </div>
-              <div className="flex flex-col leading-none">
+              <div className="flex flex-col leading-none gap-0.5">
                 <span className="text-[11px] font-bold text-gray-800 truncate max-w-[80px]">{user?.name || userRole}</span>
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{roleLabels[userRole]}</span>
               </div>
@@ -1018,6 +1046,17 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
             </div>
           </div>
         )}
+        {view === 'bar' && (
+          <div className="h-full flex flex-col pb-24">
+            <div className="bg-white border-b px-4 py-3 flex items-center gap-2 flex-shrink-0">
+              <button title="Quay lại" onClick={() => handleSetView('more')}><ChevronLeft /></button>
+              <h2 className="font-bold">Màn hình Bar</h2>
+            </div>
+            <div className="flex-1 min-h-0">
+              <BarDisplay />
+            </div>
+          </div>
+        )}
         {view === 'order-history' && (
           <div className="h-full flex flex-col pb-24">
             <div className="flex-1 min-h-0">
@@ -1051,14 +1090,6 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           </button>
 
           <button
-            onClick={() => handleSetView('bookings')}
-            className={`flex flex-col items-center gap-1 w-1/5 ${view === 'bookings' ? 'text-teal-600' : 'text-gray-400'}`}
-          >
-            <CalendarDays className="w-6 h-6" />
-            <span className="text-[10px] font-bold">Lịch đặt</span>
-          </button>
-
-          <button
             onClick={() => {
               if (selectedTable) handleSetView('cart');
               else if (view === 'tables') alert('Vui lòng chọn bàn trước!');
@@ -1078,8 +1109,16 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
           </button>
 
           <button
+            onClick={() => handleSetView('bookings')}
+            className={`flex flex-col items-center gap-1 w-1/5 ${view === 'bookings' ? 'text-teal-600' : 'text-gray-400'}`}
+          >
+            <CalendarDays className="w-6 h-6" />
+            <span className="text-[10px] font-bold">Lịch đặt</span>
+          </button>
+
+          <button
             onClick={() => handleSetView('more')}
-            className={`flex flex-col items-center gap-1 w-1/5 ${['more', 'training', 'crm', 'settings', 'reports', 'menu-management', 'kitchen'].includes(view) ? 'text-teal-600' : 'text-gray-400'}`}
+            className={`flex flex-col items-center gap-1 w-1/5 ${['more', 'training', 'crm', 'settings', 'reports', 'menu-management', 'kitchen', 'bar'].includes(view) ? 'text-teal-600' : 'text-gray-400'}`}
           >
             <MoreHorizontal className="w-6 h-6" />
             <span className="text-[10px] font-bold">Thêm</span>

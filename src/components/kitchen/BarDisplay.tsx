@@ -4,12 +4,26 @@ import { ChevronLeft, ChevronRight, Bell, Wine } from 'lucide-react';
 import { CircleCheckBig, LayoutList, List, Flame, SquareCheckBig, Clock, TriangleAlert } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
 
-const BAR_CATEGORIES = ["Đồ uống", "Rượu vang", "Rượu Vang", "Cocktail", "Mocktail", "Beer", "Bia", "Trà", "Cà phê", "Nước ép", "Sinh tố", "Soda", "Wine"];
+const BAR_CATEGORY_KEYWORDS = [
+  'đồ uống', 'do uong', 'bar order', 'bar oder', 'bar',
+  'rượu', 'ruou', 'rượu vang', 'ruou vang', 'wine',
+  'cocktail', 'mocktail', 'beer', 'bia', 'trà', 'tra',
+  'cà phê', 'ca phe', 'nước ép', 'nuoc ep', 'sinh tố', 'sinh to', 'soda'
+];
 
-const isBarItem = (category: string): boolean => {
-  const lower = category.toLowerCase();
-  if (lower.includes("bar")) return true;
-  return BAR_CATEGORIES.some(c => lower.includes(c.toLowerCase()));
+const normalizeCategory = (category = '') => category
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim();
+
+const isBarItem = (category = ''): boolean => {
+  const raw = category.toLowerCase();
+  const normalized = normalizeCategory(category);
+  return BAR_CATEGORY_KEYWORDS.some(keyword => {
+    const normalizedKeyword = normalizeCategory(keyword);
+    return raw.includes(keyword.toLowerCase()) || normalized.includes(normalizedKeyword);
+  });
 };
 
 const CATEGORY_ORDER: Record<string, number> = {
@@ -142,11 +156,15 @@ export default function BarDisplay() {
   };
 
   const markAllDone = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const barItemIds = order.items.filter(i => isBarItem(i.category)).map(item => item.id);
+
     setOrders(prev => prev.map(o => o.id === orderId ? {
-      ...o, items: o.items.map(i => ({ ...i, status: "done" }))
+      ...o, items: o.items.map(i => barItemIds.includes(i.id) ? { ...i, status: "done" } : i)
     } : o));
     try {
-      await orderService.markAllItemsDone(orderId);
+      await Promise.all(barItemIds.map(itemId => orderService.updateItemStatus(itemId, "done")));
     } catch (err) {
       console.error("Failed to mark all items done", err);
       loadOrders();
@@ -159,9 +177,12 @@ export default function BarDisplay() {
     showToast("Đã gọi phục vụ — Đồ uống sẵn sàng!");
     try {
       if (order?.table) {
-        await notificationService.broadcastCallServer([order.table], orderId, ["Đồ uống đã pha xong"]);
+        const readyItems = order.items
+          .filter(i => isBarItem(i.category))
+          .filter(item => item.status === "done")
+          .map(item => `${item.quantity}x ${item.name}`);
+        await notificationService.broadcastCallServer([order.table], orderId, readyItems.length ? readyItems : ["Đồ uống đã pha xong"]);
       }
-      await orderService.completeOrder(orderId);
     } catch (err) {
       console.error("Failed to complete order", err);
       loadOrders();

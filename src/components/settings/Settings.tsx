@@ -703,13 +703,13 @@ export default function Settings() {
 
                                 <div className="space-y-1.5">
                                     <label className="block text-xs font-medium text-gray-500 flex items-center gap-1">2. Copy Link Gửi Khách</label>
-                                    <div className="flex gap-2">
-                                        <input title="Link đặt bàn" type="text" readOnly value={`${window.location.origin}/dat-ban-online${selectedSource ? `?source=${selectedSource}` : ''}`} className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-mono focus:outline-none truncate" />
-                                        <button onClick={handleCopyLink} className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-all whitespace-nowrap ${copied ? 'bg-green-100 text-green-700 border-green-200' : 'bg-teal-50 border-teal-100 text-teal-700 hover:bg-teal-100'}`}>
+                                    <div className="flex flex-wrap gap-2">
+                                        <input title="Link đặt bàn" type="text" readOnly value={`${window.location.origin}/dat-ban-online${selectedSource ? `?source=${selectedSource}` : ''}`} className="min-w-0 flex-[1_1_180px] px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 font-mono focus:outline-none truncate" />
+                                        <button onClick={handleCopyLink} className={`flex flex-[1_0_auto] items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-all whitespace-nowrap ${copied ? 'bg-green-100 text-green-700 border-green-200' : 'bg-teal-50 border-teal-100 text-teal-700 hover:bg-teal-100'}`}>
                                             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                             {copied ? 'Đã Copy' : 'Copy'}
                                         </button>
-                                        <button onClick={() => window.open(`/dat-ban-online${selectedSource ? `?source=${selectedSource}` : ''}`, '_blank')} className="px-3 py-2.5 bg-white text-gray-500 border border-gray-200 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 hover:text-gray-700 transition-all flex items-center justify-center">
+                                        <button onClick={() => window.open(`/dat-ban-online${selectedSource ? `?source=${selectedSource}` : ''}`, '_blank')} className="flex flex-[1_0_72px] items-center justify-center px-3 py-2.5 bg-white text-gray-500 border border-gray-200 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 hover:text-gray-700 transition-all whitespace-nowrap">
                                             Mở
                                         </button>
                                     </div>

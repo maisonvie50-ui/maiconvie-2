@@ -14,10 +14,13 @@ import {
   UtensilsCrossed,
   Minus,
   PackageOpen,
-  Printer
+  Printer,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import type { SetMenu, TourMenu } from '../../types';
 import { menuService } from '../../services/menuService';
+import { supabase } from '../../lib/supabase';
 import { useEffect } from 'react';
 
 export interface Category {
@@ -47,6 +50,7 @@ export default function MenuManagement() {
   const [tourMenus, setTourMenus] = useState<TourMenu[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -196,6 +200,52 @@ export default function MenuManagement() {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn đúng file hình ảnh.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB để tải nhanh hơn.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const safeName = file.name
+        .replace(/\.[^/.]+$/, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9-_]/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 48);
+      const filePath = `menu-items/${Date.now()}-${safeName}.${fileExt}`;
+
+      const { error } = await supabase.storage
+        .from('menu-images')
+        .upload(filePath, file, {
+          cacheControl: '31536000',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data } = supabase.storage
+        .from('menu-images')
+        .getPublicUrl(filePath);
+
+      setNewItem(prev => ({ ...prev, image: data.publicUrl }));
+    } catch (err) {
+      console.error('Error uploading menu image:', err);
+      alert('Không thể tải ảnh lên. Vui lòng kiểm tra bucket Supabase Storage "menu-images" và policy upload/public read.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
 
   const handleSaveItem = async () => {
@@ -1199,20 +1249,54 @@ export default function MenuManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh (URL)</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <ImageIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        value={newItem.image}
-                        onChange={(e) => setNewItem({ ...newItem, image: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                      />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh món ăn</label>
+                  <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/70 p-3">
+                    {newItem.image ? (
+                      <div className="relative overflow-hidden rounded-xl border border-white shadow-sm bg-white">
+                        <img
+                          src={newItem.image}
+                          alt={newItem.name || 'Ảnh món ăn'}
+                          className="h-40 w-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-32 rounded-xl border border-dashed border-gray-300 bg-white flex flex-col items-center justify-center text-gray-400">
+                        <ImageIcon className="w-8 h-8 mb-2" />
+                        <span className="text-xs font-semibold">Chưa có ảnh món ăn</span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <label className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap ${isUploadingImage ? 'bg-gray-100 text-gray-400 cursor-wait' : 'bg-teal-600 text-white hover:bg-teal-700'}`}>
+                        {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {isUploadingImage ? 'Đang tải ảnh...' : 'Tải ảnh lên'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingImage}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                            e.currentTarget.value = '';
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <div className="relative flex-1 min-w-0">
+                        <ImageIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={newItem.image}
+                          onChange={(e) => setNewItem({ ...newItem, image: e.target.value })}
+                          placeholder="Hoặc dán URL ảnh tại đây"
+                          className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Để trống sẽ sử dụng ảnh ngẫu nhiên.</p>
+                  <p className="text-xs text-gray-500 mt-1">Ảnh tải lên sẽ lưu vào Supabase Storage và URL được lưu cùng món trong database.</p>
                 </div>
               </div>
 
@@ -1225,7 +1309,8 @@ export default function MenuManagement() {
                 </button>
                 <button
                   onClick={handleSaveItem}
-                  className="px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2"
+                  disabled={isUploadingImage}
+                  className="px-4 py-2 bg-teal-600 text-white hover:bg-teal-700 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" />
                   {editingId ? 'Lưu thay đổi' : 'Lưu món mới'}

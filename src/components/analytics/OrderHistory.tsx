@@ -106,12 +106,12 @@ export default function OrderHistory() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
+        <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 via-teal-50/30 to-emerald-50/20 overflow-hidden">
 
             {/* Stats & Filters */}
             <div className="p-3 md:p-6 shrink-0 space-y-4">
                 <div className="grid grid-cols-3 gap-2 md:gap-6">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                    <div className="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-teal-100/70 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
                         <div className="hidden md:flex w-12 h-12 rounded-full bg-teal-100 items-center justify-center text-teal-600 shrink-0">
                             <TrendingUp className="w-6 h-6" />
                         </div>
@@ -122,7 +122,7 @@ export default function OrderHistory() {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                    <div className="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-teal-100/70 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
                         <div className="hidden md:flex w-12 h-12 rounded-full bg-blue-100 items-center justify-center text-blue-600 shrink-0">
                             <Receipt className="w-6 h-6" />
                         </div>
@@ -131,7 +131,7 @@ export default function OrderHistory() {
                             <div className="text-sm md:text-2xl font-bold text-gray-900">{filteredOrders.length}</div>
                         </div>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
+                    <div className="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-amber-100/80 p-2.5 md:p-4 flex items-center gap-2 md:gap-3">
                         <div className="hidden md:flex w-12 h-12 rounded-full bg-amber-100 items-center justify-center text-amber-600 shrink-0">
                             <DollarSign className="w-6 h-6" />
                         </div>
@@ -145,20 +145,20 @@ export default function OrderHistory() {
                 </div>
 
                 {/* Filters */}
-                <form onSubmit={handleSearch} className="bg-white p-3 md:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+                <form onSubmit={handleSearch} className="bg-white/90 backdrop-blur p-3 md:p-4 rounded-2xl shadow-sm border border-teal-100/70 flex flex-col md:flex-row gap-3 items-stretch md:items-end">
                     <div className="flex gap-3 w-full">
                         <div className="space-y-1 flex-1">
                             <label htmlFor="dateFrom" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Từ ngày</label>
                             <div className="relative">
                                 <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                                <input type="date" id="dateFrom" title="Ngày bắt đầu" className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                                <input type="date" id="dateFrom" title="Ngày bắt đầu" className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border border-teal-100 bg-white/80 rounded-xl focus:ring-2 focus:ring-teal-500/25 focus:border-teal-500 shadow-sm" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
                             </div>
                         </div>
                         <div className="space-y-1 flex-1">
                             <label htmlFor="dateTo" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Đến ngày</label>
                             <div className="relative">
                                 <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                                <input type="date" id="dateTo" title="Ngày kết thúc" className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                                <input type="date" id="dateTo" title="Ngày kết thúc" className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border border-teal-100 bg-white/80 rounded-xl focus:ring-2 focus:ring-teal-500/25 focus:border-teal-500 shadow-sm" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                             </div>
                         </div>
                     </div>
@@ -168,14 +168,14 @@ export default function OrderHistory() {
                             <label htmlFor="searchTable" className="text-[10px] md:text-xs font-semibold text-gray-700 uppercase tracking-wider">Tìm theo bàn</label>
                             <div className="relative">
                                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                                <input type="text" id="searchTable" title="Bàn hoặc Booking ID" placeholder="Nhập tên bàn..." className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500" value={searchTable} onChange={(e) => setSearchTable(e.target.value)} />
+                                <input type="text" id="searchTable" title="Bàn hoặc Booking ID" placeholder="Nhập tên bàn..." className="w-full pl-8 md:pl-10 pr-2 py-1.5 md:py-2 text-sm border border-teal-100 bg-white/80 rounded-xl focus:ring-2 focus:ring-teal-500/25 focus:border-teal-500 shadow-sm" value={searchTable} onChange={(e) => setSearchTable(e.target.value)} />
                             </div>
                         </div>
                         <div className="flex items-end gap-2">
-                            <button type="submit" className="px-4 md:px-5 py-1.5 md:py-2.5 bg-gray-900 text-white text-sm rounded-lg font-medium hover:bg-gray-800 transition-colors h-[34px] md:h-[42px]">
+                            <button type="submit" className="px-4 md:px-5 py-1.5 md:py-2.5 bg-slate-900 text-white text-sm rounded-xl font-bold hover:bg-slate-800 transition-colors h-[34px] md:h-[42px] shadow-sm">
                                 Lọc
                             </button>
-                            <button type="button" onClick={handleExportCSV} disabled={filteredOrders.length === 0} title="Xuất CSV" className="px-3 py-1.5 md:py-2.5 bg-teal-600 text-white text-sm rounded-lg font-medium hover:bg-teal-700 transition-colors h-[34px] md:h-[42px] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+                            <button type="button" onClick={handleExportCSV} disabled={filteredOrders.length === 0} title="Xuất CSV" className="px-3 py-1.5 md:py-2.5 bg-teal-600 text-white text-sm rounded-xl font-bold hover:bg-teal-700 transition-colors h-[34px] md:h-[42px] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm shadow-teal-500/20">
                                 <Download className="w-4 h-4" />
                                 <span className="hidden md:inline">CSV</span>
                             </button>
@@ -185,11 +185,11 @@ export default function OrderHistory() {
 
                 {/* Floor Filter */}
                 <div className="flex gap-1.5 md:gap-2 overflow-x-auto no-scrollbar">
-                    <button onClick={() => setFloorFilter(null)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${!floorFilter ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                    <button onClick={() => setFloorFilter(null)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${!floorFilter ? 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' : 'bg-white/90 text-slate-600 border border-teal-100 hover:bg-teal-50 hover:text-teal-700'}`}>
                         Tất cả
                     </button>
                     {[1, 2, 3].map(f => (
-                        <button key={f} onClick={() => setFloorFilter(f)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${floorFilter === f ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                        <button key={f} onClick={() => setFloorFilter(f)} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold transition-colors whitespace-nowrap ${floorFilter === f ? 'bg-teal-600 text-white shadow-sm shadow-teal-500/20' : 'bg-white/90 text-slate-600 border border-teal-100 hover:bg-teal-50 hover:text-teal-700'}`}>
                             {FLOOR_LABELS[f]}
                         </button>
                     ))}
@@ -198,12 +198,12 @@ export default function OrderHistory() {
 
             {/* List */}
             <div className="flex-1 px-0 md:px-6 pb-0 md:pb-6 overflow-hidden flex flex-col">
-                <div className="bg-transparent md:bg-white md:rounded-xl md:shadow-sm border-transparent md:border-gray-100 md:border flex-1 overflow-hidden flex flex-col">
+                <div className="bg-transparent md:bg-white/95 md:backdrop-blur md:rounded-2xl md:shadow-sm border-transparent md:border-teal-100/70 md:border flex-1 overflow-hidden flex flex-col">
                     {/* Desktop Table View */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
+                                <tr className="bg-gradient-to-r from-slate-50 to-teal-50/70 border-b border-teal-100">
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Mã Đơn / Bàn</th>
                                     <th className="p-4 font-semibold text-gray-600 text-sm">Thời gian</th>
                                     <th className="p-4 font-semibold text-gray-600 text-sm text-center">Nguồn</th>
@@ -219,7 +219,7 @@ export default function OrderHistory() {
                                     <tr><td colSpan={6} className="p-8 text-center text-gray-500">Không có đơn hàng nào trong khoảng thời gian này.</td></tr>
                                 ) : (
                                     filteredOrders.map(order => (
-                                        <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => setSelectedOrder(order)}>
+                                        <tr key={order.id} className="border-b border-teal-50 hover:bg-teal-50/60 transition-colors group cursor-pointer" onClick={() => setSelectedOrder(order)}>
                                             <td className="p-4">
                                                 <div className="font-bold text-gray-800">{order.table || 'Mang đi'}</div>
                                                 {order.customerName && (

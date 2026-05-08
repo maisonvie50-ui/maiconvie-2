@@ -147,7 +147,7 @@ export default function BookingLookup() {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="mt-3 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-4 space-y-3">
                     <div className="flex items-center gap-2">

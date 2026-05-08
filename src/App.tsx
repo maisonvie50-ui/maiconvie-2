@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -54,6 +54,14 @@ function DesktopLayout() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const autoCollapseTimer = window.setTimeout(() => {
+      setIsSidebarCollapsed(true);
+    }, 8000);
+
+    return () => window.clearTimeout(autoCollapseTimer);
+  }, []);
 
   return (
     <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">

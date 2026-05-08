@@ -130,7 +130,13 @@ export default function CustomerCRM() {
 
   const handleCreateBooking = () => {
     if (!selectedCustomer) return;
-    navigate(`/dat-ban?action=new&name=${encodeURIComponent(selectedCustomer.name)}&phone=${encodeURIComponent(selectedCustomer.phone)}`);
+    const params = new URLSearchParams({
+      action: 'new',
+      name: selectedCustomer.name || '',
+      phone: selectedCustomer.phone || '',
+      email: selectedCustomer.email || '',
+    });
+    navigate(`/dat-ban?${params.toString()}`);
   };
 
   const handleDownloadTemplate = () => {

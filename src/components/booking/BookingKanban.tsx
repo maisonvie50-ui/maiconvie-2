@@ -47,7 +47,6 @@ import { Table } from '../../types';
 
 const sourceLabels: Record<string, string> = {
   website: 'Website',
-  web: 'Website',
   facebook: 'Fanpage',
   fb: 'Facebook',
   whatsapp: 'WhatsApp',
@@ -113,6 +112,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   // UI Interactive States
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null);
   const [historyDropBooking, setHistoryDropBooking] = useState<Booking | null>(null);
+  const [tableAssignBooking, setTableAssignBooking] = useState<Booking | null>(null);
   const [viewingBooking, setViewingBooking] = useState<Booking | null>(null);
 
   // Checkout States
@@ -154,21 +154,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   const fetchMenus = async () => {
     try {
-      const [sets, tours, items, categories] = await Promise.all([
+      const [sets, tours, items] = await Promise.all([
         menuService.getSetMenus(),
         menuService.getTourMenus(),
-        menuService.getMenuItems(),
-        menuService.getCategories()
+        menuService.getMenuItems()
       ]);
-      const barCategoryIds = categories
-        .filter((cat: any) => /bar|đồ uống|do uong|drink|beverage|wine|rượu|ruou|cocktail|bia|beer|nước|nuoc/i.test(cat.name || ''))
-        .map((cat: any) => cat.id);
-      const barItems = items.filter((item: any) => barCategoryIds.includes(item.categoryId));
-      const alaCarteItems = items.filter((item: any) => !barCategoryIds.includes(item.categoryId));
 
       setAvailableSetMenus(sets.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
       setAvailableTourMenus(tours.filter((m: any) => m.status !== 'inactive' && m.status !== 'draft'));
-      setAvailableAlaCarteItems(alaCarteItems.filter((m: any) => m.inStock !== false));
+      setAvailableAlaCarteItems(items.filter((m: any) => m.inStock !== false));
     } catch (err) {
       console.error('Failed to load menus', err);
     }
@@ -238,11 +232,13 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     if (searchParams.get('action') === 'new') {
       const pName = searchParams.get('name') || '';
       const pPhone = searchParams.get('phone') || '';
+      const pEmail = searchParams.get('email') || '';
 
       setNewBooking(prev => ({
         ...prev,
         customerName: pName,
-        phone: pPhone
+        phone: pPhone,
+        email: pEmail
       }));
       setShowModal(true);
 
@@ -286,7 +282,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   };
 
   const getTabCount = (tab: 'action_needed' | 'upcoming' | 'active' | 'done') => {
-    return bookings.filter(b => statusGroups[tab].includes(b.status) && (!b.bookingDate || b.bookingDate === selectedDate)).length;
+    return bookings.filter(b => {
+      if (!statusGroups[tab].includes(b.status)) return false;
+
+      // Dist-backup baseline keeps action-needed independent from date.
+      // Operational improvement: confirmed/arrived bookings also remain visible
+      // across dates in Kanban so staff can drag a visible booking to serving
+      // without it disappearing because selectedDate differs from bookingDate.
+      if (tab === 'action_needed' || tab === 'upcoming' || tab === 'active') return true;
+
+      return !b.bookingDate || b.bookingDate === selectedDate;
+    }).length;
   };
 
   // Toggle status filter
@@ -300,10 +306,28 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
+    const actionNeededStatuses = statusGroups.action_needed;
+    const isActiveOperationalStatus = [
+      ...statusGroups.action_needed,
+      ...statusGroups.upcoming,
+      ...statusGroups.active,
+    ].includes(b.status);
+
     // 0. Filter by Date
     if (b.bookingDate) {
       if (viewMode === 'kanban' || dateFilterMode === 'day') {
-        if (b.bookingDate !== selectedDate) return false;
+        // Dist-backup baseline: unresolved bookings are not filtered by date.
+        // Confirmed and arrived bookings are also kept visible across dates in
+        // Kanban to prevent a card from disappearing immediately after staff
+        // drags it from Đã chốt to Đang phục vụ.
+        const isDateIndependentKanbanStatus =
+          actionNeededStatuses.includes(b.status) ||
+          statusGroups.upcoming.includes(b.status) ||
+          statusGroups.active.includes(b.status);
+
+        if (!(viewMode === 'kanban' && isActiveOperationalStatus && isDateIndependentKanbanStatus)) {
+          if (b.bookingDate !== selectedDate) return false;
+        }
       } else {
         const bDate = parseISO(b.bookingDate);
         const sDate = parseISO(selectedDate);
@@ -464,7 +488,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // Reset form when modal closes
   useEffect(() => {
-    if (!showModal) {
+    if (!showModal && searchParams.get('action') !== 'new') {
       setEditingId(null);
       setNewBooking({
         customerName: '',
@@ -505,9 +529,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     if (newStatus === 'arrived') {
       const bk = bookings.find(b => b.id === draggableId);
       if (bk && !bk.tableId) {
-        alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
         setPendingStatusUpdate({ id: draggableId, status: 'arrived' });
-        handleEditBooking(bk);
+        setTableAssignBooking(bk);
+        setSearchQuery('');
         return;
       }
     }
@@ -553,9 +577,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     if (newStatus === 'arrived') {
       const bk = bookings.find(b => b.id === bookingId);
       if (bk && !bk.tableId) {
-        alert('Vui lòng xếp bàn trước khi chuyển sang Đang phục vụ!');
         setPendingStatusUpdate({ id: bookingId, status: 'arrived' });
-        handleEditBooking(bk);
+        setTableAssignBooking(bk);
+        setSearchQuery('');
+        setSelectedBooking(null);
         return;
       }
     }
@@ -977,8 +1002,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                         <Users className="w-3 h-3" /> {booking.pax || 0}
                       </span>
                       {booking.source && (
-                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`inline-flex items-center whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
                           {sourceLabels[booking.source] || booking.source}
+                        </span>
+                      )}
+                      {booking.bookingDate && (
+                        <span
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100"
+                          title={`Ngày đặt bàn: ${booking.bookingDate}`}
+                        >
+                          <CalendarIcon className="w-3 h-3" />
+                          {format(parseISO(booking.bookingDate), 'dd/MM')}
                         </span>
                       )}
 
@@ -1225,7 +1259,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       {/* Nguồn */}
                       <td className="px-4 py-3">
                         {booking.source ? (
-                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
+                          <span className={`inline-flex items-center whitespace-nowrap px-2 py-1 rounded text-[10px] font-bold uppercase ${sourceColors[booking.source] || 'bg-gray-100 text-gray-600'}`}>
                             {sourceLabels[booking.source] || booking.source}
                           </span>
                         ) : (
@@ -1402,15 +1436,35 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     const availableTables = tables
       .filter(table => table.status === 'empty')
-      .filter(table => !historyDropBooking || !searchQuery || table.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      .filter(table => !tableAssignBooking || !searchQuery || table.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const assignTable = async (bookingId: string, table: Table) => {
       try {
-        await bookingService.updateBooking(bookingId, {
-          tableId: table.id,
-          tableName: table.name
-        });
-        setHistoryDropBooking(null);
+        const shouldMoveToArrived = pendingStatusUpdate?.id === bookingId;
+
+        if (shouldMoveToArrived) {
+          setBookings(prev => prev.map(b =>
+            b.id === bookingId
+              ? { ...b, tableId: table.id, tableName: table.name, status: pendingStatusUpdate.status }
+              : b
+          ));
+          await bookingService.updateBooking(bookingId, {
+            tableId: table.id,
+            tableName: table.name,
+            status: pendingStatusUpdate.status
+          });
+          setPendingStatusUpdate(null);
+        } else {
+          setBookings(prev => prev.map(b =>
+            b.id === bookingId ? { ...b, tableId: table.id, tableName: table.name } : b
+          ));
+          await bookingService.updateBooking(bookingId, {
+            tableId: table.id,
+            tableName: table.name
+          });
+        }
+
+        setTableAssignBooking(null);
         setSearchQuery('');
         fetchBookings();
       } catch (error: any) {
@@ -1478,7 +1532,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setHistoryDropBooking(historyDropBooking?.id === booking.id ? null : booking);
+                  setTableAssignBooking(tableAssignBooking?.id === booking.id ? null : booking);
                   setSearchQuery('');
                 }}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
@@ -1489,12 +1543,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               </button>
             )}
 
-            {historyDropBooking?.id === booking.id && (
+            {tableAssignBooking?.id === booking.id && (
               <>
                 <div
                   className="fixed inset-0 z-40"
                   onClick={() => {
-                    setHistoryDropBooking(null);
+                    setTableAssignBooking(null);
                     setSearchQuery('');
                   }}
                 />
@@ -1741,7 +1795,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           {boardColumns.map((col) => {
             const colBookings = filteredBookings
               .filter(b => (col.statuses as BookingStatus[]).includes(b.status))
-              .sort((a, b) => a.time.localeCompare(b.time));
+              .sort((a, b) => {
+                // Keep original time sorting for most columns. For "Đã chốt",
+                // include the date so older confirmed bookings stay visible and
+                // ordered before upcoming ones instead of being lost by filters.
+                if (col.id === 'col_confirmed') {
+                  const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
+                  if (dateCompare !== 0) return dateCompare;
+                }
+
+                return (a.time || '').localeCompare(b.time || '');
+              });
             const ColIcon = col.icon;
 
             return (
@@ -1795,6 +1859,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                       )}
                                       {booking.customerType === 'retail' && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">A la carte</span>
+                                      )}
+                                      {booking.bookingCode && (
+                                        <span
+                                          className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-gray-50 text-gray-600 border border-gray-200 flex-shrink-0 max-w-[96px] truncate"
+                                          title={`Mã booking: ${booking.bookingCode}`}
+                                        >
+                                          {booking.bookingCode}
+                                        </span>
                                       )}
                                       {isMissingInfo(booking) && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0">!</span>
@@ -1856,6 +1928,18 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                       <Clock className="w-3 h-3 text-gray-400" />
                                       {booking.time || '--:--'}
                                     </span>
+                                    {booking.bookingDate && (
+                                      <>
+                                        <span className="text-gray-300">·</span>
+                                        <span
+                                          className="inline-flex items-center gap-0.5 px-1 py-0 bg-orange-50 text-orange-600 rounded text-[9px] font-bold border border-orange-100"
+                                          title={`Ngày đặt bàn: ${booking.bookingDate}`}
+                                        >
+                                          <CalendarIcon className="w-2.5 h-2.5" />
+                                          {format(parseISO(booking.bookingDate), 'dd/MM')}
+                                        </span>
+                                      </>
+                                    )}
                                     <span className="text-gray-300">·</span>
                                     <span className="flex items-center gap-0.5">
                                       <Users className="w-3 h-3 text-gray-400" />
@@ -1916,8 +2000,128 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     </DragDropContext>
   );
 
+  const modalAvailableTables = tableAssignBooking
+    ? tables
+      .filter(table => table.status === 'empty')
+      .filter(table => !searchQuery || table.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
+
+  const assignTableFromPopup = async (bookingId: string, table: Table) => {
+    try {
+      const shouldMoveToArrived = pendingStatusUpdate?.id === bookingId;
+
+      if (shouldMoveToArrived) {
+        setBookings(prev => prev.map(b =>
+          b.id === bookingId
+            ? { ...b, tableId: table.id, tableName: table.name, status: pendingStatusUpdate.status }
+            : b
+        ));
+        await bookingService.updateBooking(bookingId, {
+          tableId: table.id,
+          tableName: table.name,
+          status: pendingStatusUpdate.status
+        });
+        setPendingStatusUpdate(null);
+      } else {
+        setBookings(prev => prev.map(b =>
+          b.id === bookingId ? { ...b, tableId: table.id, tableName: table.name } : b
+        ));
+        await bookingService.updateBooking(bookingId, {
+          tableId: table.id,
+          tableName: table.name
+        });
+      }
+
+      setTableAssignBooking(null);
+      setSearchQuery('');
+      fetchBookings();
+    } catch (error: any) {
+      alert(error.message || 'Lỗi gán bàn');
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 relative">
+      {tableAssignBooking && (
+        <>
+          <div
+            className="fixed inset-0 z-[90] bg-slate-900/20 backdrop-blur-[2px]"
+            onClick={() => {
+              setTableAssignBooking(null);
+              setPendingStatusUpdate(null);
+              setSearchQuery('');
+            }}
+          />
+          <div className="fixed left-1/2 top-1/2 z-[100] w-[min(92vw,420px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-4 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">Xếp bàn nhanh</p>
+                  <h3 className="mt-1 text-lg font-black">Chọn bàn cho {tableAssignBooking.customerName || 'khách'}</h3>
+                  <p className="mt-1 text-xs text-white/80">
+                    {tableAssignBooking.time || '--:--'} · {tableAssignBooking.pax || 0} khách
+                    {pendingStatusUpdate?.id === tableAssignBooking.id ? ' · Sau khi chọn sẽ chuyển sang Đang phục vụ' : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setTableAssignBooking(null);
+                    setPendingStatusUpdate(null);
+                    setSearchQuery('');
+                  }}
+                  className="rounded-full bg-white/15 p-1.5 text-white hover:bg-white/25 transition-colors"
+                  title="Đóng"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm bàn trống..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm font-medium outline-none transition-all focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                {modalAvailableTables.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm font-semibold text-gray-400">
+                    Không còn bàn trống phù hợp
+                  </div>
+                ) : (
+                  modalAvailableTables.map(table => (
+                    <button
+                      key={table.id}
+                      onClick={() => assignTableFromPopup(tableAssignBooking.id, table)}
+                      className="group flex w-full items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-teal-200 hover:bg-teal-50 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-700 group-hover:bg-white">
+                          <LayoutGrid className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <div className="text-sm font-black text-gray-800">{table.name}</div>
+                          <div className="text-xs font-semibold text-gray-400">{table.type || 'Bàn'} · Tầng {table.floor || 1}</div>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-black text-gray-600 group-hover:bg-teal-100 group-hover:text-teal-700">
+                        {table.pax} chỗ
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       {/* Filter Bar (Shared - Merged Upper Action Bar & Filter Row) */}
       <div className="hidden md:flex px-4 md:px-6 py-3 bg-white border-b border-gray-200 items-center justify-between flex-shrink-0 gap-4">
 
@@ -2193,29 +2397,135 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên khách hàng</label>
-                <input
-                  type="text"
-                  value={newBooking.customerName}
-                  onChange={(e) => setNewBooking({ ...newBooking, customerName: e.target.value })}
-                  placeholder="VD: Nguyễn Văn A"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên khách hàng</label>
+                  <input
+                    type="text"
+                    value={newBooking.customerName}
+                    onChange={(e) => setNewBooking({ ...newBooking, customerName: e.target.value })}
+                    placeholder="VD: Nguyễn Văn A"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mã Booking <span className="text-gray-400 font-normal">(Tùy chọn)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newBooking.bookingCode || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, bookingCode: e.target.value })}
+                    placeholder="VD: LVS8-MH..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                  <input
+                    type="text"
+                    value={newBooking.phone || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, phone: e.target.value })}
+                    placeholder="09..."
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${duplicateBooking ? 'border-orange-300 bg-orange-50' : 'border-gray-300'}`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-gray-400 font-normal">(Tùy chọn)</span></label>
+                  <input
+                    type="email"
+                    value={newBooking.email || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, email: e.target.value })}
+                    placeholder="example@mail.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số khách (Pax)</label>
+                  <input
+                    type="number"
+                    value={newBooking.pax}
+                    onChange={(e) => setNewBooking({ ...newBooking, pax: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nguồn đặt bàn</label>
+                  <select
+                    value={newBooking.source || 'walk_in'}
+                    onChange={(e) => setNewBooking({ ...newBooking, source: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-sm font-medium text-gray-700"
+                  >
+                    {Object.entries(sourceLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày đến</label>
+                  <input
+                    type="date"
+                    value={newBooking.bookingDate || ''}
+                    onChange={(e) => setNewBooking({ ...newBooking, bookingDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đến</label>
+                  <input
+                    type="time"
+                    value={newBooking.time}
+                    onChange={(e) => setNewBooking({ ...newBooking, time: e.target.value })}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${suggestedSlots.length > 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mã Booking <span className="text-gray-400 font-normal">(Tùy chọn)</span>
-                </label>
-                <input
-                  type="text"
-                  value={newBooking.bookingCode || ''}
-                  onChange={(e) => setNewBooking({ ...newBooking, bookingCode: e.target.value })}
-                  placeholder="VD: LVS8-MH, TNNO-0311..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
+              {duplicateBooking && (
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+                  <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-orange-800">Cảnh báo trùng lặp!</p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      Khách <strong>{duplicateBooking.customerName}</strong> đã có đơn lúc <strong>{duplicateBooking.time}</strong> ({duplicateBooking.pax} khách).
+                    </p>
+                    <button
+                      onClick={() => handleEditBooking(duplicateBooking)}
+                      className="mt-2 text-xs font-bold text-orange-700 underline hover:text-orange-900"
+                    >
+                      Xem đơn cũ
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {suggestedSlots.length > 0 && (
+                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-bold text-blue-800">Khung giờ này đã kín chỗ!</span>
+                  </div>
+                  <p className="text-xs text-blue-700 mb-2">Gợi ý các khung giờ còn trống:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedSlots.map(slot => (
+                      <button
+                        key={slot}
+                        onClick={() => setNewBooking({ ...newBooking, time: slot })}
+                        className="px-3 py-1 bg-white border border-blue-200 text-blue-700 text-xs font-bold rounded-md shadow-sm hover:bg-blue-100 transition-colors"
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {newBooking.selectedMenus && newBooking.selectedMenus.length > 0 && (
                 <div className="mb-4">
@@ -2227,15 +2537,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   </label>
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
                     {newBooking.selectedMenus.map((menu: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center text-sm border-b border-gray-200/60 pb-2 last:border-0 last:pb-0">
-                        <div className="font-medium text-gray-700 flex items-center gap-2">
-                          <span className="text-teal-600 font-bold bg-white px-1.5 py-0.5 rounded shadow-sm">{menu.quantity}x</span>
-                          {menu.name}
+                      <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-center text-sm border-b border-gray-200/60 pb-2 last:border-0 last:pb-0">
+                        <div className="font-medium text-gray-700 flex items-center gap-2 min-w-0">
+                          <span className="text-teal-600 font-bold bg-white px-1.5 py-0.5 rounded shadow-sm flex-shrink-0">{menu.quantity}x</span>
+                          <span className="truncate" title={menu.name}>{menu.name}</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-gray-600 flex flex-col items-end">
-                            <span className="font-semibold text-gray-800">{(menu.price * menu.quantity).toLocaleString()} ₫</span>
-                            {menu.price > 0 && <span className="text-[10px] text-gray-400">{menu.price.toLocaleString()} ₫/pax</span>}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-gray-600 flex flex-col items-end min-w-[92px]">
+                            <span className="font-semibold text-gray-800 whitespace-nowrap tabular-nums">{(menu.price * menu.quantity).toLocaleString()} ₫</span>
+                            {menu.price > 0 && <span className="text-[10px] text-gray-400 whitespace-nowrap tabular-nums">{menu.price.toLocaleString()} ₫/pax</span>}
                           </div>
                           <button
                             onClick={() => {
@@ -2243,7 +2553,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                               newMenus.splice(index, 1);
                               setNewBooking({ ...newBooking, selectedMenus: newMenus });
                             }}
-                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                            className="p-1 text-red-500 hover:bg-red-50 rounded flex-shrink-0"
                             title="Xóa món"
                           >
                             <X className="w-4 h-4" />
@@ -2450,119 +2760,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                  <input
-                    type="text"
-                    value={newBooking.phone || ''}
-                    onChange={(e) => setNewBooking({ ...newBooking, phone: e.target.value })}
-                    placeholder="09..."
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${duplicateBooking ? 'border-orange-300 bg-orange-50' : 'border-gray-300'}`}
-                  />
-                  {duplicateBooking && (
-                    <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
-                      <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-orange-800">Cảnh báo trùng lặp!</p>
-                        <p className="text-xs text-orange-700 mt-1">
-                          Khách <strong>{duplicateBooking.customerName}</strong> đã có đơn lúc <strong>{duplicateBooking.time}</strong> ({duplicateBooking.pax} khách).
-                        </p>
-                        <button
-                          onClick={() => handleEditBooking(duplicateBooking)}
-                          className="mt-2 text-xs font-bold text-orange-700 underline hover:text-orange-900"
-                        >
-                          Xem đơn cũ
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-gray-400 font-normal">(Tùy chọn)</span></label>
-                  <input
-                    type="email"
-                    value={newBooking.email || ''}
-                    onChange={(e) => setNewBooking({ ...newBooking, email: e.target.value })}
-                    placeholder="example@mail.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số khách (Pax)</label>
-                  <input
-                    type="number"
-                    value={newBooking.pax}
-                    onChange={(e) => setNewBooking({ ...newBooking, pax: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nguồn đặt bàn</label>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                  {Object.entries(sourceLabels).map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => setNewBooking({ ...newBooking, source: key as any })}
-                      className={`
-                        px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all
-                        ${newBooking.source === key
-                          ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'}
-                      `}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ngày đến</label>
-                  <input
-                    type="date"
-                    value={newBooking.bookingDate || ''}
-                    onChange={(e) => setNewBooking({ ...newBooking, bookingDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Giờ đến</label>
-                  <input
-                    type="time"
-                    value={newBooking.time}
-                    onChange={(e) => setNewBooking({ ...newBooking, time: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${suggestedSlots.length > 0 ? 'border-red-300 bg-red-50' : 'border-gray-300'}`}
-                  />
-                </div>
-              </div>
-
-              {suggestedSlots.length > 0 && (
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg animate-in fade-in slide-in-from-top-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs font-bold text-blue-800">Khung giờ này đã kín chỗ!</span>
-                  </div>
-                  <p className="text-xs text-blue-700 mb-2">Gợi ý các khung giờ còn trống:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestedSlots.map(slot => (
-                      <button
-                        key={slot}
-                        onClick={() => setNewBooking({ ...newBooking, time: slot })}
-                        className="px-3 py-1 bg-white border border-blue-200 text-blue-700 text-xs font-bold rounded-md shadow-sm hover:bg-blue-100 transition-colors"
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Xếp bàn - Floor-grouped visual picker */}
               <div>

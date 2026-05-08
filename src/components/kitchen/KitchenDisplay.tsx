@@ -11,12 +11,35 @@ interface ContextType {
 type ItemStatus = 'pending' | 'cooking' | 'done';
 type ItemCategory = 'Khai vị' | 'Món chính' | 'Tráng miệng' | 'Đồ uống';
 
+const BAR_CATEGORY_KEYWORDS = [
+  'đồ uống', 'do uong', 'bar order', 'bar oder', 'bar',
+  'rượu', 'ruou', 'rượu vang', 'ruou vang', 'wine',
+  'cocktail', 'mocktail', 'beer', 'bia', 'trà', 'tra',
+  'cà phê', 'ca phe', 'nước ép', 'nuoc ep', 'sinh tố', 'sinh to', 'soda'
+];
+
+const normalizeCategory = (category = '') => category
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .trim();
+
+const isBarCategory = (category = '') => {
+  const raw = category.toLowerCase();
+  const normalized = normalizeCategory(category);
+  return BAR_CATEGORY_KEYWORDS.some(keyword => {
+    const normalizedKeyword = normalizeCategory(keyword);
+    return raw.includes(keyword.toLowerCase()) || normalized.includes(normalizedKeyword);
+  });
+};
+
+const isKitchenItem = (item: OrderItem) => item.category !== 'Combo' && !isBarCategory(item.category);
+
 const categoryOrder: Record<string, number> = {
   'Khai vị': 1,
   'Món chính': 2,
   'Tráng miệng': 3,
-  'Đồ uống': 4,
-  'Combo': 5
+  'Combo': 99
 };
 
 export default function KitchenDisplay() {
@@ -142,14 +165,18 @@ export default function KitchenDisplay() {
   };
 
   const markAllDone = async (orderId: string) => {
-    // Optimistic UI
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const kitchenItemIds = order.items.filter(isKitchenItem).map(item => item.id);
+
+    // Optimistic UI: chỉ đánh dấu các món thuộc Bếp, không chạm vào Bar/Rượu.
     setOrders(prev => prev.map(o => o.id === orderId ? {
       ...o,
-      items: o.items.map(i => ({ ...i, status: 'done' }))
+      items: o.items.map(i => kitchenItemIds.includes(i.id) ? { ...i, status: 'done' } : i)
     } : o));
 
     try {
-      await orderService.markAllItemsDone(orderId);
+      await Promise.all(kitchenItemIds.map(itemId => orderService.updateItemStatus(itemId, 'done')));
     } catch (error) {
       console.error('Failed to mark all items done', error);
       loadOrders(); // fallback
@@ -165,12 +192,15 @@ export default function KitchenDisplay() {
     showNotification('Đã gọi phục vụ!');
 
     try {
-      // Broadcast to servers
+      // Chỉ broadcast gọi phục vụ cho trạm Bếp; không complete toàn bộ order
+      // để tránh làm mất các món Bar/Rượu đang xử lý ở màn hình Bar.
       if (order && order.table) {
-        await notificationService.broadcastCallServer([order.table], orderId);
+        const readyItems = order.items
+          .filter(isKitchenItem)
+          .filter(item => item.status === 'done')
+          .map(item => `${item.quantity}x ${item.name}`);
+        await notificationService.broadcastCallServer([order.table], orderId, readyItems);
       }
-      // Update DB
-      await orderService.completeOrder(orderId);
     } catch (error) {
       console.error('Failed to complete order', error);
       loadOrders(); // fallback
@@ -231,7 +261,7 @@ export default function KitchenDisplay() {
     .map(order => ({
       ...order,
       items: (filterCategory === 'All' ? order.items : order.items.filter(i => i.category === filterCategory))
-        .filter(i => i.category !== 'Combo')
+        .filter(isKitchenItem)
     }))
     .filter(order => order.items.length > 0);
 
@@ -365,7 +395,7 @@ export default function KitchenDisplay() {
         <div className="flex flex-1 items-center justify-start md:justify-end shrink-0 overflow-x-auto no-scrollbar">
           {/* Category Filter — horizontal scroll on mobile */}
           <div className="flex items-center gap-1.5 md:gap-2 min-w-max">
-            {(['All', 'Khai vị', 'Món chính', 'Tráng miệng', 'Đồ uống'] as const).map(cat => (
+            {(['All', 'Khai vị', 'Món chính', 'Tráng miệng'] as const).map(cat => (
               <button
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
