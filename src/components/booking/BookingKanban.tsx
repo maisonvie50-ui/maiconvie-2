@@ -119,7 +119,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState('');
 
-  // Load bookings from Supabase
   const fetchBookings = async () => {
     try {
       const data = await bookingService.getBookings();
@@ -127,6 +126,15 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     } catch (error) {
       console.error('Failed to load bookings', error);
     }
+  };
+
+  // Debounced fetchBookings to prevent flooding the server with multiple simultaneous requests
+  const fetchBookingsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchBookings = () => {
+    if (fetchBookingsTimerRef.current) clearTimeout(fetchBookingsTimerRef.current);
+    fetchBookingsTimerRef.current = setTimeout(() => {
+      fetchBookings();
+    }, 300);
   };
 
   const fetchTables = async () => {
@@ -178,8 +186,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     // Subscribe to realtime updates
     const subscription = bookingService.subscribeToBookings(async (payload: any) => {
-      // Refresh data when a change occurs
-      fetchBookings();
+      // Debounced refresh for data consistency
+      debouncedFetchBookings();
 
       if (payload && payload.eventType === 'INSERT') {
         const newDoc = payload.new;
@@ -215,6 +223,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     return () => {
       // Clean up subscription when component unmounts
+      if (fetchBookingsTimerRef.current) clearTimeout(fetchBookingsTimerRef.current);
       subscription.unsubscribe();
     };
   }, []);

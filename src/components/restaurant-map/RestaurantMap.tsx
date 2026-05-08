@@ -61,6 +61,15 @@ export default function RestaurantMap() {
   const [openTableTarget, setOpenTableTarget] = useState<any>(null);
   const [openTableCustomerName, setOpenTableCustomerName] = useState('');
 
+  // Debounced fetchTables to prevent flooding the server with multiple simultaneous requests
+  const fetchTablesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchTables = () => {
+    if (fetchTablesTimerRef.current) clearTimeout(fetchTablesTimerRef.current);
+    fetchTablesTimerRef.current = setTimeout(() => {
+      fetchTables();
+    }, 300);
+  };
+
   const fetchTables = async () => {
     try {
       const allTables = await tableService.getTables();
@@ -143,14 +152,14 @@ export default function RestaurantMap() {
   };
 
   const handleTablesRealtimePayload = (payload?: any) => {
-    if (!payload || payload.table !== 'tables') {
-      fetchTables();
+    if (!payload) {
+      debouncedFetchTables();
       return;
     }
 
     const record = payload.eventType === 'DELETE' ? payload.old : payload.new;
     if (!record?.id) {
-      fetchTables();
+      debouncedFetchTables();
       return;
     }
 
@@ -161,6 +170,7 @@ export default function RestaurantMap() {
       return;
     }
 
+    // Inline update for instant UI response
     if (record.floor === 1 || record.floor === 3) {
       const mapped = mapTableRecord(record);
       const updateTableList = (prev: Table[]) => {
@@ -185,7 +195,8 @@ export default function RestaurantMap() {
       return;
     }
 
-    fetchTables();
+    // Unknown floor or format - debounced full fetch as safety net
+    debouncedFetchTables();
   };
 
   React.useEffect(() => {
@@ -201,6 +212,7 @@ export default function RestaurantMap() {
          if (newStatus === 'arrived') tableStatus = 'occupied';
          else if (['completed', 'cancelled', 'no_show'].includes(newStatus)) tableStatus = 'empty';
 
+         // Instant inline update for assigned table
          if (payload.new.table_id) {
              const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? { 
                  ...t, 
@@ -212,6 +224,7 @@ export default function RestaurantMap() {
              setVipRoomsList(updateList as any);
          }
 
+         // Clear old table when table assignment changes
          if (payload.old && payload.old.table_id && payload.old.table_id !== payload.new.table_id) {
              const clearOldTableList = (prev: any[]) => prev.map(t => t.id === payload.old.table_id ? { 
                  ...t, 
@@ -223,10 +236,12 @@ export default function RestaurantMap() {
              setVipRoomsList(clearOldTableList as any);
          }
       }
-      fetchTables();
+      // Debounced fetch as safety net (don't block inline updates above)
+      debouncedFetchTables();
     });
 
     return () => {
+      if (fetchTablesTimerRef.current) clearTimeout(fetchTablesTimerRef.current);
       subscription.unsubscribe();
       bookingSub.unsubscribe();
     };

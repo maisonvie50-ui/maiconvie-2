@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import BookingKanban from '../booking/BookingKanban';
 import TrainingPortal from '../training/TrainingPortal';
@@ -119,6 +119,15 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   // Kitchen Notification State
   const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string, readyItems?: string[] } | null>(null);
 
+  // Debounced fetchTables to prevent flooding the server with multiple simultaneous requests
+  const fetchTablesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedFetchTables = () => {
+    if (fetchTablesTimerRef.current) clearTimeout(fetchTablesTimerRef.current);
+    fetchTablesTimerRef.current = setTimeout(() => {
+      fetchTables();
+    }, 300);
+  };
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -194,8 +203,13 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         setTablesL1(updateList);
         setTablesL3(updateList);
         setVipRoomsList(updateList as any);
+      } else if (payload && payload.eventType === 'DELETE' && payload.old) {
+        setTablesL1(prev => prev.filter(t => t.id !== payload.old.id));
+        setTablesL3(prev => prev.filter(t => t.id !== payload.old.id));
+        setVipRoomsList(prev => prev.filter(r => r.id !== payload.old.id));
       }
-      fetchTables();
+      // Debounced full fetch as safety net
+      debouncedFetchTables();
     });
 
     const bookingSub = bookingService.subscribeToBookings((payload) => {
@@ -227,7 +241,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
              setVipRoomsList(clearOldTableList as any);
          }
       }
-      fetchTables();
+      // Debounced full fetch as safety net (don't block inline updates above)
+      debouncedFetchTables();
     });
 
     const unsubscribeMenu = menuService.subscribeToMenuChanges(() => {
@@ -260,6 +275,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     );
 
     return () => {
+      if (fetchTablesTimerRef.current) clearTimeout(fetchTablesTimerRef.current);
       subscription.unsubscribe();
       bookingSub.unsubscribe();
       unsubscribeMenu();
