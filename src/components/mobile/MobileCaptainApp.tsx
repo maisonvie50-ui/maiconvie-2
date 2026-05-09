@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
-import { notificationService, KitchenCallPayload } from '../../services/notificationService';
+import { notificationService, KitchenCallPayload, KitchenDismissPayload } from '../../services/notificationService';
 import { useAuth, UserRole } from '../../hooks/useAuth';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
@@ -130,6 +130,20 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   // Kitchen Notification State
   const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string, readyItems?: string[] } | null>(null);
+
+  const isSameReadyItems = (a?: string[], b?: string[]) => {
+    const left = (a || []).map(item => item.trim()).filter(Boolean).sort().join('|');
+    const right = (b || []).map(item => item.trim()).filter(Boolean).sort().join('|');
+    return left === right;
+  };
+
+  const shouldDismissKitchenAlert = (currentAlert: typeof kitchenAlert, dismiss?: KitchenDismissPayload) => {
+    if (!currentAlert) return false;
+    if (!dismiss?.orderId && !dismiss?.readyItems?.length) return true;
+    if (dismiss.orderId && dismiss.orderId !== currentAlert.orderId) return false;
+    if (dismiss.readyItems?.length && !isSameReadyItems(dismiss.readyItems, currentAlert.readyItems)) return false;
+    return true;
+  };
 
   // Debounced fetchTables to prevent flooding the server with multiple simultaneous requests
   const fetchTablesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -283,8 +297,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
         }
       },
       // When another device dismisses the alert
-      () => {
-        setKitchenAlert(null);
+      (dismissPayload) => {
+        setKitchenAlert(current => shouldDismissKitchenAlert(current, dismissPayload) ? null : current);
       }
     );
 
@@ -311,7 +325,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [kitchenAlert?.visible]);
+  }, [kitchenAlert?.visible, kitchenAlert?.orderId, kitchenAlert?.readyItems?.join('|')]);
 
   // Sync URL with View
   useEffect(() => {

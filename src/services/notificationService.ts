@@ -9,6 +9,12 @@ export interface KitchenCallPayload {
     timestamp?: string;
 }
 
+export interface KitchenDismissPayload {
+    orderId?: string;
+    readyItems?: string[];
+    timestamp?: string;
+}
+
 const normalizeTableName = (value: string) =>
     value
         .toLowerCase()
@@ -153,7 +159,7 @@ class NotificationService {
     // Setup broadcast subscription
     subscribeToKitchenCalls(
         onCall: (payload: KitchenCallPayload) => void,
-        onDismiss?: () => void
+        onDismiss?: (payload?: KitchenDismissPayload) => void
     ) {
         if (!this.isSubscribed) {
             this.channel
@@ -168,9 +174,9 @@ class NotificationService {
                 .on(
                     'broadcast',
                     { event: 'dismiss-alert' },
-                    () => {
-                        console.log('Alert dismissed by another device');
-                        if (onDismiss) onDismiss();
+                    (payload) => {
+                        console.log('Alert dismissed by another device', payload);
+                        if (onDismiss) onDismiss(payload.payload as KitchenDismissPayload);
                     }
                 )
                 .subscribe((status) => {
@@ -217,13 +223,17 @@ class NotificationService {
         });
     }
 
-    // Broadcast dismiss alert to all devices
-    async broadcastDismissAlert() {
+    // Broadcast dismiss alert to all devices.
+    // Nếu truyền orderId/readyItems, thiết bị phục vụ chỉ tắt đúng cảnh báo liên quan.
+    async broadcastDismissAlert(payload: KitchenDismissPayload = {}) {
         if (!this.isSubscribed) return;
         return this.channel.send({
             type: 'broadcast',
             event: 'dismiss-alert',
-            payload: {},
+            payload: {
+                ...payload,
+                timestamp: new Date().toISOString()
+            },
         });
     }
 
