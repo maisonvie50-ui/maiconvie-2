@@ -144,10 +144,15 @@ export default function BarDisplay() {
 
     try {
       await orderService.updateItemStatus(itemId, newStatus);
-      if (newStatus === "done" && order.table) {
+      if (order.table) {
         const label = `${item.quantity}x ${item.name}`;
-        await notificationService.broadcastCallServer([order.table], orderId, [label]);
-        showToast(`Đã báo phục vụ: ${item.name}`);
+        if (newStatus === "done") {
+          await notificationService.broadcastCallServer([order.table], orderId, [label]);
+          showToast(`Đã báo phục vụ: ${item.name}`);
+        } else {
+          await notificationService.broadcastDismissAlert({ orderId, readyItems: [label] });
+          showToast(`Đã tắt báo phục vụ: ${item.name}`);
+        }
       }
     } catch (err) {
       console.error("Failed to update status", err);
@@ -253,6 +258,9 @@ export default function BarDisplay() {
       if (newStatus === "done" && tables.length > 0) {
         await notificationService.broadcastCallServer(tables, originalItems[0].orderId, [label]);
         showToast(`Đã báo phục vụ: ${label || "Đồ uống đã xong"}`);
+      } else if (newStatus === "pending") {
+        await notificationService.broadcastDismissAlert({ orderId: originalItems[0].orderId, readyItems: [label] });
+        showToast(`Đã tắt báo phục vụ: ${label || "Đồ uống đã xong"}`);
       }
     } catch (err) {
       console.error("Failed to update aggregated item status", err);

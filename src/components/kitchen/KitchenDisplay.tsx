@@ -152,11 +152,17 @@ export default function KitchenDisplay() {
     try {
       await orderService.updateItemStatus(itemId, targetStatus);
 
-      // Broadcast to servers when item is marked DONE
-      if (targetStatus === 'done' && order.table) {
-        const itemName = `${item.quantity}x ${item.name}`;
-        await notificationService.broadcastCallServer([order.table], orderId, [itemName]);
-        showNotification(`Đã báo phục vụ: ${item.name}`);
+      const itemName = `${item.quantity}x ${item.name}`;
+
+      // Broadcast to servers when item is marked DONE; dismiss the same alert if clicked by mistake.
+      if (order.table) {
+        if (targetStatus === 'done') {
+          await notificationService.broadcastCallServer([order.table], orderId, [itemName]);
+          showNotification(`Đã báo phục vụ: ${item.name}`);
+        } else {
+          await notificationService.broadcastDismissAlert({ orderId, readyItems: [itemName] });
+          showNotification(`Đã tắt báo phục vụ: ${item.name}`);
+        }
       }
     } catch (error) {
       console.error('Failed to update status', error);
@@ -338,11 +344,17 @@ export default function KitchenDisplay() {
         originalItems.map((item) => orderService.updateItemStatus(item.itemId, targetStatus))
       );
 
-      // Broadcast to servers when items are marked DONE
-      if (targetStatus === 'done' && tableNames.length > 0) {
-        const readyItems = itemName ? [itemName] : [];
-        await notificationService.broadcastCallServer(tableNames, originalItems[0].orderId, readyItems);
-        showNotification(`Đã báo phục vụ: ${itemName || 'Món đã xong'}`);
+      const readyItems = itemName ? [itemName] : [];
+
+      // Broadcast to servers when items are marked DONE; dismiss the same alert if clicked by mistake.
+      if (tableNames.length > 0 || targetStatus === 'pending') {
+        if (targetStatus === 'done' && tableNames.length > 0) {
+          await notificationService.broadcastCallServer(tableNames, originalItems[0].orderId, readyItems);
+          showNotification(`Đã báo phục vụ: ${itemName || 'Món đã xong'}`);
+        } else {
+          await notificationService.broadcastDismissAlert({ orderId: originalItems[0].orderId, readyItems });
+          showNotification(`Đã tắt báo phục vụ: ${itemName || 'Món đã xong'}`);
+        }
       }
     } catch (error) {
       console.error('Failed to update aggregated item status', error);

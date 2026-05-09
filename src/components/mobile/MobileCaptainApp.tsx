@@ -207,10 +207,10 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
     const subscription = tableService.subscribeToTables((payload) => {
       if (payload && payload.eventType === 'UPDATE' && payload.new) {
-        const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.id ? { 
-             ...t, 
-             ...payload.new,
-             customerName: payload.new.customer_name 
+        const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.id ? {
+          ...t,
+          ...payload.new,
+          customerName: payload.new.customer_name
         } : t);
         setTablesL1(updateList);
         setTablesL3(updateList);
@@ -226,32 +226,32 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
     const bookingSub = bookingService.subscribeToBookings((payload) => {
       if (payload && payload.eventType === 'UPDATE' && payload.new) {
-         const newStatus = payload.new.status;
-         let tableStatus = 'reserved';
-         if (newStatus === 'arrived') tableStatus = 'occupied';
-         else if (['completed', 'cancelled', 'no_show'].includes(newStatus)) tableStatus = 'empty';
+        const newStatus = payload.new.status;
+        let tableStatus = 'reserved';
+        if (newStatus === 'arrived') tableStatus = 'occupied';
+        else if (['completed', 'cancelled', 'no_show'].includes(newStatus)) tableStatus = 'empty';
 
-         if (payload.new.table_id) {
-             const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? { 
-                 ...t, 
-                 status: tableStatus, 
-                 customerName: tableStatus === 'empty' ? undefined : payload.new.customer_name 
-             } : t);
-             setTablesL1(updateList);
-             setTablesL3(updateList);
-             setVipRoomsList(updateList as any);
-         }
+        if (payload.new.table_id) {
+          const updateList = (prev: any[]) => prev.map(t => t.id === payload.new.table_id ? {
+            ...t,
+            status: tableStatus,
+            customerName: tableStatus === 'empty' ? undefined : payload.new.customer_name
+          } : t);
+          setTablesL1(updateList);
+          setTablesL3(updateList);
+          setVipRoomsList(updateList as any);
+        }
 
-         if (payload.old && payload.old.table_id && payload.old.table_id !== payload.new.table_id) {
-             const clearOldTableList = (prev: any[]) => prev.map(t => t.id === payload.old.table_id ? { 
-                 ...t, 
-                 status: 'empty', 
-                 customerName: undefined 
-             } : t);
-             setTablesL1(clearOldTableList);
-             setTablesL3(clearOldTableList);
-             setVipRoomsList(clearOldTableList as any);
-         }
+        if (payload.old && payload.old.table_id && payload.old.table_id !== payload.new.table_id) {
+          const clearOldTableList = (prev: any[]) => prev.map(t => t.id === payload.old.table_id ? {
+            ...t,
+            status: 'empty',
+            customerName: undefined
+          } : t);
+          setTablesL1(clearOldTableList);
+          setTablesL3(clearOldTableList);
+          setVipRoomsList(clearOldTableList as any);
+        }
       }
       // Debounced full fetch as safety net (don't block inline updates above)
       debouncedFetchTables();
@@ -406,14 +406,14 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
   const handleConfirmOpenTable = async () => {
     if (!openTableTarget) return;
-    
+
     // 1. Optimistic Update (Instant UI)
     const updateData = {
       status: 'occupied' as any,
       customerName: openTableCustomerName || 'Khách vãng lai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     };
-    
+
     const updateList = (prev: any[]) => prev.map(t => t.id === openTableTarget.id ? { ...t, ...updateData } : t);
     setTablesL1(updateList);
     setTablesL3(updateList);
