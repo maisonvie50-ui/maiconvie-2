@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import { tableService } from '../../services/tableService';
 import { orderService } from '../../services/orderService';
-import { notificationService } from '../../services/notificationService';
+import { notificationService, KitchenCallPayload } from '../../services/notificationService';
 import { useAuth, UserRole } from '../../hooks/useAuth';
 import CheckoutModal from '../booking/CheckoutModal';
 import OrderHistory from '../analytics/OrderHistory';
@@ -115,6 +115,18 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
   const [tablesL1, setTablesL1] = useState<Table[]>([]);
   const [tablesL3, setTablesL3] = useState<Table[]>([]);
   const [vipRoomsList, setVipRoomsList] = useState<VipRoom[]>([]);
+
+  const shouldReceiveKitchenAlert = (payload: KitchenCallPayload) => {
+    if (!payload?.tableNames?.length) return false;
+
+    // Managers/admins keep full visibility for supervision.
+    if (userRole === 'admin' || userRole === 'manager') return true;
+
+    // If no station is configured for the table yet, keep legacy behavior as a safe fallback.
+    if (!payload.targetStaffIds || payload.targetStaffIds.length === 0) return true;
+
+    return Boolean(user?.id && payload.targetStaffIds.includes(user.id));
+  };
 
   // Kitchen Notification State
   const [kitchenAlert, setKitchenAlert] = useState<{ visible: boolean, tables: string[], orderId: string, readyItems?: string[] } | null>(null);
@@ -251,6 +263,8 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
 
     const unsubscribeKitchen = notificationService.subscribeToKitchenCalls(
       (payload) => {
+        if (!shouldReceiveKitchenAlert(payload)) return;
+
         if (payload && payload.tableNames && payload.tableNames.length > 0) {
           setKitchenAlert({
             visible: true,
@@ -281,7 +295,7 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
       unsubscribeMenu();
       if (unsubscribeKitchen) unsubscribeKitchen();
     };
-  }, []);
+  }, [user?.id, userRole]);
 
   // Active ringing loop when alert is shown
   useEffect(() => {

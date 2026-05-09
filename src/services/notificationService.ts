@@ -1,5 +1,55 @@
 import { supabase } from '../lib/supabase';
 
+export interface KitchenCallPayload {
+    tableNames: string[];
+    orderId: string;
+    readyItems?: string[];
+    targetStaffIds?: string[];
+    stationIds?: string[];
+    timestamp?: string;
+}
+
+const normalizeTableName = (value: string) =>
+    value
+        .toLowerCase()
+        .replace(/^bàn\s+/i, '')
+        .replace(/\s+/g, '')
+        .trim();
+
+const resolveTargetStaffForTables = async (tableNames: string[]) => {
+    const normalizedTargets = new Set(tableNames.map(normalizeTableName));
+
+    const { data: stations, error } = await supabase
+        .from('stations')
+        .select('id, tables, staff_ids');
+
+    if (error || !stations) {
+        console.error('Error resolving station staff for kitchen call:', error);
+        return { targetStaffIds: [] as string[], stationIds: [] as string[] };
+    }
+
+    const targetStaffIds = new Set<string>();
+    const stationIds = new Set<string>();
+
+    stations.forEach((station: any) => {
+        const stationTables = Array.isArray(station.tables) ? station.tables : [];
+        const hasTargetTable = stationTables.some((table: string) =>
+            normalizedTargets.has(normalizeTableName(table))
+        );
+
+        if (!hasTargetTable) return;
+
+        stationIds.add(station.id);
+        const staffIds = Array.isArray(station.staff_ids) ? station.staff_ids : [];
+        staffIds.forEach((staffId: string) => targetStaffIds.add(staffId));
+    });
+
+    return {
+        targetStaffIds: Array.from(targetStaffIds),
+        stationIds: Array.from(stationIds),
+    };
+};
+
 // Helper to create and play a sound using Web Audio API
 const createSound = (type: 'newBooking' | 'callServer' | 'callServer2' | 'callServer3') => {
     try {
@@ -102,7 +152,7 @@ class NotificationService {
 
     // Setup broadcast subscription
     subscribeToKitchenCalls(
-        onCall: (payload: { tableNames: string[], orderId: string, readyItems?: string[] }) => void,
+        onCall: (payload: KitchenCallPayload) => void,
         onDismiss?: () => void
     ) {
         if (!this.isSubscribed) {
@@ -151,10 +201,19 @@ class NotificationService {
             });
         }
 
+        const routing = await resolveTargetStaffForTables(tableNames);
+
         return this.channel.send({
             type: 'broadcast',
             event: 'call-server',
-            payload: { tableNames, orderId, readyItems, timestamp: new Date().toISOString() },
+            payload: {
+                tableNames,
+                orderId,
+                readyItems,
+                targetStaffIds: routing.targetStaffIds,
+                stationIds: routing.stationIds,
+                timestamp: new Date().toISOString()
+            },
         });
     }
 
