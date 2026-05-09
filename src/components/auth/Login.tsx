@@ -69,12 +69,14 @@ export default function Login({ onLogin }: LoginProps) {
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md p-8 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-8">
-          <img
-            src={logoImg}
-            alt="Maison Vie"
-            className="w-24 h-24 object-contain mx-auto mb-4 rounded-2xl shadow-lg"
-          />
-          <h1 className="text-3xl font-bold text-white mb-2">Maison Vie</h1>
+          <div className="mx-auto mb-5 inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 shadow-2xl shadow-black/30 ring-1 ring-white/60">
+            <img
+              src={logoImg}
+              alt="Maison Vie"
+              className="h-14 w-auto max-w-[150px] object-contain"
+            />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white mb-2 drop-shadow-sm">Maison Vie</h1>
           <p className="text-slate-300 text-sm">Hệ thống quản lý nhà hàng cao cấp</p>
         </div>
 
