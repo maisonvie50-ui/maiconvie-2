@@ -7,34 +7,34 @@ type TemplateKey = 'internalNew' | 'customerPending' | 'customerConfirm' | 'inte
 
 const DEFAULT_TEMPLATES: Record<TemplateKey, { label: string; desc: string; settingKey: string; defaultValue: string }> = {
     internalNew: {
-        label: 'Booking mới — gửi nội bộ',
-        desc: 'Gửi cho quản lý/lễ tân khi có booking mới.',
+        label: '📩 Booking mới — Gửi nội bộ',
+        desc: 'Gửi cho quản lý/lễ tân khi có booking mới. (Luôn tiếng Việt)',
         settingKey: 'emailTemplateInternalNewBody',
-        defaultValue: `[NEW BOOKING]\n\nGuest name: {{customerName}}\nPhone: {{phone}}\nDate: {{date}}\nTime: {{time}}\nGuests: {{pax}}\nTable: {{table}}\nMenu: {{menus}}\n\nPlease review and confirm this booking.`,
+        defaultValue: `[BOOKING MỚI]\n\nTên khách: {{customerName}}\nSố điện thoại: {{phone}}\nNgày: {{date}}\nGiờ: {{time}}\nSố khách: {{pax}}\nBàn: {{table}}\nThực đơn: {{menus}}\n\nVui lòng kiểm tra và xác nhận booking này.`,
     },
     customerPending: {
-        label: 'Khách vừa đặt — gửi khách',
-        desc: 'Gửi khi khách vừa đặt và booking ở trạng thái cần xử lý.',
+        label: '✨ Khách vừa đặt — Gửi khách',
+        desc: 'Gửi khi khách vừa đặt bàn. Tự động chuyển ngôn ngữ theo khách (VI/EN).',
         settingKey: 'emailTemplateCustomerPendingBody',
-        defaultValue: `[BOOKING REQUEST RECEIVED]\n\nDear {{customerName}},\n\nWe have received your table reservation request.\nYour booking is currently pending confirmation and our team will confirm it as soon as possible.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nIf you need urgent assistance, please contact Maison Vie.`,
+        defaultValue: `[ĐÃ NHẬN YÊU CẦU ĐẶT BÀN]\n\nChào {{customerName}},\n\nChúng tôi đã nhận yêu cầu đặt bàn của bạn.\nĐơn đặt bàn đang chờ xác nhận, đội ngũ của chúng tôi sẽ xác nhận trong thời gian sớm nhất.\n\nChi tiết đặt bàn:\n- Ngày: {{date}}\n- Giờ: {{time}}\n- Số khách: {{pax}}\n- Bàn: {{table}}\n- Thực đơn: {{menus}}\n\nNếu bạn cần hỗ trợ gấp, vui lòng liên hệ Maison Vie.`,
     },
     customerConfirm: {
-        label: 'Nhân viên chốt — gửi khách',
-        desc: 'Gửi cho khách khi nhân viên chuyển sang đã chốt / đã xác nhận.',
+        label: '✅ Nhân viên chốt — Gửi khách',
+        desc: 'Gửi cho khách khi nhân viên xác nhận booking. Tự động chuyển ngôn ngữ theo khách (VI/EN).',
         settingKey: 'emailTemplateCustomerConfirmBody',
-        defaultValue: `[RESERVATION CONFIRMED]\n\nDear {{customerName}},\n\nYour table reservation has been confirmed.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nPlease arrive 15 minutes early.\nThank you for choosing Maison Vie.`,
+        defaultValue: `[XÁC NHẬN ĐẶT BÀN]\n\nChào {{customerName}},\n\nĐặt bàn của bạn đã được xác nhận thành công.\n\nChi tiết đặt bàn:\n- Ngày: {{date}}\n- Giờ: {{time}}\n- Số khách: {{pax}}\n- Bàn: {{table}}\n- Thực đơn: {{menus}}\n\nVui lòng đến trước 15 phút.\nCảm ơn bạn đã chọn Maison Vie.`,
     },
     internalStatus: {
-        label: 'Đổi trạng thái — gửi nội bộ',
-        desc: 'Gửi cho quản lý/lễ tân khi trạng thái booking thay đổi.',
+        label: '📋 Đổi trạng thái — Gửi nội bộ',
+        desc: 'Gửi cho quản lý/lễ tân khi trạng thái booking thay đổi. (Luôn tiếng Việt)',
         settingKey: 'emailTemplateInternalStatusChangeBody',
-        defaultValue: `[BOOKING STATUS UPDATED]\n\nGuest name: {{customerName}}\nPrevious status: {{oldStatus}}\nNew status: {{newStatus}}\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}`,
+        defaultValue: `[CẬP NHẬT TRẠNG THÁI]\n\nTên khách: {{customerName}}\nTrạng thái cũ: {{oldStatus}}\nTrạng thái mới: {{newStatus}}\n\nChi tiết đặt bàn:\n- Ngày: {{date}}\n- Giờ: {{time}}\n- Số khách: {{pax}}\n- Bàn: {{table}}\n- Thực đơn: {{menus}}`,
     },
     customerCancel: {
-        label: 'Đã hủy — gửi khách',
-        desc: 'Gửi cho khách khi booking bị hủy.',
+        label: '❌ Đã hủy — Gửi khách',
+        desc: 'Gửi cho khách khi booking bị hủy. Tự động chuyển ngôn ngữ theo khách (VI/EN).',
         settingKey: 'emailTemplateCustomerCancelBody',
-        defaultValue: `[RESERVATION CANCELLED]\n\nDear {{customerName}},\n\nWe are sorry to inform you that your table reservation has been cancelled.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nIf you would like to make a new reservation, please contact us.`,
+        defaultValue: `Chào {{customerName}},\n\nChúng tôi xin thông báo đặt bàn của bạn đã bị hủy.\n\nChi tiết đặt bàn:\n- Ngày: {{date}}\n- Giờ: {{time}}\n- Số khách: {{pax}}\n- Bàn: {{table}}\n- Thực đơn: {{menus}}\n\nNếu bạn muốn đặt bàn mới, vui lòng liên hệ chúng tôi.`,
     },
 };
 
