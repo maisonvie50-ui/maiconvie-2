@@ -142,7 +142,8 @@ export const bookingService = {
             bookingCode: b.booking_code,
             linked_table_ids: b.linked_table_ids || [],
             linked_table_names: b.linked_table_names || [],
-            changeRequestData: b.change_request_data || b.changeRequestData || undefined
+            changeRequestData: b.change_request_data || b.changeRequestData || undefined,
+            lang: b.lang || 'vi',
         })) as Booking[];
     },
 
@@ -188,7 +189,8 @@ export const bookingService = {
                 table_name: booking.tableName || null,
                 linked_table_ids: booking.linked_table_ids || [],
                 linked_table_names: booking.linked_table_names || [],
-                customer_id: customerId // Liên kết với CRM
+                customer_id: customerId, // Liên kết với CRM
+                lang: booking.lang || 'vi',
             })
             .select()
             .single();
@@ -216,7 +218,8 @@ export const bookingService = {
             tableName: data.table_name,
             bookingCode: data.booking_code,
             linked_table_ids: data.linked_table_ids || [],
-            linked_table_names: data.linked_table_names || []
+            linked_table_names: data.linked_table_names || [],
+            lang: data.lang || 'vi',
         } as Booking;
 
         // Fire-and-forget: thông báo booking mới qua webhook/email
@@ -342,6 +345,7 @@ export const bookingService = {
                     selectedMenus: resolvedMenus,
                     tableId: booking.table_id,
                     tableName: resolvedTableName,
+                    lang: booking.lang || 'vi',
                 } as Booking;
                 bookingNotifyService.notifyStatusChange(bookingData, oldStatus, status).catch(() => {});
             }

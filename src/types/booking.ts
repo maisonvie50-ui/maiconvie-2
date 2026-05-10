@@ -17,6 +17,7 @@ export interface Booking {
   tableId?: string;
   tableName?: string;
   bookingCode?: string;
+  lang?: 'vi' | 'en';
   linked_table_ids?: string[];
   linked_table_names?: string[];
   changeRequestData?: {

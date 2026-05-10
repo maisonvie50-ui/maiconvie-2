@@ -268,7 +268,8 @@ export default function PublicBookingForm() {
                 notes: formData.notes ? [formData.notes] : [],
                 source: new URLSearchParams(window.location.search).get('source') || 'website',
                 customerType: formData.customerType,
-                selectedMenus: selectedMenus
+                selectedMenus: selectedMenus,
+                lang: lang,
             };
 
             await bookingService.createBooking(newBooking);
