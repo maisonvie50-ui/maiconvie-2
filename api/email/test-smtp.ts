@@ -1,12 +1,25 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
 /**
  * POST /api/email/test-smtp
  *
- * Test kết nối SMTP và gửi email test.
- * Gửi tới INTERNAL_NOTIFICATION_EMAIL hoặc SMTP_USER.
+ * Test kết nối SMTP. Đọc cấu hình từ Supabase settings.
  */
+
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function getSmtpConfig(): Promise<Record<string, any> | null> {
+    const { data, error } = await supabase.from('settings').select('*');
+    if (error || !data) return null;
+    const config: Record<string, any> = {};
+    data.forEach((row: any) => { config[row.key] = row.value; });
+    return config;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // CORS
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -20,40 +33,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, SMTP_FROM_EMAIL, SMTP_SECURE, INTERNAL_NOTIFICATION_EMAIL } = process.env;
-
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-        return res.status(200).json({
-            success: false,
-            message: '❌ SMTP chưa cấu hình',
-            details: 'Thiếu SMTP_HOST, SMTP_USER hoặc SMTP_PASS trong Environment Variables.',
-        });
-    }
-
     try {
+        const config = await getSmtpConfig();
+        const smtpHost = config?.smtpHost || process.env.SMTP_HOST;
+        const smtpPort = config?.smtpPort || process.env.SMTP_PORT || '465';
+        const smtpSecure = config?.smtpSecure ?? process.env.SMTP_SECURE ?? 'true';
+        const smtpUser = config?.smtpUser || process.env.SMTP_USER;
+        const smtpPass = config?.smtpPass || process.env.SMTP_PASS;
+        const fromName = config?.smtpFromName || process.env.SMTP_FROM_NAME || 'Maison Vie';
+        const fromEmail = config?.smtpFromEmail || process.env.SMTP_FROM_EMAIL || smtpUser;
+        const testTo = config?.internalNotificationEmail || process.env.INTERNAL_NOTIFICATION_EMAIL || smtpUser;
+
+        if (!smtpHost || !smtpUser || !smtpPass) {
+            return res.status(200).json({
+                success: false,
+                message: '❌ SMTP chưa cấu hình',
+                details: 'Thiếu smtpHost, smtpUser hoặc smtpPass trong bảng settings.',
+            });
+        }
+
         const transporter = nodemailer.createTransport({
-            host: SMTP_HOST,
-            port: Number(SMTP_PORT) || 465,
-            secure: SMTP_SECURE !== 'false',
-            auth: {
-                user: SMTP_USER,
-                pass: SMTP_PASS,
-            },
+            host: String(smtpHost),
+            port: Number(smtpPort),
+            secure: String(smtpSecure) !== 'false',
+            auth: { user: String(smtpUser), pass: String(smtpPass) },
         });
 
         // Verify connection
         await transporter.verify();
-
-        const fromName = SMTP_FROM_NAME || 'Maison Vie';
-        const fromEmail = SMTP_FROM_EMAIL || SMTP_USER;
-        const testTo = INTERNAL_NOTIFICATION_EMAIL || SMTP_USER;
 
         const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
         // Send test email
         const info = await transporter.sendMail({
             from: `"${fromName}" <${fromEmail}>`,
-            to: testTo,
+            to: String(testTo),
             subject: `✅ Test SMTP thành công — Maison Vie (${now})`,
             html: `
                 <div style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:24px auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 8px 30px rgba(15,23,42,.06);">
@@ -65,8 +79,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         <p style="font-size:14px;color:#0f172a;line-height:1.7;">
                             Kết nối SMTP đã thành công!<br/>
                             Hệ thống sẵn sàng gửi email tự động.<br/><br/>
-                            <strong>SMTP Host:</strong> ${SMTP_HOST}<br/>
-                            <strong>Port:</strong> ${SMTP_PORT || '465'}<br/>
+                            <strong>SMTP Host:</strong> ${smtpHost}<br/>
+                            <strong>Port:</strong> ${smtpPort}<br/>
                             <strong>From:</strong> ${fromEmail}<br/>
                             <strong>Thời gian:</strong> ${now}
                         </p>
@@ -74,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     </div>
                 </div>
             `.trim(),
-            text: `✅ SMTP Test thành công — Maison Vie\n\nSMTP Host: ${SMTP_HOST}\nPort: ${SMTP_PORT || '465'}\nFrom: ${fromEmail}\nThời gian: ${now}`,
+            text: `✅ SMTP Test thành công — Maison Vie\nSMTP Host: ${smtpHost}\nPort: ${smtpPort}\nFrom: ${fromEmail}\nThời gian: ${now}`,
         });
 
         return res.status(200).json({
@@ -87,17 +101,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         let details = err.message || 'Unknown error';
         if (details.includes('Invalid login')) {
-            details = 'Sai mật khẩu SMTP hoặc App Password. Kiểm tra lại SMTP_USER và SMTP_PASS.';
+            details = 'Sai mật khẩu SMTP hoặc App Password. Kiểm tra smtpUser và smtpPass trong settings.';
         } else if (details.includes('ECONNREFUSED') || details.includes('ETIMEDOUT')) {
-            details = `Không kết nối được tới ${SMTP_HOST}:${SMTP_PORT || '465'}. Kiểm tra host/port.`;
+            details = 'Không kết nối được tới SMTP server. Kiểm tra smtpHost và smtpPort.';
         } else if (details.includes('self signed')) {
-            details = 'Lỗi SSL certificate. Thử đổi SMTP_SECURE=false và SMTP_PORT=587.';
+            details = 'Lỗi SSL certificate. Thử đổi smtpSecure thành false và smtpPort thành 587.';
         }
 
-        return res.status(200).json({
-            success: false,
-            message: '❌ SMTP test thất bại',
-            details,
-        });
+        return res.status(200).json({ success: false, message: '❌ SMTP test thất bại', details });
     }
 }
