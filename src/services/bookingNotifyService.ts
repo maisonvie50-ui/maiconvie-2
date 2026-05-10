@@ -50,8 +50,9 @@ export const bookingNotifyService = {
             const webhookUrl = settings?.webhookUrl;
             const emailEnabled = settings?.emailEnabled;
             const notificationEmail = settings?.notificationEmail;
+            const smtpEnabled = settings?.smtpEnabled;
 
-            if (!webhookEnabled && !emailEnabled) return;
+            if (!webhookEnabled && !emailEnabled && !smtpEnabled) return;
 
             const payload: BookingNotificationPayload = {
                 type: 'new_booking',
