@@ -5,6 +5,7 @@ import { bookingService } from '../../services/bookingService';
 import { menuService } from '../../services/menuService';
 import { settingsService } from '../../services/settingsService';
 import { BookingStatus, MenuItem, SetMenu, TourMenu } from '../../types';
+import logoImg from '../../assets/logo.jpg';
 
 
 const TRANSLATIONS = {
@@ -333,19 +334,28 @@ export default function PublicBookingForm() {
     return (
         <div className="min-h-screen bg-[#f3f4f6] font-sans flex flex-col">
             {/* Header */}
-            <div className="bg-white shadow-sm py-4 px-6 md:px-12 flex items-center justify-between sticky top-0 z-10 w-full">
-                <div className="w-24 hidden sm:block"></div>
+            <div className="bg-white shadow-sm py-4 px-4 md:px-12 flex items-center justify-between sticky top-0 z-10 w-full">
+                {/* Left spacer for perfect centering */}
+                <div className="w-16 md:w-24 shrink-0"></div>
+                
                 <div className="flex items-center justify-center flex-1">
-                    <div className="flex items-center gap-2">
-                        <UtensilsCrossed className="w-7 h-7 text-teal-600" />
-                        <h1 className="text-xl md:text-2xl font-black tracking-tight text-gray-900">{t.appName}</h1>
+                    <div className="flex items-center gap-3">
+                        <div className="w-24 md:w-32 h-10 md:h-12 shrink-0 flex items-center justify-center">
+                            <img src={logoImg} alt="Maison Vie Logo" className="w-full h-full object-contain mix-blend-multiply" />
+                        </div>
+                        <div className="text-left hidden sm:block">
+                            <h1 className="text-xl md:text-2xl font-black tracking-tight text-gray-900 leading-none">{t.appName}</h1>
+                            <div className="text-[10px] md:text-xs text-gray-500 font-black uppercase tracking-widest mt-1">French Restaurant</div>
+                        </div>
                     </div>
                 </div>
-                <div className="w-24 flex justify-end">
+                
+                {/* Right Actions */}
+                <div className="w-16 md:w-24 flex justify-end shrink-0">
                     <button
                         type="button"
                         onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-                        className="px-2.5 py-1.5 rounded-full border border-gray-200 text-xs md:text-sm font-semibold hover:bg-gray-50 flex items-center shadow-sm bg-white text-gray-700 transition gap-1.5 whitespace-nowrap"
+                        className="px-2.5 py-1.5 rounded-full border border-gray-200 text-[11px] md:text-sm font-semibold hover:bg-gray-50 flex items-center shadow-sm bg-white text-gray-700 transition gap-1.5 whitespace-nowrap"
                     >
                         {lang === 'vi' ? '🇻🇳 VN' : '🇬🇧 EN'}
                     </button>
@@ -551,7 +561,21 @@ export default function PublicBookingForm() {
 
                             <div className="max-h-80 overflow-y-auto pr-2 custom-scrollbar space-y-3">
                                 {isLoadingMenus ? (
-                                    <div className="text-center py-4 text-gray-500 text-sm">{t.loadingMenus}</div>
+                                    <div className="space-y-3">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="flex justify-between items-center gap-3 bg-white border border-gray-100 p-3 rounded-2xl shadow-sm animate-pulse">
+                                                <div className="flex-1">
+                                                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                                    <div className="h-3 bg-gray-100 rounded w-1/4"></div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gray-100"></div>
+                                                    <div className="w-4 h-4 rounded bg-gray-100"></div>
+                                                    <div className="w-8 h-8 rounded-full bg-gray-100"></div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
                                     <>
                                         {/* Render ALACARTE */}

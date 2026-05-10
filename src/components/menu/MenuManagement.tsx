@@ -16,10 +16,15 @@ import {
   PackageOpen,
   Printer,
   Upload,
-  Loader2
+  Loader2,
+  FileText,
+  Copy,
+  Download,
+  Check
 } from 'lucide-react';
 import type { SetMenu, TourMenu } from '../../types';
 import { menuService } from '../../services/menuService';
+import { settingsService } from '../../services/settingsService';
 import { supabase } from '../../lib/supabase';
 import { useEffect } from 'react';
 
@@ -28,6 +33,28 @@ export interface Category {
   name: string;
   count?: number;
 }
+
+const toDirectDownloadUrl = (rawUrl: string) => {
+  const url = rawUrl.trim();
+  if (!url) return url;
+
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (driveFileMatch?.[1]) {
+    return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+  }
+
+  const driveOpenMatch = url.match(/[?&]id=([^&]+)/);
+  if (url.includes('drive.google.com') && driveOpenMatch?.[1]) {
+    return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+  }
+
+  const dropboxMatch = url.match(/^https?:\/\/(www\.)?dropbox\.com\//);
+  if (dropboxMatch) {
+    return url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '').replace('?dl=1', '');
+  }
+
+  return url;
+};
 
 interface MenuItem {
   id: string;
@@ -42,7 +69,7 @@ interface MenuItem {
 }
 
 export default function MenuManagement() {
-  const [menuType, setMenuType] = useState<'alacarte' | 'set' | 'tour'>('alacarte');
+  const [menuType, setMenuType] = useState<'alacarte' | 'set' | 'tour' | 'pdf'>('alacarte');
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -51,23 +78,27 @@ export default function MenuManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [menuPdfFiles, setMenuPdfFiles] = useState<{ id: string; title: string; audience: string; url: string; note?: string }[]>([]);
+  const [copiedPdfId, setCopiedPdfId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     async function loadData() {
       setIsLoading(true);
       try {
-        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTourMenus] = await Promise.all([
+        const [fetchedCategories, fetchedItems, fetchedSets, fetchedTourMenus, settings] = await Promise.all([
           menuService.getCategories(),
           menuService.getMenuItems(),
           menuService.getSetMenus(),
-          menuService.getTourMenus()
+          menuService.getTourMenus(),
+          settingsService.getAppSettings()
         ]);
         if (mounted) {
           setCategories(fetchedCategories);
           setItems(fetchedItems);
           setSetMenus(fetchedSets);
           setTourMenus(fetchedTourMenus);
+          setMenuPdfFiles(Array.isArray(settings?.menuPdfFiles) ? settings.menuPdfFiles : []);
           if (fetchedCategories.length > 0 && !activeCategory) {
             setActiveCategory(fetchedCategories[0].id);
           }
@@ -89,6 +120,12 @@ export default function MenuManagement() {
       unsubscribe();
     };
   }, [activeCategory]);
+
+  const handleCopyMenuPdf = (file: { id: string; url: string }) => {
+    navigator.clipboard.writeText(toDirectDownloadUrl(file.url));
+    setCopiedPdfId(file.id);
+    setTimeout(() => setCopiedPdfId(null), 1800);
+  };
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -690,6 +727,13 @@ export default function MenuManagement() {
             <Printer className="w-4 h-4" />
             Thực đơn Lữ hành
           </button>
+          <button
+            onClick={() => setMenuType('pdf')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap ${menuType === 'pdf' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            <FileText className="w-4 h-4" />
+            File Menu PDF
+          </button>
         </div>
       </div>
 
@@ -1182,6 +1226,71 @@ export default function MenuManagement() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      ) : menuType === 'pdf' ? (
+        <div className="flex-1 min-h-0 w-full p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 relative">
+          <div className="max-w-7xl mx-auto space-y-6 pb-12">
+            <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-black uppercase tracking-widest text-teal-700 mb-4"><FileText className="w-3.5 h-3.5" /> Menu PDF</div>
+                  <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">File Menu PDF</h2>
+                  <p className="mt-2 max-w-2xl text-sm text-gray-500 leading-6">Danh sách PDF đã được admin cấu hình. Nhân viên copy link gửi khách hoặc mở để tải nhanh, không cần vào trang Cấu hình.</p>
+                </div>
+                <div className="rounded-2xl border border-teal-100 bg-teal-50 px-5 py-4 min-w-[180px]">
+                  <div className="text-4xl font-black text-teal-700">{menuPdfFiles.length}</div>
+                  <div className="text-xs text-teal-700/70 font-medium">file sẵn sàng gửi khách</div>
+                </div>
+              </div>
+              <div className="relative z-10 mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="text-xs font-black uppercase text-gray-500 mb-2">Link khách lẻ</div>
+                  <div className="flex gap-2">
+                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-khach-le`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-black hover:bg-teal-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
+                    <button onClick={() => window.open('/menu-khach-le', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                  <div className="text-xs font-black uppercase text-gray-500 mb-2">Link lữ hành</div>
+                  <div className="flex gap-2">
+                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-lu-hanh`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-black hover:bg-amber-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
+                    <button onClick={() => window.open('/menu-lu-hanh', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {menuPdfFiles.length === 0 ? (
+              <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center shadow-sm">
+                <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-xl font-black text-gray-800">Chưa có file PDF nào</h3>
+                <p className="text-sm text-gray-500 mt-2">Admin vào Cấu hình → Menu PDF để thêm link tải thực đơn.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {menuPdfFiles.map(file => (
+                  <div key={file.id} className="group relative overflow-hidden bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-teal-200 transition-all">
+                    <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-br from-teal-50 to-transparent rounded-bl-full" />
+                    <div className="relative z-10">
+                      <div className="flex items-start justify-between gap-3 mb-5">
+                        <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center"><FileText className="w-7 h-7" /></div>
+                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black uppercase tracking-wide">{file.audience}</span>
+                      </div>
+                      <h3 className="text-lg font-black text-gray-900 leading-tight mb-2">{file.title}</h3>
+                      {file.note && <p className="text-sm text-gray-500 line-clamp-2 mb-3">{file.note}</p>}
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 mb-5">
+                        <p className="font-mono text-xs text-gray-500 truncate">{file.url}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => handleCopyMenuPdf(file)} className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-all ${copiedPdfId === file.id ? 'bg-green-100 text-green-700' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm'}`}>{copiedPdfId === file.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{copiedPdfId === file.id ? 'Đã copy' : 'Copy link'}</button>
+                        <button onClick={() => window.open(toDirectDownloadUrl(file.url), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"><Download className="w-4 h-4" />Mở/Tải</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : null}

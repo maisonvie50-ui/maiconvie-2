@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Save, User, Clock, Check, Shield, PlaySquare, Youtube, Plus, Trash2, Edit, Link,
     Image as ImageIcon, ChevronRight, X, Search, Filter, Activity, Settings as SettingsIcon,
-    AlertTriangle, Users, LayoutTemplate, Copy, ArrowUp, BookOpen, Star
+    AlertTriangle, Users, LayoutTemplate, Copy, ArrowUp, BookOpen, Star, FileText, Download
 } from 'lucide-react';
 
 import { settingsService, Employee, ActivityLog, Station, AppSettings } from '../../services/settingsService';
@@ -17,8 +17,39 @@ interface Area {
     capacity: number;
 }
 
+interface MenuPdfFile {
+    id: string;
+    title: string;
+    audience: string;
+    url: string;
+    originalUrl?: string;
+    note?: string;
+}
+
+const toDirectDownloadUrl = (rawUrl: string) => {
+    const url = rawUrl.trim();
+    if (!url) return url;
+
+    const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (driveFileMatch?.[1]) {
+        return `https://drive.google.com/uc?export=download&id=${driveFileMatch[1]}`;
+    }
+
+    const driveOpenMatch = url.match(/[?&]id=([^&]+)/);
+    if (url.includes('drive.google.com') && driveOpenMatch?.[1]) {
+        return `https://drive.google.com/uc?export=download&id=${driveOpenMatch[1]}`;
+    }
+
+    const dropboxMatch = url.match(/^https?:\/\/(www\.)?dropbox\.com\//);
+    if (dropboxMatch) {
+        return url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('?dl=0', '').replace('?dl=1', '');
+    }
+
+    return url;
+};
+
 export default function Settings() {
-    const [activeTab, setActiveTab] = useState<'permissions' | 'hours' | 'training' | 'operations' | 'assignments'>('permissions');
+    const [activeTab, setActiveTab] = useState<'permissions' | 'hours' | 'training' | 'operations' | 'assignments' | 'menuPdf'>('permissions');
     const [isMobile, setIsMobile] = useState(false);
 
     // Config state
@@ -82,6 +113,9 @@ export default function Settings() {
     // Link generator state
     const [selectedSource, setSelectedSource] = useState<string>('');
     const [copied, setCopied] = useState(false);
+    const [menuPdfFiles, setMenuPdfFiles] = useState<MenuPdfFile[]>([]);
+    const [newMenuPdf, setNewMenuPdf] = useState<MenuPdfFile>({ id: '', title: '', audience: 'Khách lẻ', url: '', note: '' });
+    const [pdfCopiedId, setPdfCopiedId] = useState<string | null>(null);
 
     const handleCopyLink = () => {
         const link = window.location.origin + '/dat-ban-online' + (selectedSource ? `?source=${selectedSource}` : '');
@@ -128,6 +162,7 @@ export default function Settings() {
             if (cfgData.dinnerStart) setDinnerStart(cfgData.dinnerStart);
             if (cfgData.dinnerEnd) setDinnerEnd(cfgData.dinnerEnd);
             if (cfgData.areas) setAreas(cfgData.areas);
+            if (Array.isArray(cfgData.menuPdfFiles)) setMenuPdfFiles(cfgData.menuPdfFiles);
         }
     };
 
@@ -144,6 +179,44 @@ export default function Settings() {
         await settingsService.updateAppSetting('dinnerEnd', dinnerEnd);
         await settingsService.updateAppSetting('areas', areas);
         alert('Đã lưu cấu hình thành công!');
+    };
+
+    const saveMenuPdfFiles = async (files: MenuPdfFile[]) => {
+        setMenuPdfFiles(files);
+        await settingsService.updateAppSetting('menuPdfFiles', files);
+    };
+
+    const handleAddMenuPdf = async () => {
+        if (!newMenuPdf.title.trim() || !newMenuPdf.url.trim()) {
+            alert('Vui lòng nhập tên file PDF và link tải.');
+            return;
+        }
+
+        const directUrl = toDirectDownloadUrl(newMenuPdf.url);
+        const pdf: MenuPdfFile = {
+            ...newMenuPdf,
+            id: newMenuPdf.id || `pdf-${Date.now()}`,
+            title: newMenuPdf.title.trim(),
+            audience: newMenuPdf.audience.trim() || 'Khách lẻ',
+            url: directUrl,
+            originalUrl: newMenuPdf.url.trim() === directUrl ? newMenuPdf.originalUrl : newMenuPdf.url.trim(),
+            note: newMenuPdf.note?.trim() || ''
+        };
+
+        await saveMenuPdfFiles([pdf, ...menuPdfFiles]);
+        setNewMenuPdf({ id: '', title: '', audience: 'Khách lẻ', url: '', note: '' });
+        alert('Đã lưu file Menu PDF.');
+    };
+
+    const handleDeleteMenuPdf = async (id: string) => {
+        if (!confirm('Xóa file PDF này khỏi danh sách?')) return;
+        await saveMenuPdfFiles(menuPdfFiles.filter(file => file.id !== id));
+    };
+
+    const handleCopyPdfLink = (file: MenuPdfFile) => {
+        navigator.clipboard.writeText(toDirectDownloadUrl(file.url));
+        setPdfCopiedId(file.id);
+        setTimeout(() => setPdfCopiedId(null), 1800);
     };
 
     const handleEditStationTables = (stationId: string) => {
@@ -569,6 +642,87 @@ export default function Settings() {
             )}
         </div>
     );
+    const renderMenuPdfTab = () => (
+        <div className="space-y-6">
+            <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                    <div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-black uppercase tracking-widest text-teal-700 mb-4">
+                            <FileText className="w-3.5 h-3.5" /> Menu PDF
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">Cấu hình link tải thực đơn PDF</h3>
+                        <p className="mt-2 max-w-2xl text-sm text-gray-500 leading-6">Admin lưu link PDF tại đây. Nhân viên sẽ thấy danh sách trong trang Thực đơn để copy nhanh gửi khách lẻ, hãng lữ hành hoặc đối tác.</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 min-w-[220px]">
+                        <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4">
+                            <div className="text-3xl font-black text-teal-700">{menuPdfFiles.length}</div>
+                            <div className="text-xs text-teal-700/70 font-medium">file đang lưu</div>
+                        </div>
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                            <div className="text-3xl font-black text-gray-700">PDF</div>
+                            <div className="text-xs text-gray-500">download/link</div>
+                        </div>
+                    </div>
+                </div>
+                <div className="relative z-10 mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                        <div className="text-xs font-black uppercase text-gray-500 mb-2">Link khách lẻ</div>
+                        <div className="flex gap-2">
+                            <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-khach-le`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-black hover:bg-teal-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
+                            <button onClick={() => window.open('/menu-khach-le', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                        <div className="text-xs font-black uppercase text-gray-500 mb-2">Link lữ hành</div>
+                        <div className="flex gap-2">
+                            <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-lu-hanh`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-black hover:bg-amber-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
+                            <button onClick={() => window.open('/menu-lu-hanh', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1 bg-white rounded-2xl border border-gray-200 shadow-sm p-5 h-fit">
+                    <h4 className="font-black text-gray-900 mb-1 flex items-center gap-2"><Plus className="w-5 h-5 text-teal-600" />Thêm file PDF</h4>
+                    <p className="text-xs text-gray-500 mb-5">Dán link Google Drive/Supabase/PDF công khai.</p>
+                    <div className="space-y-4">
+                        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Tên hiển thị</label><input value={newMenuPdf.title} onChange={(e) => setNewMenuPdf({ ...newMenuPdf, title: e.target.value })} placeholder="VD: Menu khách lẻ 2026" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500" /></div>
+                        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Đối tượng</label><select value={newMenuPdf.audience} onChange={(e) => setNewMenuPdf({ ...newMenuPdf, audience: e.target.value })} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500"><option>Khách lẻ</option><option>Hãng lữ hành</option></select></div>
+                        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Link PDF download</label><input value={newMenuPdf.url} onChange={(e) => setNewMenuPdf({ ...newMenuPdf, url: e.target.value })} placeholder="https://.../menu.pdf" className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500" /></div>
+                        <div><label className="block text-xs font-black text-gray-500 uppercase mb-1.5">Ghi chú</label><textarea value={newMenuPdf.note} onChange={(e) => setNewMenuPdf({ ...newMenuPdf, note: e.target.value })} placeholder="VD: Gửi cho đoàn tour Pháp" rows={3} className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500" /></div>
+                        <button onClick={handleAddMenuPdf} className="w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-black shadow-lg shadow-teal-100 transition-all"><Save className="w-4 h-4" />Lưu file PDF</button>
+                    </div>
+                </div>
+
+                <div className="lg:col-span-2 space-y-3">
+                    {menuPdfFiles.length === 0 ? (
+                        <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-10 text-center text-gray-400">
+                            <FileText className="w-14 h-14 mx-auto mb-3 text-gray-300" />
+                            <div className="font-bold text-gray-600">Chưa có file Menu PDF</div>
+                            <p className="text-sm mt-1">Thêm file đầu tiên để nhân viên copy link nhanh trong trang Thực đơn.</p>
+                        </div>
+                    ) : menuPdfFiles.map(file => (
+                        <div key={file.id} className="group bg-white rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-lg hover:border-teal-200 transition-all">
+                            <div className="flex flex-col md:flex-row md:items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center shrink-0"><FileText className="w-6 h-6" /></div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1"><h4 className="font-black text-gray-900 truncate">{file.title}</h4><span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black uppercase">{file.audience}</span></div>
+                                    <p className="font-mono text-xs text-gray-500 truncate">{file.url}</p>
+                                    {file.note && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{file.note}</p>}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button onClick={() => handleCopyPdfLink(file)} className={`px-3 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${pdfCopiedId === file.id ? 'bg-green-100 text-green-700' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}>{pdfCopiedId === file.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{pdfCopiedId === file.id ? 'Đã copy' : 'Copy link'}</button>
+                                    <button onClick={() => window.open(toDirectDownloadUrl(file.url), '_blank')} className="px-3 py-2 rounded-xl text-xs font-black bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-1.5"><Download className="w-4 h-4" />Mở</button>
+                                    <button onClick={() => handleDeleteMenuPdf(file.id)} className="p-2 rounded-xl text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 
     const editPreviewId = getYoutubeId(editCourseUrl);
 
@@ -576,10 +730,10 @@ export default function Settings() {
         <div className="h-full bg-gray-50 flex flex-col">
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="flex overflow-x-auto no-scrollbar p-2 gap-2">
-                    {(['permissions', 'hours', 'training', 'operations', 'assignments'] as const).map(tab => (
+                    {(['permissions', 'hours', 'training', 'operations', 'assignments', 'menuPdf'] as const).map(tab => (
                         <button key={tab} onClick={() => setActiveTab(tab)}
                             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-teal-600 text-white shadow-md' : 'bg-gray-100 text-gray-600'}`}>
-                            {tab === 'permissions' ? 'Phân quyền' : tab === 'hours' ? 'Giờ hoạt động' : tab === 'training' ? 'Đào tạo' : tab === 'operations' ? 'Vận hành' : 'Phân công'}
+                            {tab === 'permissions' ? 'Phân quyền' : tab === 'hours' ? 'Giờ hoạt động' : tab === 'training' ? 'Đào tạo' : tab === 'operations' ? 'Vận hành' : tab === 'assignments' ? 'Phân công' : 'Menu PDF'}
                         </button>
                     ))}
                 </div>
@@ -758,6 +912,7 @@ export default function Settings() {
                         </div>
                     </div>
                 )}
+                {activeTab === 'menuPdf' && renderMenuPdfTab()}
             </div>
             {selectedEmployee && isMobile && (
                 <div className="fixed inset-0 z-50 bg-black/50 flex items-end animate-in fade-in duration-200" onClick={() => setSelectedEmployee(null)}>
@@ -793,13 +948,14 @@ export default function Settings() {
         <div className="h-[calc(100vh-64px)] bg-gray-50 flex flex-col">
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-start flex-shrink-0">
                 <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {([['permissions', 'Shield', 'Phân quyền'], ['hours', 'Clock', 'Giờ hoạt động'], ['training', 'PlaySquare', 'Đào tạo'], ['operations', 'SettingsIcon', 'Vận hành'], ['assignments', 'Users', 'Phân công']] as const).map(([tab, , label]) => (
+                    {([['permissions', 'Shield', 'Phân quyền'], ['hours', 'Clock', 'Giờ hoạt động'], ['training', 'PlaySquare', 'Đào tạo'], ['operations', 'SettingsIcon', 'Vận hành'], ['assignments', 'Users', 'Phân công'], ['menuPdf', 'FileText', 'Menu PDF']] as const).map(([tab, , label]) => (
                         <button key={tab} onClick={() => setActiveTab(tab as any)} className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${activeTab === tab ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}>
                             {tab === 'permissions' && <Shield className="w-4 h-4" />}
                             {tab === 'hours' && <Clock className="w-4 h-4" />}
                             {tab === 'training' && <PlaySquare className="w-4 h-4" />}
                             {tab === 'operations' && <SettingsIcon className="w-4 h-4" />}
                             {tab === 'assignments' && <Users className="w-4 h-4" />}
+                            {tab === 'menuPdf' && <FileText className="w-4 h-4" />}
                             {label}
                         </button>
                     ))}
@@ -1008,6 +1164,7 @@ export default function Settings() {
                             </div>
                         </div>
                     )}
+                    {activeTab === 'menuPdf' && renderMenuPdfTab()}
                 </div>
             </div>
         </div>

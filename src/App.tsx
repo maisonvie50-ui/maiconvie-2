@@ -5,6 +5,7 @@
 
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import logoImg from './assets/logo.jpg';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Login from './components/auth/Login';
@@ -24,6 +25,7 @@ const OrderHistory = lazy(() => import('./components/analytics/OrderHistory'));
 const MobileCaptainApp = lazy(() => import('./components/mobile/MobileCaptainApp'));
 const UserProfile = lazy(() => import('./components/profile/UserProfile'));
 const PublicBookingForm = lazy(() => import('./components/booking/PublicBookingForm'));
+const PublicMenuPdfPage = lazy(() => import('./components/menu/PublicMenuPdfPage'));
 
 // ---- Role Guard Component ----
 function RoleGuard({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: UserRole[] }) {
@@ -39,10 +41,11 @@ function RoleGuard({ children, allowedRoles }: { children: React.ReactNode; allo
 
 function RouteLoader() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-gray-50/90 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-3 text-teal-700">
-        <div className="w-9 h-9 border-4 border-teal-500/20 border-t-teal-500 rounded-full animate-spin" />
-        <div className="text-sm font-semibold">Đang tải dữ liệu...</div>
+    <div className="absolute inset-0 flex items-center justify-center bg-[#f7faf9] z-[9999]">
+      <div className="flex flex-col items-center gap-4 animate-pulse">
+        <div className="w-24 md:w-32 h-12 md:h-14 bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm px-2 py-1 flex items-center justify-center">
+          <img src={logoImg} alt="Maison Vie Logo" className="w-full h-full object-contain" />
+        </div>
       </div>
     </div>
   );
@@ -123,6 +126,11 @@ function MainApp() {
       <Routes>
         {/* Public routes - always available */}
         <Route path="/dat-ban-online" element={<PublicBookingForm />} />
+        <Route path="/thuc-don-pdf" element={<PublicMenuPdfPage />} />
+        <Route path="/menu-khach-le" element={<PublicMenuPdfPage />} />
+        <Route path="/menu-lu-hanh" element={<PublicMenuPdfPage />} />
+        <Route path="/menu-doi-tac" element={<PublicMenuPdfPage />} />
+        <Route path="/menu-su-kien" element={<PublicMenuPdfPage />} />
         <Route path="/login" element={
           isAuthenticated ? <Navigate to="/" replace /> : <Login onLogin={handleLogin} />
         } />
