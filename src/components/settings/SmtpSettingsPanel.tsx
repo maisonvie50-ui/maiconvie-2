@@ -156,170 +156,188 @@ export default function SmtpSettingsPanel() {
     const selectedMeta = DEFAULT_TEMPLATES[selectedTemplate];
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-            <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-                <Mail className="w-5 h-5 text-teal-600" />Email SMTP tự động
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
-                Gửi email trực tiếp qua SMTP khi có booking mới, xác nhận, đổi trạng thái hoặc hủy. Cấu hình SMTP nằm trên Vercel.
-            </p>
+        <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-950 via-teal-950 to-slate-900 p-4 sm:p-8 shadow-2xl shadow-teal-950/20">
+            <div className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full bg-teal-400/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-28 -left-20 h-56 w-56 rounded-full bg-amber-300/10 blur-3xl" />
 
-            <div className="space-y-5">
-                <div className={`rounded-xl border p-5 transition-colors ${smtpEnabled ? 'border-teal-200 bg-teal-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${smtpEnabled ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-400'}`}>
-                                <Server className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-gray-800">Bật SMTP Email</h4>
-                                <p className="text-xs text-gray-500">Gửi email tự động qua Gmail SMTP</p>
-                            </div>
+            <div className="relative space-y-5">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.08] p-5 text-white shadow-xl backdrop-blur-xl">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-300 to-emerald-400 text-slate-950 shadow-lg shadow-teal-500/30">
+                            <Mail className="h-6 w-6" />
                         </div>
-                        <div
-                            onClick={() => setSmtpEnabled(!smtpEnabled)}
-                            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${smtpEnabled ? 'bg-teal-500' : 'bg-gray-300'}`}
-                        >
-                            <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform duration-300 ease-in-out ${smtpEnabled ? 'translate-x-6' : ''}`} />
+                        <div className="min-w-0 flex-1">
+                            <div className="mb-2 inline-flex items-center rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">
+                                Email Automation Center
+                            </div>
+                            <h3 className="text-2xl font-black leading-tight tracking-tight">Thông báo Email</h3>
+                            <p className="mt-2 text-sm leading-6 text-slate-300">
+                                Quản lý email booking, email khách hàng song ngữ VI/EN và thông báo nội bộ tiếng Việt.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className={`rounded-2xl border p-3 ${smtpEnabled ? 'border-emerald-300/30 bg-emerald-300/10' : 'border-white/10 bg-white/5'}`}>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">SMTP</div>
+                            <div className={`mt-1 text-sm font-black ${smtpEnabled ? 'text-emerald-200' : 'text-slate-300'}`}>{smtpEnabled ? 'Đang bật' : 'Đang tắt'}</div>
+                        </div>
+                        <div className={`rounded-2xl border p-3 ${sendCustomerEmail ? 'border-sky-300/30 bg-sky-300/10' : 'border-white/10 bg-white/5'}`}>
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Email khách</div>
+                            <div className={`mt-1 text-sm font-black ${sendCustomerEmail ? 'text-sky-200' : 'text-slate-300'}`}>{sendCustomerEmail ? 'VI/EN tự động' : 'Đang tắt'}</div>
                         </div>
                     </div>
                 </div>
 
-                {smtpEnabled && (
-                    <>
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">Email nhận thông báo nội bộ</label>
-                            <input
-                                type="email"
-                                value={internalEmail}
-                                onChange={(e) => setInternalEmail(e.target.value)}
-                                placeholder="info@maisonvie.vn"
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white"
-                            />
-                            <p className="text-xs text-gray-400">Email quản lý/lễ tân nhận thông báo booking mới, thay đổi trạng thái.</p>
-                        </div>
-
-                        <div className={`rounded-xl border p-5 transition-colors ${sendCustomerEmail ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${sendCustomerEmail ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                                        <ShieldCheck className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-800">Gửi email cho khách</h4>
-                                        <p className="text-xs text-gray-500">Tự động gửi email xác nhận / hủy tới khách hàng</p>
-                                    </div>
-                                </div>
-                                <div
-                                    onClick={() => setSendCustomerEmail(!sendCustomerEmail)}
-                                    className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${sendCustomerEmail ? 'bg-green-500' : 'bg-gray-300'}`}
-                                >
-                                    <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform duration-300 ease-in-out ${sendCustomerEmail ? 'translate-x-6' : ''}`} />
-                                </div>
+                <div className="space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => setSmtpEnabled(!smtpEnabled)}
+                        className={`group flex min-h-[72px] w-full items-center justify-between gap-4 rounded-3xl border p-4 text-left transition-all active:scale-[0.98] ${smtpEnabled ? 'border-emerald-300/40 bg-emerald-50 text-emerald-950 shadow-lg shadow-emerald-950/10' : 'border-white/10 bg-white text-slate-800 shadow-lg shadow-slate-950/10'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${smtpEnabled ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                <Server className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div className="text-base font-black">Bật SMTP Email</div>
+                                <div className="text-sm leading-5 opacity-70">Gửi email tự động khi có booking</div>
                             </div>
                         </div>
+                        <div className={`flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors ${smtpEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                            <div className={`h-6 w-6 rounded-full bg-white shadow-md transition-transform ${smtpEnabled ? 'translate-x-6' : ''}`} />
+                        </div>
+                    </button>
 
-                        <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/70 to-white p-5 space-y-5">
-                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
-                                        <FileText className="w-5 h-5" />
+                    {smtpEnabled && (
+                        <>
+                            <div className="rounded-3xl border border-white/70 bg-white p-4 shadow-xl shadow-slate-950/10">
+                                <label className="mb-2 block text-sm font-black text-slate-800">Email nhận thông báo nội bộ</label>
+                                <input
+                                    type="email"
+                                    value={internalEmail}
+                                    onChange={(e) => setInternalEmail(e.target.value)}
+                                    placeholder="info@maisonvie.vn"
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base font-semibold text-slate-800 outline-none transition focus:border-teal-400 focus:bg-white focus:ring-4 focus:ring-teal-100"
+                                />
+                                <p className="mt-2 text-sm leading-5 text-slate-500">Email nội bộ luôn dùng tiếng Việt để lễ tân/quản lý dễ xử lý.</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setSendCustomerEmail(!sendCustomerEmail)}
+                                className={`flex min-h-[72px] w-full items-center justify-between gap-4 rounded-3xl border p-4 text-left transition-all active:scale-[0.98] ${sendCustomerEmail ? 'border-sky-300/60 bg-sky-50 text-sky-950 shadow-lg shadow-sky-950/10' : 'border-white/70 bg-white text-slate-800 shadow-lg shadow-slate-950/10'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${sendCustomerEmail ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                        <ShieldCheck className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900">Cấu hình mẫu nội dung email theo trạng thái</h4>
-                                        <p className="text-xs text-gray-500 leading-relaxed mt-1">
-                                            Chọn loại email bên dưới, hệ thống sẽ hiện mẫu sẵn. Bạn chỉ sửa câu chữ cần thay đổi, giữ nguyên các biến trong dấu ngoặc.
-                                        </p>
-                                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">
-                                            Nếu vẫn thấy mẫu tiếng Anh cũ, bấm “Khôi phục tất cả mẫu tiếng Việt” rồi bấm “Lưu cấu hình”.
-                                        </p>
+                                        <div className="text-base font-black">Gửi email cho khách</div>
+                                        <div className="text-sm leading-5 opacity-70">Tự động theo ngôn ngữ khách chọn</div>
                                     </div>
                                 </div>
+                                <div className={`flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors ${sendCustomerEmail ? 'bg-sky-500' : 'bg-slate-300'}`}>
+                                    <div className={`h-6 w-6 rounded-full bg-white shadow-md transition-transform ${sendCustomerEmail ? 'translate-x-6' : ''}`} />
+                                </div>
+                            </button>
+
+                            <div className="rounded-3xl border border-teal-100 bg-white p-4 shadow-xl shadow-slate-950/10">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-700">
+                                        <FileText className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className="text-lg font-black leading-tight text-slate-900">Mẫu nội dung email</h4>
+                                        <p className="mt-1 text-sm leading-5 text-slate-500">Chọn mẫu, chỉnh nội dung và giữ nguyên các biến trong dấu ngoặc.</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-800">
+                                    Nếu còn mẫu cũ, bấm nút dưới rồi bấm lưu. Email khách vẫn tự động chuyển VI/EN theo booking.
+                                </div>
+
                                 <button
                                     type="button"
                                     onClick={resetAllTemplates}
-                                    className="w-full sm:w-auto text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-2 rounded-lg transition-colors"
+                                    className="mt-3 flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-amber-200 bg-amber-100 px-4 py-3 text-sm font-black text-amber-900 transition active:scale-[0.98]"
                                 >
                                     Khôi phục tất cả mẫu tiếng Việt
                                 </button>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {(Object.keys(DEFAULT_TEMPLATES) as TemplateKey[]).map((key) => (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        onClick={() => setSelectedTemplate(key)}
-                                        className={`text-left rounded-xl border p-4 transition-all ${selectedTemplate === key ? 'border-teal-400 bg-white shadow-md shadow-teal-100' : 'border-gray-200 bg-white/70 hover:border-teal-200 hover:bg-white'}`}
-                                    >
-                                        <div className="text-sm font-bold text-gray-800">{DEFAULT_TEMPLATES[key].label}</div>
-                                        <div className="text-xs text-gray-500 mt-1">{DEFAULT_TEMPLATES[key].desc}</div>
-                                    </button>
-                                ))}
-                            </div>
+                                <div className="mt-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                                    {(Object.keys(DEFAULT_TEMPLATES) as TemplateKey[]).map((key) => (
+                                        <button
+                                            key={key}
+                                            type="button"
+                                            onClick={() => setSelectedTemplate(key)}
+                                            className={`min-h-[48px] min-w-[190px] rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.98] ${selectedTemplate === key ? 'border-teal-400 bg-teal-50 shadow-md shadow-teal-100' : 'border-slate-200 bg-slate-50'}`}
+                                        >
+                                            <div className="text-sm font-black text-slate-900">{DEFAULT_TEMPLATES[key].label}</div>
+                                            <div className="mt-1 line-clamp-2 text-xs leading-4 text-slate-500">{DEFAULT_TEMPLATES[key].desc}</div>
+                                        </button>
+                                    ))}
+                                </div>
 
-                            <div className="space-y-3">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div className="mt-4 space-y-3">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-800">Đang sửa: {selectedMeta.label}</label>
-                                        <p className="text-xs text-gray-500">Các biến không nên đổi: {'{{customerName}}'}, {'{{phone}}'}, {'{{date}}'}, {'{{time}}'}, {'{{pax}}'}, {'{{table}}'}, {'{{menus}}'}, {'{{oldStatus}}'}, {'{{newStatus}}'}</p>
+                                        <label className="block text-sm font-black text-slate-900">Đang sửa: {selectedMeta.label}</label>
+                                        <p className="mt-1 text-xs leading-5 text-slate-500">Biến giữ nguyên: {'{{customerName}}'}, {'{{phone}}'}, {'{{date}}'}, {'{{time}}'}, {'{{pax}}'}, {'{{table}}'}, {'{{menus}}'}</p>
                                     </div>
+                                    <textarea
+                                        value={templateValues[selectedTemplate]}
+                                        onChange={(e) => handleTemplateChange(e.target.value)}
+                                        rows={10}
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-base leading-7 text-slate-800 outline-none shadow-inner transition focus:border-teal-400 focus:bg-white focus:ring-4 focus:ring-teal-100"
+                                    />
                                     <button
                                         type="button"
                                         onClick={resetSelectedTemplate}
-                                        className="text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 px-3 py-2 rounded-lg transition-colors"
+                                        className="min-h-[44px] w-full rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-sm font-black text-teal-800 transition active:scale-[0.98]"
                                     >
-                                        Khôi phục mẫu gốc
+                                        Khôi phục riêng mẫu đang sửa
                                     </button>
                                 </div>
-
-                                <textarea
-                                    value={templateValues[selectedTemplate]}
-                                    onChange={(e) => handleTemplateChange(e.target.value)}
-                                    rows={14}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm leading-6 font-mono focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-inner"
-                                />
                             </div>
-                        </div>
 
-                        <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-                            <p className="text-xs text-amber-800 leading-relaxed">
-                                <strong>💡 Lưu ý:</strong> Cấu hình SMTP (host, port, mật khẩu) được quản lý trên <strong>Vercel Environment Variables</strong> để đảm bảo bảo mật.
-                                Liên hệ quản trị hệ thống nếu cần thay đổi thông tin SMTP.
-                            </p>
-                        </div>
-                    </>
-                )}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm transition-colors"
-                >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
-                    {saving ? 'Đang lưu...' : saved ? 'Đã lưu!' : 'Lưu cấu hình SMTP'}
-                </button>
-
-                {smtpEnabled && (
-                    <button
-                        onClick={handleTestSmtp}
-                        disabled={testing}
-                        className="flex items-center gap-2 bg-white border border-gray-300 hover:border-teal-400 hover:text-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 px-5 py-2.5 rounded-lg font-medium transition-colors"
-                    >
-                        {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        {testing ? 'Đang test SMTP...' : 'Gửi email test'}
-                    </button>
-                )}
-            </div>
-
-            {testResult && (
-                <div className={`mt-4 p-4 rounded-lg text-sm whitespace-pre-line ${testResult.success ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'}`}>
-                    <div className="font-semibold mb-1">{testResult.message}</div>
-                    {testResult.details && <div className="text-xs opacity-80">{testResult.details}</div>}
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-4 text-sm leading-6 text-slate-300 backdrop-blur-xl">
+                                <strong className="text-amber-200">Bảo mật:</strong> SMTP host, port và mật khẩu được giữ trong Vercel Environment Variables, không hiển thị trên điện thoại.
+                            </div>
+                        </>
+                    )}
                 </div>
-            )}
+
+                <div className="sticky bottom-3 z-20 rounded-3xl border border-white/20 bg-slate-950/85 p-3 shadow-2xl shadow-slate-950/30 backdrop-blur-xl sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-0">
+                    <div className="grid grid-cols-1 gap-3 sm:flex">
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-teal-400 to-emerald-400 px-6 py-3 text-base font-black text-slate-950 shadow-lg shadow-teal-500/25 transition active:scale-[0.98] disabled:opacity-60"
+                        >
+                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : saved ? <Check className="h-5 w-5" /> : <Mail className="h-5 w-5" />}
+                            {saving ? 'Đang lưu...' : saved ? 'Đã lưu cấu hình' : 'Lưu cấu hình Email'}
+                        </button>
+
+                        {smtpEnabled && (
+                            <button
+                                onClick={handleTestSmtp}
+                                disabled={testing}
+                                className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white px-6 py-3 text-base font-black text-slate-800 shadow-lg shadow-slate-950/10 transition active:scale-[0.98] disabled:opacity-60"
+                            >
+                                {testing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                                {testing ? 'Đang gửi test...' : 'Gửi email test'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {testResult && (
+                    <div className={`rounded-2xl p-4 text-sm leading-6 shadow-lg ${testResult.success ? 'border border-emerald-200 bg-emerald-50 text-emerald-900' : 'border border-red-200 bg-red-50 text-red-900'}`}>
+                        <div className="font-black">{testResult.message}</div>
+                        {testResult.details && <div className="mt-1 text-xs opacity-80">{testResult.details}</div>}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
