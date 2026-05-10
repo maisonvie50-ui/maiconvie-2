@@ -730,10 +730,10 @@ export default function Settings() {
         <div className="h-full bg-gray-50 flex flex-col">
             <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div className="flex overflow-x-auto no-scrollbar p-2 gap-2">
-                    {(['permissions', 'hours', 'training', 'operations', 'assignments', 'menuPdf'] as const).map(tab => (
+                    {(['permissions', 'hours', 'training', 'operations', 'notifications', 'assignments', 'menuPdf'] as const).map(tab => (
                         <button key={tab} onClick={() => setActiveTab(tab)}
                             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-teal-600 text-white shadow-md' : 'bg-gray-100 text-gray-600'}`}>
-                            {tab === 'permissions' ? 'Phân quyền' : tab === 'hours' ? 'Giờ hoạt động' : tab === 'training' ? 'Đào tạo' : tab === 'operations' ? 'Vận hành' : tab === 'assignments' ? 'Phân công' : 'Menu PDF'}
+                            {tab === 'permissions' ? 'Phân quyền' : tab === 'hours' ? 'Giờ hoạt động' : tab === 'training' ? 'Đào tạo' : tab === 'operations' ? 'Vận hành' : tab === 'notifications' ? 'Thông báo / Email' : tab === 'assignments' ? 'Phân công' : 'Menu PDF'}
                         </button>
                     ))}
                 </div>
@@ -871,6 +871,11 @@ export default function Settings() {
                             </div>
                         </div>
                         <button className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-teal-200">Lưu cấu hình</button>
+                    </div>
+                )}
+                {activeTab === 'notifications' && (
+                    <div className="space-y-6">
+                        <NotificationSettings />
                     </div>
                 )}
                 {activeTab === 'assignments' && (
