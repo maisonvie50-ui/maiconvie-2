@@ -135,6 +135,16 @@ export default function SmtpSettingsPanel() {
         setTemplateValues(prev => ({ ...prev, [selectedTemplate]: DEFAULT_TEMPLATES[selectedTemplate].defaultValue }));
     };
 
+    const resetAllTemplates = () => {
+        setTemplateValues({
+            internalNew: DEFAULT_TEMPLATES.internalNew.defaultValue,
+            customerPending: DEFAULT_TEMPLATES.customerPending.defaultValue,
+            customerConfirm: DEFAULT_TEMPLATES.customerConfirm.defaultValue,
+            internalStatus: DEFAULT_TEMPLATES.internalStatus.defaultValue,
+            customerCancel: DEFAULT_TEMPLATES.customerCancel.defaultValue,
+        });
+    };
+
     if (!loaded) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex items-center justify-center min-h-[200px]">
@@ -210,16 +220,28 @@ export default function SmtpSettingsPanel() {
                         </div>
 
                         <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/70 to-white p-5 space-y-5">
-                            <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
-                                    <FileText className="w-5 h-5" />
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-gray-900">Cấu hình mẫu nội dung email theo trạng thái</h4>
+                                        <p className="text-xs text-gray-500 leading-relaxed mt-1">
+                                            Chọn loại email bên dưới, hệ thống sẽ hiện mẫu sẵn. Bạn chỉ sửa câu chữ cần thay đổi, giữ nguyên các biến trong dấu ngoặc.
+                                        </p>
+                                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">
+                                            Nếu vẫn thấy mẫu tiếng Anh cũ, bấm “Khôi phục tất cả mẫu tiếng Việt” rồi bấm “Lưu cấu hình”.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-gray-900">Cấu hình mẫu nội dung email theo trạng thái</h4>
-                                    <p className="text-xs text-gray-500 leading-relaxed mt-1">
-                                        Chọn loại email bên dưới, hệ thống sẽ hiện mẫu sẵn. Bạn chỉ sửa câu chữ cần thay đổi, giữ nguyên các biến trong dấu ngoặc.
-                                    </p>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={resetAllTemplates}
+                                    className="w-full sm:w-auto text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-2 rounded-lg transition-colors"
+                                >
+                                    Khôi phục tất cả mẫu tiếng Việt
+                                </button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
