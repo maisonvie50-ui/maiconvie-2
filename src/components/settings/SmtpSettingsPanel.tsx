@@ -1,7 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Send, Check, Loader2, Server, ShieldCheck } from 'lucide-react';
+import { Mail, Send, Check, Loader2, Server, ShieldCheck, FileText } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
 import { emailNotificationService } from '../../services/emailNotificationService';
+
+type TemplateKey = 'internalNew' | 'customerPending' | 'customerConfirm' | 'internalStatus' | 'customerCancel';
+
+const DEFAULT_TEMPLATES: Record<TemplateKey, { label: string; desc: string; settingKey: string; defaultValue: string }> = {
+    internalNew: {
+        label: 'Booking mới — gửi nội bộ',
+        desc: 'Gửi cho quản lý/lễ tân khi có booking mới.',
+        settingKey: 'emailTemplateInternalNewBody',
+        defaultValue: `[NEW BOOKING]\n\nGuest name: {{customerName}}\nPhone: {{phone}}\nDate: {{date}}\nTime: {{time}}\nGuests: {{pax}}\nTable: {{table}}\nMenu: {{menus}}\n\nPlease review and confirm this booking.`,
+    },
+    customerPending: {
+        label: 'Khách vừa đặt — gửi khách',
+        desc: 'Gửi khi khách vừa đặt và booking ở trạng thái cần xử lý.',
+        settingKey: 'emailTemplateCustomerPendingBody',
+        defaultValue: `[BOOKING REQUEST RECEIVED]\n\nDear {{customerName}},\n\nWe have received your table reservation request.\nYour booking is currently pending confirmation and our team will confirm it as soon as possible.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nIf you need urgent assistance, please contact Maison Vie.`,
+    },
+    customerConfirm: {
+        label: 'Nhân viên chốt — gửi khách',
+        desc: 'Gửi cho khách khi nhân viên chuyển sang đã chốt / đã xác nhận.',
+        settingKey: 'emailTemplateCustomerConfirmBody',
+        defaultValue: `[RESERVATION CONFIRMED]\n\nDear {{customerName}},\n\nYour table reservation has been confirmed.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nPlease arrive 15 minutes early.\nThank you for choosing Maison Vie.`,
+    },
+    internalStatus: {
+        label: 'Đổi trạng thái — gửi nội bộ',
+        desc: 'Gửi cho quản lý/lễ tân khi trạng thái booking thay đổi.',
+        settingKey: 'emailTemplateInternalStatusChangeBody',
+        defaultValue: `[BOOKING STATUS UPDATED]\n\nGuest name: {{customerName}}\nPrevious status: {{oldStatus}}\nNew status: {{newStatus}}\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}`,
+    },
+    customerCancel: {
+        label: 'Đã hủy — gửi khách',
+        desc: 'Gửi cho khách khi booking bị hủy.',
+        settingKey: 'emailTemplateCustomerCancelBody',
+        defaultValue: `[RESERVATION CANCELLED]\n\nDear {{customerName}},\n\nWe are sorry to inform you that your table reservation has been cancelled.\n\nBooking details:\n- Date: {{date}}\n- Time: {{time}}\n- Number of guests: {{pax}}\n- Table: {{table}}\n- Menu: {{menus}}\n\nIf you would like to make a new reservation, please contact us.`,
+    },
+};
 
 /**
  * SmtpSettingsPanel — cấu hình SMTP email trong admin.
@@ -12,6 +47,16 @@ export default function SmtpSettingsPanel() {
     const [smtpEnabled, setSmtpEnabled] = useState(false);
     const [sendCustomerEmail, setSendCustomerEmail] = useState(false);
     const [internalEmail, setInternalEmail] = useState('');
+
+    const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>('internalNew');
+    const [templateValues, setTemplateValues] = useState<Record<TemplateKey, string>>({
+        internalNew: DEFAULT_TEMPLATES.internalNew.defaultValue,
+        customerPending: DEFAULT_TEMPLATES.customerPending.defaultValue,
+        customerConfirm: DEFAULT_TEMPLATES.customerConfirm.defaultValue,
+        internalStatus: DEFAULT_TEMPLATES.internalStatus.defaultValue,
+        customerCancel: DEFAULT_TEMPLATES.customerCancel.defaultValue,
+    });
+
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -25,10 +70,25 @@ export default function SmtpSettingsPanel() {
                 setSmtpEnabled(!!s.smtpEnabled);
                 setSendCustomerEmail(!!s.sendCustomerEmail);
                 setInternalEmail(s.internalNotificationEmail || '');
+                setTemplateValues({
+                    internalNew: s.emailTemplateInternalNewBody || DEFAULT_TEMPLATES.internalNew.defaultValue,
+                    customerPending: s.emailTemplateCustomerPendingBody || DEFAULT_TEMPLATES.customerPending.defaultValue,
+                    customerConfirm: s.emailTemplateCustomerConfirmBody || DEFAULT_TEMPLATES.customerConfirm.defaultValue,
+                    internalStatus: s.emailTemplateInternalStatusChangeBody || DEFAULT_TEMPLATES.internalStatus.defaultValue,
+                    customerCancel: s.emailTemplateCustomerCancelBody || DEFAULT_TEMPLATES.customerCancel.defaultValue,
+                });
             }
             setLoaded(true);
         })();
     }, []);
+
+    const saveTemplateSettings = async () => {
+        await settingsService.updateAppSetting('emailTemplateInternalNewBody', templateValues.internalNew);
+        await settingsService.updateAppSetting('emailTemplateCustomerPendingBody', templateValues.customerPending);
+        await settingsService.updateAppSetting('emailTemplateCustomerConfirmBody', templateValues.customerConfirm);
+        await settingsService.updateAppSetting('emailTemplateInternalStatusChangeBody', templateValues.internalStatus);
+        await settingsService.updateAppSetting('emailTemplateCustomerCancelBody', templateValues.customerCancel);
+    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -38,6 +98,7 @@ export default function SmtpSettingsPanel() {
             await settingsService.updateAppSetting('smtpEnabled', smtpEnabled);
             await settingsService.updateAppSetting('sendCustomerEmail', sendCustomerEmail);
             await settingsService.updateAppSetting('internalNotificationEmail', internalEmail);
+            await saveTemplateSettings();
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         } catch (err) {
@@ -50,11 +111,11 @@ export default function SmtpSettingsPanel() {
     const handleTestSmtp = async () => {
         setTesting(true);
         setTestResult(null);
-        // Auto-save before test
         try {
             await settingsService.updateAppSetting('smtpEnabled', smtpEnabled);
             await settingsService.updateAppSetting('sendCustomerEmail', sendCustomerEmail);
             await settingsService.updateAppSetting('internalNotificationEmail', internalEmail);
+            await saveTemplateSettings();
         } catch { /* ignore */ }
 
         const result = await emailNotificationService.testSmtp();
@@ -66,6 +127,14 @@ export default function SmtpSettingsPanel() {
         setTesting(false);
     };
 
+    const handleTemplateChange = (value: string) => {
+        setTemplateValues(prev => ({ ...prev, [selectedTemplate]: value }));
+    };
+
+    const resetSelectedTemplate = () => {
+        setTemplateValues(prev => ({ ...prev, [selectedTemplate]: DEFAULT_TEMPLATES[selectedTemplate].defaultValue }));
+    };
+
     if (!loaded) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex items-center justify-center min-h-[200px]">
@@ -74,17 +143,18 @@ export default function SmtpSettingsPanel() {
         );
     }
 
+    const selectedMeta = DEFAULT_TEMPLATES[selectedTemplate];
+
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
             <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-teal-600" />Email SMTP tự động
             </h3>
             <p className="text-sm text-gray-500 mb-6">
-                Gửi email trực tiếp qua SMTP khi có booking mới, xác nhận, hoặc hủy. Cấu hình SMTP (host, password) nằm trên Vercel.
+                Gửi email trực tiếp qua SMTP khi có booking mới, xác nhận, đổi trạng thái hoặc hủy. Cấu hình SMTP nằm trên Vercel.
             </p>
 
             <div className="space-y-5">
-                {/* Toggle SMTP */}
                 <div className={`rounded-xl border p-5 transition-colors ${smtpEnabled ? 'border-teal-200 bg-teal-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -107,7 +177,6 @@ export default function SmtpSettingsPanel() {
 
                 {smtpEnabled && (
                     <>
-                        {/* Internal email */}
                         <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700">Email nhận thông báo nội bộ</label>
                             <input
@@ -120,7 +189,6 @@ export default function SmtpSettingsPanel() {
                             <p className="text-xs text-gray-400">Email quản lý/lễ tân nhận thông báo booking mới, thay đổi trạng thái.</p>
                         </div>
 
-                        {/* Send to customer toggle */}
                         <div className={`rounded-xl border p-5 transition-colors ${sendCustomerEmail ? 'border-green-200 bg-green-50/30' : 'border-gray-200 bg-gray-50/50'}`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -141,7 +209,57 @@ export default function SmtpSettingsPanel() {
                             </div>
                         </div>
 
-                        {/* SMTP info note */}
+                        <div className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/70 to-white p-5 space-y-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-gray-900">Cấu hình mẫu nội dung email theo trạng thái</h4>
+                                    <p className="text-xs text-gray-500 leading-relaxed mt-1">
+                                        Chọn loại email bên dưới, hệ thống sẽ hiện mẫu sẵn. Bạn chỉ sửa câu chữ cần thay đổi, giữ nguyên các biến trong dấu ngoặc.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {(Object.keys(DEFAULT_TEMPLATES) as TemplateKey[]).map((key) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => setSelectedTemplate(key)}
+                                        className={`text-left rounded-xl border p-4 transition-all ${selectedTemplate === key ? 'border-teal-400 bg-white shadow-md shadow-teal-100' : 'border-gray-200 bg-white/70 hover:border-teal-200 hover:bg-white'}`}
+                                    >
+                                        <div className="text-sm font-bold text-gray-800">{DEFAULT_TEMPLATES[key].label}</div>
+                                        <div className="text-xs text-gray-500 mt-1">{DEFAULT_TEMPLATES[key].desc}</div>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-800">Đang sửa: {selectedMeta.label}</label>
+                                        <p className="text-xs text-gray-500">Các biến không nên đổi: {'{{customerName}}'}, {'{{phone}}'}, {'{{date}}'}, {'{{time}}'}, {'{{pax}}'}, {'{{table}}'}, {'{{menus}}'}, {'{{oldStatus}}'}, {'{{newStatus}}'}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={resetSelectedTemplate}
+                                        className="text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-100 px-3 py-2 rounded-lg transition-colors"
+                                    >
+                                        Khôi phục mẫu gốc
+                                    </button>
+                                </div>
+
+                                <textarea
+                                    value={templateValues[selectedTemplate]}
+                                    onChange={(e) => handleTemplateChange(e.target.value)}
+                                    rows={14}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm leading-6 font-mono focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white shadow-inner"
+                                />
+                            </div>
+                        </div>
+
                         <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
                             <p className="text-xs text-amber-800 leading-relaxed">
                                 <strong>💡 Lưu ý:</strong> Cấu hình SMTP (host, port, mật khẩu) được quản lý trên <strong>Vercel Environment Variables</strong> để đảm bảo bảo mật.
@@ -152,7 +270,6 @@ export default function SmtpSettingsPanel() {
                 )}
             </div>
 
-            {/* Actions */}
             <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <button
                     onClick={handleSave}

@@ -37,6 +37,19 @@ export interface AppSettings {
     dinnerStart: number;
     dinnerEnd: number;
     areas: { id: string, name: string, capacity: number }[];
+    webhookEnabled?: boolean;
+    webhookUrl?: string;
+    smtpEnabled?: boolean;
+    sendCustomerEmail?: boolean;
+    internalNotificationEmail?: string;
+    emailTemplateInternalNewTitle?: string;
+    emailTemplateInternalNewBody?: string;
+    emailTemplateCustomerPendingBody?: string;
+    emailTemplateCustomerConfirmBody?: string;
+    emailTemplateInternalStatusChangeBody?: string;
+    emailTemplateCustomerConfirmGreeting?: string;
+    emailTemplateCustomerConfirmFooter?: string;
+    emailTemplateCustomerCancelBody?: string;
 }
 
 

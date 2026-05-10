@@ -139,7 +139,9 @@ export default function NotificationSettings() {
         </div>
 
         {/* SMTP Email Section */}
-        <SmtpSettingsPanel />
+        <div className="mt-6">
+            <SmtpSettingsPanel />
+        </div>
         </>
     );
 }

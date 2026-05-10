@@ -23,13 +23,44 @@ export const emailNotificationService = {
             const internalEmail = settings?.internalNotificationEmail || settings?.notificationEmail;
             if (!internalEmail) return;
 
-            const template = emailTemplateService.buildNewBookingInternal(booking);
+            const config = {
+                internalNewTitle: settings?.emailTemplateInternalNewTitle,
+                internalNewBody: settings?.emailTemplateInternalNewBody,
+            };
+
+            const template = emailTemplateService.buildNewBookingInternal(booking, config);
             await this._sendViaApi({
                 to: internalEmail,
                 ...template,
             });
         } catch (err) {
             console.warn('[EmailNotify] notifyNewBookingInternal failed:', err);
+        }
+    },
+
+    async sendCustomerPending(booking: Booking): Promise<void> {
+        try {
+            const settings = await settingsService.getAppSettings();
+            if (!settings?.smtpEnabled) return;
+            if (!settings?.sendCustomerEmail) return;
+
+            const customerEmail = booking.email;
+            if (!customerEmail) {
+                console.warn('[EmailNotify] No customer email, skipping pending notice');
+                return;
+            }
+
+            const config = {
+                customerPendingBody: settings?.emailTemplateCustomerPendingBody,
+            };
+
+            const template = emailTemplateService.buildCustomerPending(booking, config);
+            await this._sendViaApi({
+                to: customerEmail,
+                ...template,
+            });
+        } catch (err) {
+            console.warn('[EmailNotify] sendCustomerPending failed:', err);
         }
     },
 
@@ -48,7 +79,13 @@ export const emailNotificationService = {
                 return;
             }
 
-            const template = emailTemplateService.buildCustomerConfirmation(booking);
+            const config = {
+                customerConfirmBody: settings?.emailTemplateCustomerConfirmBody,
+                customerConfirmGreeting: settings?.emailTemplateCustomerConfirmGreeting,
+                customerConfirmFooter: settings?.emailTemplateCustomerConfirmFooter,
+            };
+
+            const template = emailTemplateService.buildCustomerConfirmation(booking, config);
             await this._sendViaApi({
                 to: customerEmail,
                 ...template,
@@ -70,7 +107,11 @@ export const emailNotificationService = {
             const customerEmail = booking.email;
             if (!customerEmail) return;
 
-            const template = emailTemplateService.buildCustomerCancellation(booking);
+            const config = {
+                customerCancelBody: settings?.emailTemplateCustomerCancelBody,
+            };
+
+            const template = emailTemplateService.buildCustomerCancellation(booking, config);
             await this._sendViaApi({
                 to: customerEmail,
                 ...template,
@@ -91,7 +132,11 @@ export const emailNotificationService = {
             const internalEmail = settings?.internalNotificationEmail || settings?.notificationEmail;
             if (!internalEmail) return;
 
-            const template = emailTemplateService.buildStatusChangeInternal(booking, oldStatus, newStatus);
+            const config = {
+                internalStatusChangeBody: settings?.emailTemplateInternalStatusChangeBody,
+            };
+
+            const template = emailTemplateService.buildStatusChangeInternal(booking, oldStatus, newStatus, config);
             await this._sendViaApi({
                 to: internalEmail,
                 ...template,
@@ -114,6 +159,8 @@ export const emailNotificationService = {
             if (type === 'new_booking') {
                 // Gửi email nội bộ cho quản lý
                 await this.notifyNewBookingInternal(booking);
+                // Gửi email cho khách báo đã nhận yêu cầu
+                await this.sendCustomerPending(booking);
             }
 
             if (type === 'booking_confirmed') {
