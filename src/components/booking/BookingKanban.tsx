@@ -137,6 +137,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }, 300);
   };
 
+  // Track IDs of bookings we just created ourselves to avoid duplicate alerts/sounds
+  const selfCreatedIdsRef = useRef<Set<string>>(new Set());
+
   const fetchTables = async () => {
     try {
       const data = await tableService.getTables();
@@ -186,20 +189,29 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     // Subscribe to realtime updates
     const subscription = bookingService.subscribeToBookings(async (payload: any) => {
-      // Debounced refresh for data consistency
+      // Debounced refresh for data consistency (replaces the entire list, deduplicates naturally)
       debouncedFetchBookings();
 
       if (payload && payload.eventType === 'INSERT') {
         const newDoc = payload.new;
         if (newDoc) {
-          // Play loud sound for new bookings
-          notificationService.playNewBookingSound();
-          // Show big alert
-          setNewBookingAlert({ visible: true, name: newDoc.customer_name });
-          // Auto hide after 6 seconds
-          setTimeout(() => {
-            setNewBookingAlert({ visible: false, name: null });
-          }, 6000);
+          // Check if this booking was just created by us (self-created)
+          const isSelfCreated = selfCreatedIdsRef.current.has(newDoc.id);
+          if (isSelfCreated) {
+            // Remove from tracking set (one-time use)
+            selfCreatedIdsRef.current.delete(newDoc.id);
+            // Skip sound + alert for bookings we created ourselves
+            console.log(`[Realtime] Skipping alert for self-created booking: ${newDoc.id}`);
+          } else {
+            // Play loud sound for new bookings from external sources (email, other users, etc.)
+            notificationService.playNewBookingSound();
+            // Show big alert
+            setNewBookingAlert({ visible: true, name: newDoc.customer_name });
+            // Auto hide after 6 seconds
+            setTimeout(() => {
+              setNewBookingAlert({ visible: false, name: null });
+            }, 6000);
+          }
 
           // Auto-detect missing info and set status to 'waiting_info'
           if (newDoc.status === 'new') {
@@ -751,6 +763,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
         };
 
         const created = await bookingService.createBooking(bookingData);
+        // Track this ID so realtime INSERT won't cause duplicate alert/sound
+        selfCreatedIdsRef.current.add(created.id);
         // Optimistically put the created booking to view it instantly
         setBookings(prev => [created, ...prev]);
       }

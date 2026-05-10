@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+code-appscript/
+check_booking.mjs
+maison-vie-build.zip
