@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Send, Globe, Check, Loader2 } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
 import { bookingNotifyService } from '../../services/bookingNotifyService';
+import SmtpSettingsPanel from './SmtpSettingsPanel';
 
 export default function NotificationSettings() {
     const [webhookEnabled, setWebhookEnabled] = useState(false);
@@ -63,6 +64,7 @@ export default function NotificationSettings() {
     }
 
     return (
+        <>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
             <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <Bell className="w-5 h-5 text-teal-600" />Cấu hình Thông báo Booking
@@ -135,5 +137,9 @@ export default function NotificationSettings() {
                 </div>
             )}
         </div>
+
+        {/* SMTP Email Section */}
+        <SmtpSettingsPanel />
+        </>
     );
 }
