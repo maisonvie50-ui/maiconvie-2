@@ -281,7 +281,7 @@ export default function SmtpSettingsPanel() {
                     )}
                 </div>
 
-                <div className="sticky bottom-3 z-20 sm:static bg-white/95 backdrop-blur-md sm:bg-transparent border border-gray-200 sm:border-none rounded-2xl sm:rounded-none p-3 sm:p-0 shadow-lg sm:shadow-none sm:pt-6 sm:mt-6 sm:border-t sm:border-gray-100 flex flex-col sm:flex-row gap-3">
+                <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col sm:flex-row gap-3">
                     <button
                         onClick={handleSave}
                         disabled={saving}
