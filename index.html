@@ -1,13 +1,80 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maison Vie - Quản lý Nhà hàng</title>
+    
+    <!-- Primary SEO -->
+    <title>Maison Vie – Nhà hàng Pháp Hà Nội | Đặt bàn & Thực đơn</title>
+    <meta name="description" content="Maison Vie – Nhà hàng Pháp cao cấp tại Hà Nội. Đặt bàn online, xem thực đơn À La Carte & Dégustation. Không gian sang trọng, ẩm thực Pháp đích thực." />
+    <meta name="keywords" content="nhà hàng Pháp Hà Nội, Maison Vie, đặt bàn online, thực đơn Pháp, French restaurant Hanoi, fine dining Hanoi, nhà hàng cao cấp Hà Nội" />
+    <meta name="author" content="Maison Vie Restaurant" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://app.maisonvie.vn" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="restaurant" />
+    <meta property="og:site_name" content="Maison Vie – French Restaurant" />
+    <meta property="og:title" content="Maison Vie – Nhà hàng Pháp Hà Nội | Đặt bàn & Thực đơn" />
+    <meta property="og:description" content="Nhà hàng Pháp cao cấp tại Hà Nội. Đặt bàn online, xem thực đơn À La Carte & Dégustation Menu. Không gian sang trọng, ẩm thực Pháp đích thực." />
+    <meta property="og:url" content="https://app.maisonvie.vn" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:image" content="https://app.maisonvie.vn/logo.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Maison Vie – Nhà hàng Pháp Hà Nội" />
+    <meta name="twitter:description" content="Đặt bàn online & xem thực đơn nhà hàng Pháp cao cấp Maison Vie tại Hà Nội." />
+    <meta name="twitter:image" content="https://app.maisonvie.vn/logo.jpg" />
+
+    <!-- Geo / Local Business -->
+    <meta name="geo.region" content="VN-HN" />
+    <meta name="geo.placename" content="Hà Nội" />
+
+    <!-- Theme & Favicon -->
+    <meta name="theme-color" content="#0d9488" />
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+
+    <!-- Structured Data: Restaurant -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "Maison Vie",
+      "alternateName": "Maison Vie French Restaurant",
+      "description": "Nhà hàng Pháp cao cấp tại Hà Nội – Ẩm thực Pháp đích thực với không gian sang trọng.",
+      "url": "https://app.maisonvie.vn",
+      "telephone": "+84-24-3823-9999",
+      "servesCuisine": "French",
+      "priceRange": "$$$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Hà Nội",
+        "addressCountry": "VN"
+      },
+      "potentialAction": {
+        "@type": "ReserveAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://app.maisonvie.vn/dat-ban-online"
+        },
+        "result": {
+          "@type": "Reservation",
+          "name": "Đặt bàn online Maison Vie"
+        }
+      },
+      "hasMenu": {
+        "@type": "Menu",
+        "url": "https://app.maisonvie.vn/menu-khach-le"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

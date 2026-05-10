@@ -5,6 +5,7 @@
 
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import logoImg from './assets/logo.jpg';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -152,10 +153,12 @@ function MainApp() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <MainApp />
-      </AuthProvider>
-    </BrowserRouter>
+    <HelmetProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <MainApp />
+        </AuthProvider>
+      </BrowserRouter>
+    </HelmetProvider>
   );
 }

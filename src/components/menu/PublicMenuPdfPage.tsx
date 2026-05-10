@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Download, FileText, MapPin, Phone, Sparkles, Users, UtensilsCrossed } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
 import logoImg from '../../assets/logo.jpg';
@@ -123,8 +124,40 @@ export default function PublicMenuPdfPage() {
     ? audienceMeta[requestedAudience as keyof typeof audienceMeta] || audienceMeta.retail
     : null;
 
+  const seoTitle = pageMeta
+    ? `${pageMeta.label} – Maison Vie | Nhà hàng Pháp Hà Nội`
+    : 'Thực đơn PDF – Maison Vie | Nhà hàng Pháp Hà Nội';
+  const seoDescription = pageMeta
+    ? `${pageMeta.description} Tải file PDF thực đơn Maison Vie miễn phí.`
+    : 'Tải thực đơn PDF nhà hàng Pháp Maison Vie tại Hà Nội. Menu À La Carte, Set Menu và báo giá đoàn tour.';
+  const seoUrl = `https://app.maisonvie.vn${location.pathname}`;
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] font-sans flex flex-col">
+      <Helmet>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+        <link rel="canonical" href={seoUrl} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:url" content={seoUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://app.maisonvie.vn/logo.jpg" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Menu",
+          "name": pageMeta ? pageMeta.label : "Thực đơn Maison Vie",
+          "description": seoDescription,
+          "url": seoUrl,
+          "mainEntityOfPage": {
+            "@type": "Restaurant",
+            "name": "Maison Vie",
+            "servesCuisine": "French",
+            "telephone": "+84-24-3823-9999",
+            "address": { "@type": "PostalAddress", "addressLocality": "Hà Nội", "addressCountry": "VN" }
+          }
+        })}</script>
+      </Helmet>
       {/* Header aligned with Booking Form */}
       <div className="bg-white shadow-sm py-4 px-4 md:px-12 flex items-center justify-between sticky top-0 z-10 w-full">
           <div className="w-16 md:w-24 shrink-0"></div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Calendar as CalendarIcon, Clock, Users, Phone, User, Mail, CheckCircle, ArrowRight, UtensilsCrossed, Plus, Minus, ChevronDown, ChevronUp, Search, AlertCircle } from 'lucide-react';
 import BookingLookup from './BookingLookup';
 import { bookingService } from '../../services/bookingService';
@@ -333,6 +334,36 @@ export default function PublicBookingForm() {
 
     return (
         <div className="min-h-screen bg-[#f3f4f6] font-sans flex flex-col">
+            <Helmet>
+                <title>Đặt bàn Online – Maison Vie | Nhà hàng Pháp Hà Nội</title>
+                <meta name="description" content="Đặt bàn online nhà hàng Pháp Maison Vie tại Hà Nội. Chọn thực đơn À La Carte hoặc Dégustation, đặt chỗ nhanh chóng, xác nhận tức thì." />
+                <link rel="canonical" href="https://app.maisonvie.vn/dat-ban-online" />
+                <meta property="og:title" content="Đặt bàn Online – Maison Vie | Nhà hàng Pháp Hà Nội" />
+                <meta property="og:description" content="Đặt bàn online nhà hàng Pháp Maison Vie. Chọn thực đơn, đặt chỗ nhanh chóng." />
+                <meta property="og:url" content="https://app.maisonvie.vn/dat-ban-online" />
+                <meta property="og:type" content="website" />
+                <meta property="og:image" content="https://app.maisonvie.vn/logo.jpg" />
+                <script type="application/ld+json">{JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "ReserveAction",
+                    "target": {
+                        "@type": "EntryPoint",
+                        "urlTemplate": "https://app.maisonvie.vn/dat-ban-online",
+                        "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+                    },
+                    "result": {
+                        "@type": "FoodEstablishmentReservation",
+                        "name": "Đặt bàn Maison Vie"
+                    },
+                    "object": {
+                        "@type": "Restaurant",
+                        "name": "Maison Vie",
+                        "servesCuisine": "French",
+                        "telephone": "+84-24-3823-9999",
+                        "address": { "@type": "PostalAddress", "addressLocality": "Hà Nội", "addressCountry": "VN" }
+                    }
+                })}</script>
+            </Helmet>
             {/* Header */}
             <div className="bg-white shadow-sm py-4 px-4 md:px-12 flex items-center justify-between sticky top-0 z-10 w-full">
                 {/* Left spacer for perfect centering */}
