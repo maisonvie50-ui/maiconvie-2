@@ -15,17 +15,17 @@ export const emailNotificationService = {
     /**
      * Gửi email nội bộ khi có booking mới
      */
-    async notifyNewBookingInternal(booking: Booking): Promise<void> {
+    async notifyNewBookingInternal(booking: Booking, settings?: any): Promise<void> {
         try {
-            const settings = await settingsService.getAppSettings();
-            if (!settings?.smtpEnabled) return;
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
 
-            const internalEmail = settings?.internalNotificationEmail || settings?.notificationEmail;
+            const internalEmail = s?.internalNotificationEmail || s?.notificationEmail;
             if (!internalEmail) return;
 
             const config = {
-                internalNewTitle: settings?.emailTemplateInternalNewTitle,
-                internalNewBody: settings?.emailTemplateInternalNewBody,
+                internalNewTitle: s?.emailTemplateInternalNewTitle,
+                internalNewBody: s?.emailTemplateInternalNewBody,
             };
 
             const template = emailTemplateService.buildNewBookingInternal(booking, config);
@@ -38,11 +38,11 @@ export const emailNotificationService = {
         }
     },
 
-    async sendCustomerPending(booking: Booking): Promise<void> {
+    async sendCustomerPending(booking: Booking, settings?: any): Promise<void> {
         try {
-            const settings = await settingsService.getAppSettings();
-            if (!settings?.smtpEnabled) return;
-            if (!settings?.sendCustomerEmail) return;
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
+            if (!s?.sendCustomerEmail) return;
 
             const customerEmail = booking.email;
             if (!customerEmail) {
@@ -51,7 +51,7 @@ export const emailNotificationService = {
             }
 
             const config = {
-                customerPendingBody: settings?.emailTemplateCustomerPendingBody,
+                customerPendingBody: s?.emailTemplateCustomerPendingBody,
             };
 
             const template = emailTemplateService.buildCustomerPending(booking, config);
@@ -67,11 +67,11 @@ export const emailNotificationService = {
     /**
      * Gửi email xác nhận cho khách khi booking confirmed
      */
-    async sendCustomerConfirmation(booking: Booking): Promise<void> {
+    async sendCustomerConfirmation(booking: Booking, settings?: any): Promise<void> {
         try {
-            const settings = await settingsService.getAppSettings();
-            if (!settings?.smtpEnabled) return;
-            if (!settings?.sendCustomerEmail) return;
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
+            if (!s?.sendCustomerEmail) return;
 
             const customerEmail = booking.email;
             if (!customerEmail) {
@@ -80,9 +80,9 @@ export const emailNotificationService = {
             }
 
             const config = {
-                customerConfirmBody: settings?.emailTemplateCustomerConfirmBody,
-                customerConfirmGreeting: settings?.emailTemplateCustomerConfirmGreeting,
-                customerConfirmFooter: settings?.emailTemplateCustomerConfirmFooter,
+                customerConfirmBody: s?.emailTemplateCustomerConfirmBody,
+                customerConfirmGreeting: s?.emailTemplateCustomerConfirmGreeting,
+                customerConfirmFooter: s?.emailTemplateCustomerConfirmFooter,
             };
 
             const template = emailTemplateService.buildCustomerConfirmation(booking, config);
@@ -98,17 +98,17 @@ export const emailNotificationService = {
     /**
      * Gửi email hủy cho khách
      */
-    async sendCustomerCancellation(booking: Booking): Promise<void> {
+    async sendCustomerCancellation(booking: Booking, settings?: any): Promise<void> {
         try {
-            const settings = await settingsService.getAppSettings();
-            if (!settings?.smtpEnabled) return;
-            if (!settings?.sendCustomerEmail) return;
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
+            if (!s?.sendCustomerEmail) return;
 
             const customerEmail = booking.email;
             if (!customerEmail) return;
 
             const config = {
-                customerCancelBody: settings?.emailTemplateCustomerCancelBody,
+                customerCancelBody: s?.emailTemplateCustomerCancelBody,
             };
 
             const template = emailTemplateService.buildCustomerCancellation(booking, config);
@@ -124,16 +124,16 @@ export const emailNotificationService = {
     /**
      * Gửi email nội bộ khi đổi trạng thái
      */
-    async notifyStatusChangeInternal(booking: Booking, oldStatus: BookingStatus, newStatus: BookingStatus): Promise<void> {
+    async notifyStatusChangeInternal(booking: Booking, oldStatus: BookingStatus, newStatus: BookingStatus, settings?: any): Promise<void> {
         try {
-            const settings = await settingsService.getAppSettings();
-            if (!settings?.smtpEnabled) return;
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
 
-            const internalEmail = settings?.internalNotificationEmail || settings?.notificationEmail;
+            const internalEmail = s?.internalNotificationEmail || s?.notificationEmail;
             if (!internalEmail) return;
 
             const config = {
-                internalStatusChangeBody: settings?.emailTemplateInternalStatusChangeBody,
+                internalStatusChangeBody: s?.emailTemplateInternalStatusChangeBody,
             };
 
             const template = emailTemplateService.buildStatusChangeInternal(booking, oldStatus, newStatus, config);
@@ -156,29 +156,33 @@ export const emailNotificationService = {
         newStatus?: BookingStatus
     ): Promise<void> {
         try {
+            // Load settings ONCE and pass down to avoid duplicate fetches / RLS issues
+            const settings = await settingsService.getAppSettings();
+            console.log('[EmailNotify] handleBookingEvent', type, 'smtpEnabled=', settings?.smtpEnabled, 'sendCustomerEmail=', settings?.sendCustomerEmail, 'email=', booking.email);
+
             if (type === 'new_booking') {
                 // Gửi email nội bộ cho quản lý
-                await this.notifyNewBookingInternal(booking);
+                await this.notifyNewBookingInternal(booking, settings);
                 // Gửi email cho khách báo đã nhận yêu cầu
-                await this.sendCustomerPending(booking);
+                await this.sendCustomerPending(booking, settings);
             }
 
             if (type === 'booking_confirmed') {
                 // Gửi email xác nhận cho khách
-                await this.sendCustomerConfirmation(booking);
+                await this.sendCustomerConfirmation(booking, settings);
                 // Gửi email nội bộ thông báo trạng thái đã xác nhận
                 if (oldStatus && newStatus) {
-                    await this.notifyStatusChangeInternal(booking, oldStatus, newStatus);
+                    await this.notifyStatusChangeInternal(booking, oldStatus, newStatus, settings);
                 }
             }
 
             if (type === 'status_change' && oldStatus && newStatus) {
                 // Gửi email nội bộ khi đổi trạng thái
-                await this.notifyStatusChangeInternal(booking, oldStatus, newStatus);
+                await this.notifyStatusChangeInternal(booking, oldStatus, newStatus, settings);
 
                 // Nếu hủy → gửi email cho khách
                 if (newStatus === 'cancelled') {
-                    await this.sendCustomerCancellation(booking);
+                    await this.sendCustomerCancellation(booking, settings);
                 }
             }
         } catch (err) {
