@@ -110,15 +110,26 @@ export const bookingNotifyService = {
                 payload.confirmationMessage = this._buildConfirmationMessage(booking);
             }
 
+            const useSmtpCustomerFlow = !!settings?.smtpEnabled && !!settings?.sendCustomerEmail;
+            const legacyPayload: BookingNotificationPayload = isConfirmation && useSmtpCustomerFlow
+                ? {
+                    type: 'status_change',
+                    booking,
+                    oldStatus,
+                    newStatus,
+                    timestamp: payload.timestamp,
+                }
+                : payload;
+
             if (webhookEnabled && webhookUrl) {
-                const webhookPayload = this._withEmailTemplates(payload);
+                const webhookPayload = this._withEmailTemplates(legacyPayload);
                 this._sendWebhook(webhookUrl, webhookPayload).catch(err =>
                     console.warn('[BookingNotify] Webhook failed:', err.message)
                 );
             }
 
             if (emailEnabled && notificationEmail) {
-                this._sendEmailNotification(notificationEmail, payload).catch(err =>
+                this._sendEmailNotification(notificationEmail, legacyPayload).catch(err =>
                     console.warn('[BookingNotify] Email failed:', err.message)
                 );
             }

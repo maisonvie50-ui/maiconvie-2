@@ -37,9 +37,13 @@ export interface EmailTemplatesConfig {
     internalStatusChangeBody?: string;
 }
 
+function normalizeTemplateNewlines(value: string): string {
+    return value.replace(/\\n/g, '\n');
+}
+
 export function parseTemplate(template: string, booking: Booking): string {
     if (!template) return '';
-    return template
+    return normalizeTemplateNewlines(template)
         .replace(/{{customerName}}/g, booking.customerName || 'Guest')
         .replace(/{{pax}}/g, String(booking.pax || 0))
         .replace(/{{time}}/g, booking.time || '')
