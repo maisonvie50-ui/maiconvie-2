@@ -20,7 +20,8 @@ import {
   FileText,
   Copy,
   Download,
-  Check
+  Check,
+  Users
 } from 'lucide-react';
 import type { SetMenu, TourMenu } from '../../types';
 import { menuService } from '../../services/menuService';
@@ -1229,66 +1230,84 @@ export default function MenuManagement() {
           </div>
         </div>
       ) : menuType === 'pdf' ? (
-        <div className="flex-1 min-h-0 w-full p-6 overflow-y-auto custom-scrollbar bg-gray-50/50 relative">
-          <div className="max-w-7xl mx-auto space-y-6 pb-12">
-            <div className="relative overflow-hidden rounded-2xl bg-white border border-gray-200 p-6 md:p-8 shadow-sm">
-              <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-teal-100 bg-teal-50 px-3 py-1 text-xs font-black uppercase tracking-widest text-teal-700 mb-4"><FileText className="w-3.5 h-3.5" /> Menu PDF</div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900">File Menu PDF</h2>
-                  <p className="mt-2 max-w-2xl text-sm text-gray-500 leading-6">Danh sách PDF đã được admin cấu hình. Nhân viên copy link gửi khách hoặc mở để tải nhanh, không cần vào trang Cấu hình.</p>
-                </div>
-                <div className="rounded-2xl border border-teal-100 bg-teal-50 px-5 py-4 min-w-[180px]">
-                  <div className="text-4xl font-black text-teal-700">{menuPdfFiles.length}</div>
-                  <div className="text-xs text-teal-700/70 font-medium">file sẵn sàng gửi khách</div>
-                </div>
-              </div>
-              <div className="relative z-10 mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-xs font-black uppercase text-gray-500 mb-2">Link khách lẻ</div>
-                  <div className="flex gap-2">
-                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-khach-le`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-black hover:bg-teal-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
-                    <button onClick={() => window.open('/menu-khach-le', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+        <div className="flex-1 min-h-0 w-full p-4 md:p-8 overflow-y-auto custom-scrollbar bg-[#f3f4f6] relative">
+          <div className="max-w-5xl mx-auto space-y-6 pb-12">
+            
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+              <div className="bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-600 p-6 md:p-8 text-white relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-800/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-teal-50 border border-teal-500/30 mb-3"><FileText className="w-3.5 h-3.5" /> Quản trị PDF</div>
+                    <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">Link Menu Khách Hàng</h2>
+                    <p className="mt-2 text-[13px] text-teal-50/90 leading-relaxed max-w-xl">Nhân viên sử dụng các đường link bên dưới để gửi cho khách lẻ hoặc hãng lữ hành. File PDF sẽ tự động tải xuống khi khách bấm vào link.</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 px-6 py-5 text-center min-w-[160px] shrink-0">
+                    <div className="text-4xl font-black text-white leading-none">{menuPdfFiles.length}</div>
+                    <div className="text-[11px] text-teal-100 font-bold uppercase tracking-wider mt-2">File PDF</div>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                  <div className="text-xs font-black uppercase text-gray-500 mb-2">Link lữ hành</div>
-                  <div className="flex gap-2">
-                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-lu-hanh`)} className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-black hover:bg-amber-700 transition-all"><Copy className="w-4 h-4" />Copy</button>
-                    <button onClick={() => window.open('/menu-lu-hanh', '_blank')} className="inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-black hover:bg-gray-100 transition-all"><Download className="w-4 h-4" />Xem</button>
+              </div>
+
+              <div className="p-5 md:p-8 bg-white grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 hover:border-teal-200 hover:bg-teal-50/30 transition-all flex flex-col gap-3 group">
+                  <div className="flex items-center gap-2 text-[11px] font-black uppercase text-gray-500 tracking-widest"><Users className="w-3.5 h-3.5 text-teal-600" /> Link Khách Lẻ</div>
+                  <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-[12px] font-mono text-gray-500 truncate group-hover:border-teal-200 transition-colors">{window.location.origin}/menu-khach-le</div>
+                  <div className="flex gap-2 mt-auto pt-1">
+                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-khach-le`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-teal-600 text-white text-[13px] font-bold hover:bg-teal-700 transition-all shadow-sm active:scale-95"><Copy className="w-3.5 h-3.5" /> Copy link</button>
+                    <button onClick={() => window.open('/menu-khach-le', '_blank')} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all shadow-sm active:scale-95"><Download className="w-3.5 h-3.5" /> Xem thử</button>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 hover:border-amber-200 hover:bg-amber-50/30 transition-all flex flex-col gap-3 group">
+                  <div className="flex items-center gap-2 text-[11px] font-black uppercase text-gray-500 tracking-widest"><Users className="w-3.5 h-3.5 text-amber-600" /> Link Lữ Hành</div>
+                  <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-[12px] font-mono text-gray-500 truncate group-hover:border-amber-200 transition-colors">{window.location.origin}/menu-lu-hanh</div>
+                  <div className="flex gap-2 mt-auto pt-1">
+                    <button onClick={() => navigator.clipboard.writeText(`${window.location.origin}/menu-lu-hanh`)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600 text-white text-[13px] font-bold hover:bg-amber-700 transition-all shadow-sm active:scale-95"><Copy className="w-3.5 h-3.5" /> Copy link</button>
+                    <button onClick={() => window.open('/menu-lu-hanh', '_blank')} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-[13px] font-bold hover:bg-gray-50 transition-all shadow-sm active:scale-95"><Download className="w-3.5 h-3.5" /> Xem thử</button>
                   </div>
                 </div>
               </div>
             </div>
 
             {menuPdfFiles.length === 0 ? (
-              <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center shadow-sm">
+              <div className="bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center">
                 <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-xl font-black text-gray-800">Chưa có file PDF nào</h3>
-                <p className="text-sm text-gray-500 mt-2">Admin vào Cấu hình → Menu PDF để thêm link tải thực đơn.</p>
+                <h3 className="text-[15px] font-bold text-gray-900">Chưa có file PDF nào</h3>
+                <p className="text-[13px] text-gray-500 mt-1">Admin vào tab Cấu hình → Menu PDF để thêm link tải thực đơn.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {menuPdfFiles.map(file => (
-                  <div key={file.id} className="group relative overflow-hidden bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-teal-200 transition-all">
-                    <div className="absolute right-0 top-0 h-24 w-24 bg-gradient-to-br from-teal-50 to-transparent rounded-bl-full" />
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between gap-3 mb-5">
-                        <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center"><FileText className="w-7 h-7" /></div>
-                        <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black uppercase tracking-wide">{file.audience}</span>
-                      </div>
-                      <h3 className="text-lg font-black text-gray-900 leading-tight mb-2">{file.title}</h3>
-                      {file.note && <p className="text-sm text-gray-500 line-clamp-2 mb-3">{file.note}</p>}
-                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 mb-5">
-                        <p className="font-mono text-xs text-gray-500 truncate">{file.url}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => handleCopyMenuPdf(file)} className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-all ${copiedPdfId === file.id ? 'bg-green-100 text-green-700' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-sm'}`}>{copiedPdfId === file.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}{copiedPdfId === file.id ? 'Đã copy' : 'Copy link'}</button>
-                        <button onClick={() => window.open(toDirectDownloadUrl(file.url), '_blank')} className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all"><Download className="w-4 h-4" />Mở/Tải</button>
-                      </div>
+              <div className="space-y-4">
+                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.16em] pb-2 border-b border-gray-200 flex items-center justify-between">
+                     <span>Danh sách file PDF đang cấu hình</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {menuPdfFiles.map(file => (
+                    <div key={file.id} className="group bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md hover:border-teal-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                       <div className="flex items-center gap-3 flex-1 min-w-0">
+                           <div className="w-12 h-12 bg-teal-50 rounded-xl text-teal-600 flex items-center justify-center shrink-0 border border-teal-100">
+                               <FileText className="w-5 h-5"/>
+                           </div>
+                           <div className="flex-1 min-w-0">
+                               <div className="flex items-center gap-2 mb-1">
+                                   <h3 className="font-bold text-gray-900 text-[14px] truncate group-hover:text-teal-700 transition-colors">{file.title}</h3>
+                                   <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-black uppercase shrink-0">
+                                       {file.audience}
+                                   </span>
+                               </div>
+                               <p className="text-[12px] text-gray-500 font-mono truncate">{file.url}</p>
+                           </div>
+                       </div>
+                       <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                           <button onClick={() => handleCopyMenuPdf(file)} className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-bold transition-all ${copiedPdfId === file.id ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'}`} title="Copy Link">
+                              {copiedPdfId === file.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copiedPdfId === file.id ? 'Đã copy' : 'Copy'}
+                           </button>
+                           <button onClick={() => window.open(toDirectDownloadUrl(file.url), '_blank')} className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-100 text-[12px] font-bold transition-all" title="Tải xuống">
+                              <Download className="w-3.5 h-3.5" /> Mở
+                           </button>
+                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </div>
