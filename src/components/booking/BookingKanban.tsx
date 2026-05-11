@@ -319,12 +319,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }).length;
   };
 
-  // Toggle status filter
-  const toggleStatusFilter = (status: BookingStatus) => {
+  // Select status filter (desktop): click a status to show only that status.
+  // If the same single status is already active, clear the filter.
+  const selectStatusFilter = (status: BookingStatus) => {
     setSelectedStatuses(prev =>
-      prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
+      prev.length === 1 && prev[0] === status ? [] : [status]
     );
   };
 
@@ -2114,8 +2113,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   const renderDesktopKanban = () => (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex-1 relative p-6 overflow-hidden">
-        <div className="grid grid-cols-3 gap-5 h-full min-w-0">
+      <div className="flex-1 relative p-6 overflow-hidden min-h-0">
+        <div className="grid grid-cols-3 gap-5 h-full min-w-0 min-h-0">
           {boardColumns.map((col) => {
             const colBookings = sortBookingsForDisplay(
               filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)),
@@ -2130,7 +2129,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`min-w-0 w-full flex flex-col rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
+                    className={`min-w-0 min-h-0 w-full flex flex-col rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
                       }`}
                   >
                     {/* Column Header */}
@@ -2678,7 +2677,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             return (
               <button
                 key={col.id}
-                onClick={() => toggleStatusFilter(col.id)}
+                onClick={() => selectStatusFilter(col.id)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${isActive
                   ? `${col.color} ${col.borderColor} ${col.borderColor.replace('border-', 'text-')} shadow-sm`
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
