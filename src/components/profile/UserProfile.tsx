@@ -32,7 +32,7 @@ export default function UserProfile() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-gray-50 p-6 overflow-y-auto">
+    <div className="h-[calc(100vh/var(--ui-zoom,1)-64px)] bg-gray-50 p-6 overflow-y-auto">
       <div className="max-w-3xl mx-auto space-y-6 pt-4">
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

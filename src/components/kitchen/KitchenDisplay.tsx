@@ -363,7 +363,7 @@ export default function KitchenDisplay() {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-white flex flex-col relative overflow-hidden">
+    <div className="h-[calc(100vh/var(--ui-zoom,1)-64px)] bg-white flex flex-col relative overflow-hidden">
       {/* Toast Notification */}
       {notification.visible && (
         <div className="fixed top-20 right-6 z-50 bg-gray-900 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in slide-in-from-right duration-300 font-bold text-lg">

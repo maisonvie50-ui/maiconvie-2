@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, isCollapsed = false, onClose, onLogout
 
       <aside className={`
         fixed md:static inset-y-0 left-0 z-50
-        bg-white border-r border-gray-200 h-screen flex flex-col text-gray-600 flex-shrink-0
+        bg-white border-r border-gray-200 h-[calc(100vh/var(--ui-zoom,1))] flex flex-col text-gray-600 flex-shrink-0
         transition-all duration-300 ease-in-out shadow-sm overflow-hidden
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${isCollapsed ? 'w-20' : 'w-64'}

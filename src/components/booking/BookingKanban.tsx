@@ -99,7 +99,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<any>({});
   const [filterShift, setFilterShift] = useState<'all' | 'lunch' | 'dinner'>('all');
-  const [sortMode, setSortMode] = useState<'time' | 'partner'>('time');
   const [filterCustomerType, setFilterCustomerType] = useState<'all' | 'tour' | 'retail'>('all');
   const [expandedSeriesKeys, setExpandedSeriesKeys] = useState<Record<string, boolean>>({});
   const [confirmingSeriesKey, setConfirmingSeriesKey] = useState<string | null>(null);
@@ -509,11 +508,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     });
   };
 
-  const isPartnerSortActive = sortMode === 'partner';
+  const isPartnerSortActive = filterCustomerType === 'tour';
 
   const sortBookingsForDisplay = (items: Booking[], options?: { confirmedDatePriority?: boolean }) => {
     return [...items].sort((a, b) => {
-      if (sortMode === 'partner') {
+      if (isPartnerSortActive) {
         const partnerCompare = getBookingPartner(a).localeCompare(getBookingPartner(b), 'vi');
         if (partnerCompare !== 0) return partnerCompare;
 
@@ -649,7 +648,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                     onDoubleClick={() => setViewingBooking(booking)}
-                    className={`bg-white rounded-xl border border-slate-100 p-2.5 cursor-grab hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl rotate-1 scale-105 z-50' : ''}`}
+                    className={`group bg-white rounded-xl border border-slate-100 p-2.5 cursor-grab hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl rotate-1 scale-105 z-50' : ''}`}
                     style={provided.draggableProps.style}
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -661,11 +660,35 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           <span>👥 {booking.pax || 0}</span>
                         </div>
                       </div>
-                      {statusConfig && (
-                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${statusConfig.color} ${statusConfig.borderColor.replace('border-', 'text-')}`}>
-                          {statusConfig.label}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {statusConfig && (
+                          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${statusConfig.color} ${statusConfig.borderColor.replace('border-', 'text-')}`}>
+                            {statusConfig.label}
+                          </span>
+                        )}
+                        {/* Quick action menu */}
+                        <div className="relative" data-dropdown-root="true">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === `series-${booking.id}` ? null : `series-${booking.id}`); }}
+                            className="text-gray-300 hover:text-gray-600 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Đổi trạng thái"
+                          >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                          </button>
+                          {statusDropdownId === `series-${booking.id}` && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
+                              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => { handleStatusChange(booking.id, 'confirmed'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5"><CheckCircle className="w-3 h-3" /> Xác nhận</button>
+                                <button onClick={() => { handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
+                                <div className="h-px bg-gray-100 my-1"></div>
+                                <button onClick={() => { handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
+                                <button onClick={() => { handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1270,21 +1293,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           )}
         </div>
 
-        {/* Row 3: Sort Mode */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-          <button
-            onClick={() => setSortMode('time')}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${sortMode === 'time' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
-          >
-            Theo giờ
-          </button>
-          <button
-            onClick={() => setSortMode('partner')}
-            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${sortMode === 'partner' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-500'}`}
-          >
-            Theo đối tác
-          </button>
-        </div>
 
         {/* Row 4: Status Tabs */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -2276,13 +2284,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                         </div>
                                       )}
 
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setViewingBooking(booking); }}
-                                        className="text-gray-300 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
-                                        title="Xem chi tiết"
-                                      >
-                                        <Eye className="w-3.5 h-3.5" />
-                                      </button>
 
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleEditBooking(booking); }}
@@ -2414,7 +2415,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 relative">
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom,1)-64px)] bg-gray-50 relative">
       {tableAssignBooking && (
         <>
           <div
@@ -2621,47 +2622,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             </button>
           </div>
 
-          {/* Sort Mode */}
-          <div className="relative" data-dropdown-root="true">
-            <button
-              type="button"
-              onClick={() => setStatusDropdownId(statusDropdownId === 'sort-mode-filter' ? null : 'sort-mode-filter')}
-              className={`inline-flex items-center justify-center gap-2 min-w-[112px] px-3 py-2 rounded-lg text-xs font-black border transition-all whitespace-nowrap shrink-0 ${sortMode === 'partner'
-                ? 'bg-violet-50 text-violet-700 border-violet-200 shadow-sm'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-              title="Sắp xếp danh sách"
-            >
-              <List className="w-3.5 h-3.5 shrink-0" />
-              <span>{sortMode === 'time' ? 'Theo giờ' : 'Đối tác'}</span>
-              <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${statusDropdownId === 'sort-mode-filter' ? 'rotate-180' : ''}`} />
-            </button>
-
-            {statusDropdownId === 'sort-mode-filter' && (
-              <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden p-1">
-                {[
-                  { id: 'time', label: 'Theo giờ', icon: '⏱️', color: 'text-slate-700' },
-                  { id: 'partner', label: 'Theo đối tác', icon: '🏢', color: 'text-violet-700' },
-                ].map(option => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => {
-                      setSortMode(option.id as 'time' | 'partner');
-                      setStatusDropdownId(null);
-                    }}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors hover:bg-slate-50 ${sortMode === option.id ? 'bg-slate-100' : ''}`}
-                  >
-                    <span className={`inline-flex items-center gap-2 ${option.color}`}>
-                      <span>{option.icon}</span>
-                      {option.label}
-                    </span>
-                    {sortMode === option.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Customer Type Filter */}
           <div className="relative" data-dropdown-root="true">
@@ -2677,16 +2637,16 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               title="Lọc khách đoàn / khách lẻ"
             >
               <Filter className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{filterCustomerType === 'all' ? 'Loại khách' : filterCustomerType === 'tour' ? 'Khách đoàn' : 'Khách lẻ'}</span>
+              <span className="whitespace-nowrap">{filterCustomerType === 'all' ? 'Loại khách' : filterCustomerType === 'tour' ? 'Đoàn · Đối tác' : 'Lẻ · Theo giờ'}</span>
               <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${statusDropdownId === 'customer-type-filter' ? 'rotate-180' : ''}`} />
             </button>
 
             {statusDropdownId === 'customer-type-filter' && (
               <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden p-1">
                 {[
-                  { id: 'all', label: 'Tất cả', icon: '✨', color: 'text-slate-700' },
-                  { id: 'tour', label: 'Khách đoàn', icon: '🏢', color: 'text-violet-700' },
-                  { id: 'retail', label: 'Khách lẻ', icon: '👤', color: 'text-teal-700' },
+                  { id: 'all', label: 'Tất cả', hint: 'Hiển thị theo giờ', icon: '✨', color: 'text-slate-700' },
+                  { id: 'tour', label: 'Khách đoàn', hint: 'Gom theo đối tác', icon: '🏢', color: 'text-violet-700' },
+                  { id: 'retail', label: 'Khách lẻ', hint: 'Hiển thị theo giờ', icon: '👤', color: 'text-teal-700' },
                 ].map(option => (
                   <button
                     key={option.id}
@@ -2699,7 +2659,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   >
                     <span className={`inline-flex items-center gap-2 ${option.color}`}>
                       <span>{option.icon}</span>
-                      {option.label}
+                      <span className="flex flex-col items-start leading-tight">
+                        <span>{option.label}</span>
+                        <span className="text-[10px] font-semibold text-slate-400">{option.hint}</span>
+                      </span>
                     </span>
                     {filterCustomerType === option.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
                   </button>

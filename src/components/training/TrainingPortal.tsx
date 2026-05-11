@@ -697,7 +697,7 @@ export default function TrainingPortal() {
     // === MAIN RENDER ===
     return (
         <>
-            <div className={`${isMobile ? 'h-full' : 'h-[calc(100vh-64px)]'} bg-gray-50 flex flex-col overflow-hidden`}>
+            <div className={`${isMobile ? 'h-full' : 'h-[calc(100vh/var(--ui-zoom,1)-64px)]'} bg-gray-50 flex flex-col overflow-hidden`}>
                 {/* Header / Tabs */}
                 <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex-shrink-0 z-10">
                     {isMobile && (

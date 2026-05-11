@@ -950,7 +950,7 @@ export default function Settings() {
         </div>
     );
     const renderDesktopView = () => (
-        <div className="h-[calc(100vh-64px)] bg-gray-50 flex flex-col">
+        <div className="h-[calc(100vh/var(--ui-zoom,1)-64px)] bg-gray-50 flex flex-col">
             <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-start flex-shrink-0">
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                     {([['permissions', 'Shield', 'Phân quyền'], ['hours', 'Clock', 'Giờ hoạt động'], ['training', 'PlaySquare', 'Đào tạo'], ['operations', 'SettingsIcon', 'Vận hành'], ['assignments', 'Users', 'Phân công'], ['menuPdf', 'FileText', 'Menu PDF']] as const).map(([tab, , label]) => (

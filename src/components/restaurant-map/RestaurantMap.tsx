@@ -601,7 +601,7 @@ export default function RestaurantMap() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 overflow-y-auto p-6 space-y-8 relative">
+    <div className="flex flex-col h-[calc(100vh/var(--ui-zoom,1)-64px)] bg-gray-50 overflow-y-auto p-6 space-y-8 relative">
 
       {/* Top Action Bar & Tabs */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sticky top-0 z-40 bg-gray-50 pb-2">

@@ -60,6 +60,26 @@ function DesktopLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
+    const applyDesktopSystemZoom = () => {
+      const isDesktop = window.innerWidth > 768;
+      const zoomValue = isDesktop ? '90%' : '100%';
+      const zoomScale = isDesktop ? 0.9 : 1;
+
+      document.body.style.zoom = zoomValue;
+      document.documentElement.style.setProperty('--ui-zoom', String(zoomScale));
+    };
+
+    applyDesktopSystemZoom();
+    window.addEventListener('resize', applyDesktopSystemZoom);
+
+    return () => {
+      window.removeEventListener('resize', applyDesktopSystemZoom);
+      document.body.style.zoom = '100%';
+      document.documentElement.style.setProperty('--ui-zoom', '1');
+    };
+  }, []);
+
+  useEffect(() => {
     const autoCollapseTimer = window.setTimeout(() => {
       setIsSidebarCollapsed(true);
     }, 8000);
@@ -68,7 +88,7 @@ function DesktopLayout() {
   }, []);
 
   return (
-    <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
+    <div className="flex h-[calc(100vh/var(--ui-zoom,1))] w-[calc(100vw/var(--ui-zoom,1))] bg-gray-50 overflow-hidden font-sans">
       <Sidebar
         isOpen={isSidebarOpen}
         isCollapsed={isSidebarCollapsed}

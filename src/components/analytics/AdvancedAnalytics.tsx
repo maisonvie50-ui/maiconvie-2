@@ -287,7 +287,7 @@ export default function AdvancedAnalytics() {
     );
 
     const renderDesktopView = () => (
-        <div className="p-6 h-[calc(100vh-64px)] overflow-y-auto bg-gray-50 space-y-8">
+        <div className="p-6 h-[calc(100vh/var(--ui-zoom,1)-64px)] overflow-y-auto bg-gray-50 space-y-8">
             <div className="flex justify-end items-center mb-2">
                 <div className="flex gap-2">
                     <select className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-600">
