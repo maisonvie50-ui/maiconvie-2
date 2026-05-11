@@ -17,6 +17,8 @@ function normalizeEmail(email?: string): string {
 
 function getBookingBatchKey(booking: Booking): string {
     const email = normalizeEmail(booking.email);
+    const seriesKey = String(booking.confirmationSeriesKey || '').trim().toLowerCase();
+    if (email && seriesKey) return `${email}__series:${seriesKey}`;
     return email || `booking:${booking.id}`;
 }
 

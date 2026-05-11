@@ -230,7 +230,7 @@ export const bookingService = {
     },
 
     // 3. Cập nhật trạng thái
-    async updateBookingStatus(id: string, status: BookingStatus) {
+    async updateBookingStatus(id: string, status: BookingStatus, confirmationSeriesKey?: string) {
         // Lấy trạng thái cũ trước khi cập nhật (cho notification)
         let oldStatus: BookingStatus | undefined;
         try {
@@ -348,6 +348,7 @@ export const bookingService = {
                     tableName: resolvedTableName,
                     bookingCode: booking.booking_code,
                     createdAt: booking.created_at,
+                    confirmationSeriesKey,
                     lang: booking.lang || 'vi',
                 } as Booking;
                 bookingNotifyService.notifyStatusChange(bookingData, oldStatus, status).catch(() => {});

@@ -881,12 +881,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     setConfirmingSeriesKey(seriesKey);
     setBookings(current => current.map(booking =>
       targets.some(target => target.id === booking.id)
-        ? { ...booking, status: 'confirmed' as BookingStatus }
+        ? { ...booking, status: 'confirmed' as BookingStatus, confirmationSeriesKey: seriesKey }
         : booking
     ));
 
     const results = await Promise.allSettled(
-      targets.map(target => bookingService.updateBookingStatus(target.id, 'confirmed'))
+      targets.map(target => bookingService.updateBookingStatus(target.id, 'confirmed', seriesKey))
     );
 
     const successCount = results.filter(result => result.status === 'fulfilled').length;
