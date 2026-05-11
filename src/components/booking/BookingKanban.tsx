@@ -100,6 +100,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [appSettings, setAppSettings] = useState<any>({});
   const [filterShift, setFilterShift] = useState<'all' | 'lunch' | 'dinner'>('all');
   const [sortMode, setSortMode] = useState<'time' | 'partner'>('time');
+  const [filterCustomerType, setFilterCustomerType] = useState<'all' | 'tour' | 'retail'>('all');
   const [expandedSeriesKeys, setExpandedSeriesKeys] = useState<Record<string, boolean>>({});
   const [confirmingSeriesKey, setConfirmingSeriesKey] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -243,6 +244,26 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     };
   }, []);
 
+  useEffect(() => {
+    if (!statusDropdownId) return;
+
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      if (target.closest('[data-dropdown-root="true"]')) return;
+      setStatusDropdownId(null);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [statusDropdownId]);
+
   // Internal modal state for when component is used without controlling props
   const [internalIsModalOpen, setInternalIsModalOpen] = useState(false);
   const showModal = isModalOpen !== undefined ? isModalOpen : internalIsModalOpen;
@@ -327,6 +348,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     );
   };
 
+  // Determine if booking is from a partner (tour group) or retail
+  const getBookingPartner = (booking: Booking): string => {
+    const notes = booking.notes || [];
+    const partnerNote = notes.find(note => {
+      const normalized = String(note || '').toLowerCase().trim();
+      return normalized.startsWith('đối tác:') || normalized.startsWith('doi tac:') || normalized.startsWith('partner:');
+    });
+
+    if (partnerNote) {
+      const partner = String(partnerNote).replace(/^(đối tác|doi tac|partner)\s*:\s*/i, '').trim();
+      if (partner) return partner;
+    }
+
+    if (booking.customerType === 'tour') return 'Khác / Chưa rõ đối tác';
+    return 'Khách lẻ';
+  };
+
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
     const actionNeededStatuses = statusGroups.action_needed;
@@ -398,24 +436,17 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       if (filterShift === 'dinner' && (hour < dinnerStart || hour > dinnerEnd)) return false;
     }
 
+    // 5. Filter by Customer Type (Khách đoàn / Khách lẻ)
+    if (filterCustomerType !== 'all') {
+      const partner = getBookingPartner(b);
+      const isTour = partner !== 'Khách lẻ';
+      if (filterCustomerType === 'tour' && !isTour) return false;
+      if (filterCustomerType === 'retail' && isTour) return false;
+    }
+
     return true;
   });
 
-  const getBookingPartner = (booking: Booking): string => {
-    const notes = booking.notes || [];
-    const partnerNote = notes.find(note => {
-      const normalized = String(note || '').toLowerCase().trim();
-      return normalized.startsWith('đối tác:') || normalized.startsWith('doi tac:') || normalized.startsWith('partner:');
-    });
-
-    if (partnerNote) {
-      const partner = String(partnerNote).replace(/^(đối tác|doi tac|partner)\s*:\s*/i, '').trim();
-      if (partner) return partner;
-    }
-
-    if (booking.customerType === 'tour') return 'Khác / Chưa rõ đối tác';
-    return 'Khách lẻ';
-  };
 
   const normalizeSeriesValue = (value?: string) => String(value || '').trim().toLowerCase();
 
@@ -523,11 +554,24 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   };
 
   const SeriesGroupCard = ({ series, index, col }: { series: BookingSeriesGroup; index: number; col: any }) => {
+    // Lookup full series stats from global bookings to include cancelled/other statuses
+    // since the local 'series' prop only contains bookings for the current Kanban column
+    const fullSeries = React.useMemo(() => {
+      const allSeriesBookings = bookings.filter(b => getBookingSeriesKey(b) === series.key);
+      const counts: Record<string, number> = {};
+      let pax = 0;
+      allSeriesBookings.forEach(b => {
+        counts[b.status] = (counts[b.status] || 0) + 1;
+        pax += b.pax || 0;
+      });
+      return { statusCounts: counts, totalPax: pax, totalCount: allSeriesBookings.length };
+    }, [bookings, series.key]);
+
     const isExpanded = !!expandedSeriesKeys[series.key];
     const actionCount = ['new', 'pending', 'waiting_info', 'change_requested']
-      .reduce((sum, status) => sum + (series.statusCounts[status] || 0), 0);
-    const confirmedCount = series.statusCounts.confirmed || 0;
-    const cancelledCount = series.statusCounts.cancelled || 0;
+      .reduce((sum, status) => sum + (fullSeries.statusCounts[status] || 0), 0);
+    const confirmedCount = fullSeries.statusCounts.confirmed || 0;
+    const cancelledCount = fullSeries.statusCounts.cancelled || 0;
     const displayBookings = isExpanded ? series.bookings : series.bookings.slice(0, 3);
 
     return (
@@ -544,8 +588,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold">
                 <span className="px-2 py-1 rounded-full bg-white text-violet-700 border border-violet-100">📥 Nhận {formatSeriesDate(series.receivedDate)}</span>
-                <span className="px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-100">{series.bookings.length} đoàn</span>
-                <span className="px-2 py-1 rounded-full bg-white text-emerald-700 border border-emerald-100">{series.totalPax} pax</span>
+                <span className="px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-100">{fullSeries.totalCount} đoàn</span>
+                <span className="px-2 py-1 rounded-full bg-white text-emerald-700 border border-emerald-100">{fullSeries.totalPax} pax</span>
               </div>
             </div>
             <span className="text-[10px] font-black text-violet-500 bg-violet-100 px-2 py-1 rounded-full">SERIES #{index + 1}</span>
@@ -2111,6 +2155,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // --- Desktop Kanban View (3 Columns) ---
 
+  // Build a global series index map so the same series key always shows the same #N across all columns
+  const globalSeriesIndexMap = React.useMemo(() => {
+    const allSeries = groupBookingsBySeries(filteredBookings);
+    const map = new Map<string, number>();
+    allSeries.forEach((series, idx) => { map.set(series.key, idx); });
+    return map;
+  }, [filteredBookings]);
+
   const renderDesktopKanban = () => (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex-1 relative p-6 overflow-hidden min-h-0">
@@ -2146,8 +2198,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     {/* Cards Container */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
                       {isPartnerSortActive ? (
-                        groupBookingsBySeries(colBookings).map((series, index) => (
-                          <SeriesGroupCard key={series.key} series={series} index={index} col={col} />
+                        groupBookingsBySeries(colBookings).map((series) => (
+                          <SeriesGroupCard key={series.key} series={series} index={globalSeriesIndexMap.get(series.key) ?? 0} col={col} />
                         ))
                       ) : (
                         colBookings.map((booking, index) => {
@@ -2444,10 +2496,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
         </>
       )}
       {/* Filter Bar (Shared - Merged Upper Action Bar & Filter Row) */}
-      <div className="hidden md:flex px-4 md:px-6 py-3 bg-white border-b border-gray-200 items-center justify-between flex-shrink-0 gap-4">
+      <div className="hidden md:flex px-4 md:px-6 py-3 bg-white border-b border-gray-200 items-center flex-shrink-0 gap-4 overflow-visible">
 
         {/* Left Side: Date & Shift Filters */}
-        <div className="flex items-center gap-4 border-r border-gray-100 pr-4">
+        <div className="flex items-center gap-3 shrink-0 pr-4 border-r border-gray-100">
           <div className="flex items-center bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:bg-gray-100 transition-colors p-1 gap-1">
             <button
               onClick={() => {
@@ -2504,45 +2556,45 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             )}
           </div>
 
-          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0 whitespace-nowrap">
             <button
               onClick={() => setFilterShift('all')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'all' ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center w-8 h-7 rounded-md text-xs font-bold transition-all whitespace-nowrap shrink-0 ${filterShift === 'all' ? 'bg-white shadow-sm text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}
+              title="Tất cả ca"
             >
-              Tất cả
+              <Filter className="w-3.5 h-3.5 shrink-0" />
             </button>
             <button
               onClick={() => setFilterShift('lunch')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'lunch' ? 'bg-white shadow-sm text-amber-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center w-8 h-7 rounded-md text-xs font-bold transition-all whitespace-nowrap shrink-0 ${filterShift === 'lunch' ? 'bg-white shadow-sm text-amber-600' : 'text-gray-500 hover:text-gray-700'}`}
+              title="Ca trưa"
             >
-              <Sun className="w-3.5 h-3.5" />
-              Ca Trưa
+              <Sun className="w-3.5 h-3.5 shrink-0" />
             </button>
             <button
               onClick={() => setFilterShift('dinner')}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${filterShift === 'dinner' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+              className={`flex items-center justify-center w-8 h-7 rounded-md text-xs font-bold transition-all whitespace-nowrap shrink-0 ${filterShift === 'dinner' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+              title="Ca tối"
             >
-              <Moon className="w-3.5 h-3.5" />
-              Ca Tối
+              <Moon className="w-3.5 h-3.5 shrink-0" />
             </button>
           </div>
         </div>
 
-        {/* Right Side: Actions & View Toggles */}
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="relative min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm tên, SĐT, Mã đơn..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
-            />
-          </div>
+        {/* Search - Primary find action */}
+        <div className="relative flex-1 min-w-[220px] max-w-[420px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Tìm tên, SĐT, Mã đơn..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-colors"
+          />
+        </div>
 
-          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+        {/* Right Side: View / Organize / Action */}
+        <div className="flex items-center gap-2 shrink-0 whitespace-nowrap ml-auto">
 
           {/* View Toggles */}
           <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
@@ -2570,24 +2622,92 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           </div>
 
           {/* Sort Mode */}
-          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="relative" data-dropdown-root="true">
             <button
-              onClick={() => setSortMode('time')}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${sortMode === 'time' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
-              title="Sắp xếp theo giờ"
+              type="button"
+              onClick={() => setStatusDropdownId(statusDropdownId === 'sort-mode-filter' ? null : 'sort-mode-filter')}
+              className={`inline-flex items-center justify-center gap-2 min-w-[112px] px-3 py-2 rounded-lg text-xs font-black border transition-all whitespace-nowrap shrink-0 ${sortMode === 'partner'
+                ? 'bg-violet-50 text-violet-700 border-violet-200 shadow-sm'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+              title="Sắp xếp danh sách"
             >
-              Theo giờ
+              <List className="w-3.5 h-3.5 shrink-0" />
+              <span>{sortMode === 'time' ? 'Theo giờ' : 'Đối tác'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${statusDropdownId === 'sort-mode-filter' ? 'rotate-180' : ''}`} />
             </button>
-            <button
-              onClick={() => setSortMode('partner')}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${sortMode === 'partner' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-500 hover:text-slate-700'}`}
-              title="Gom các đơn cùng đối tác nằm gần nhau"
-            >
-              Theo đối tác
-            </button>
+
+            {statusDropdownId === 'sort-mode-filter' && (
+              <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden p-1">
+                {[
+                  { id: 'time', label: 'Theo giờ', icon: '⏱️', color: 'text-slate-700' },
+                  { id: 'partner', label: 'Theo đối tác', icon: '🏢', color: 'text-violet-700' },
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      setSortMode(option.id as 'time' | 'partner');
+                      setStatusDropdownId(null);
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors hover:bg-slate-50 ${sortMode === option.id ? 'bg-slate-100' : ''}`}
+                  >
+                    <span className={`inline-flex items-center gap-2 ${option.color}`}>
+                      <span>{option.icon}</span>
+                      {option.label}
+                    </span>
+                    {sortMode === option.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+          {/* Customer Type Filter */}
+          <div className="relative" data-dropdown-root="true">
+            <button
+              type="button"
+              onClick={() => setStatusDropdownId(statusDropdownId === 'customer-type-filter' ? null : 'customer-type-filter')}
+              className={`inline-flex items-center justify-center gap-2 min-w-[118px] px-3 py-2 rounded-lg text-xs font-black border transition-all whitespace-nowrap shrink-0 ${filterCustomerType === 'all'
+                ? 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                : filterCustomerType === 'tour'
+                  ? 'bg-violet-50 text-violet-700 border-violet-200 shadow-sm'
+                  : 'bg-teal-50 text-teal-700 border-teal-200 shadow-sm'
+              }`}
+              title="Lọc khách đoàn / khách lẻ"
+            >
+              <Filter className="w-3.5 h-3.5 shrink-0" />
+              <span className="whitespace-nowrap">{filterCustomerType === 'all' ? 'Loại khách' : filterCustomerType === 'tour' ? 'Khách đoàn' : 'Khách lẻ'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${statusDropdownId === 'customer-type-filter' ? 'rotate-180' : ''}`} />
+            </button>
+
+            {statusDropdownId === 'customer-type-filter' && (
+              <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden p-1">
+                {[
+                  { id: 'all', label: 'Tất cả', icon: '✨', color: 'text-slate-700' },
+                  { id: 'tour', label: 'Khách đoàn', icon: '🏢', color: 'text-violet-700' },
+                  { id: 'retail', label: 'Khách lẻ', icon: '👤', color: 'text-teal-700' },
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      setFilterCustomerType(option.id as 'all' | 'tour' | 'retail');
+                      setStatusDropdownId(null);
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors hover:bg-slate-50 ${filterCustomerType === option.id ? 'bg-slate-100' : ''}`}
+                  >
+                    <span className={`inline-flex items-center gap-2 ${option.color}`}>
+                      <span>{option.icon}</span>
+                      {option.label}
+                    </span>
+                    {filterCustomerType === option.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
 
           {/* Add Button */}
           <button
@@ -2608,7 +2728,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 setShowModal(true);
               }
             }}
-            className="flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all transform active:scale-95"
+            className="flex items-center justify-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white pl-3 pr-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-all transform active:scale-95 whitespace-nowrap shrink-0"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             Đặt bàn mới
