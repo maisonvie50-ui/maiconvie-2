@@ -2115,7 +2115,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const renderDesktopKanban = () => (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="flex-1 relative p-6 overflow-hidden">
-        <div className="flex gap-5 h-full">
+        <div className="grid grid-cols-3 gap-5 h-full min-w-0">
           {boardColumns.map((col) => {
             const colBookings = sortBookingsForDisplay(
               filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)),
@@ -2130,7 +2130,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 flex flex-col rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
+                    className={`min-w-0 w-full flex flex-col rounded-xl border transition-colors ${snapshot.isDraggingOver ? 'bg-blue-50 border-blue-300' : 'bg-gray-100/50 border-gray-200/60'
                       }`}
                   >
                     {/* Column Header */}
