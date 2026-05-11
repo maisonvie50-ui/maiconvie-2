@@ -144,6 +144,7 @@ export const bookingService = {
             linked_table_names: b.linked_table_names || [],
             changeRequestData: b.change_request_data || b.changeRequestData || undefined,
             lang: b.lang || 'vi',
+            createdAt: b.created_at,
         })) as Booking[];
     },
 
@@ -345,6 +346,8 @@ export const bookingService = {
                     selectedMenus: resolvedMenus,
                     tableId: booking.table_id,
                     tableName: resolvedTableName,
+                    bookingCode: booking.booking_code,
+                    createdAt: booking.created_at,
                     lang: booking.lang || 'vi',
                 } as Booking;
                 bookingNotifyService.notifyStatusChange(bookingData, oldStatus, status).catch(() => {});

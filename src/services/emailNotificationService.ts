@@ -10,6 +10,10 @@ import { SmtpSendResult } from '../types/email';
 import { emailTemplateService } from './emailTemplateService';
 import { settingsService } from './settingsService';
 
+function normalizeEmail(email?: string): string {
+    return String(email || '').trim().toLowerCase();
+}
+
 export const emailNotificationService = {
 
     /**
@@ -92,6 +96,32 @@ export const emailNotificationService = {
             });
         } catch (err) {
             console.warn('[EmailNotify] sendCustomerConfirmation failed:', err);
+        }
+    },
+
+    /**
+     * Gửi một email xác nhận tổng hợp cho nhiều booking cùng email đối tác/khách.
+     */
+    async sendBatchConfirmation(bookings: Booking[], settings?: any): Promise<void> {
+        try {
+            const s = settings || await settingsService.getAppSettings();
+            if (!s?.smtpEnabled) return;
+            if (!s?.sendCustomerEmail) return;
+
+            const validBookings = bookings.filter(b => normalizeEmail(b.email));
+            if (validBookings.length === 0) return;
+
+            const targetEmail = normalizeEmail(validBookings[0].email);
+            const sameRecipientBookings = validBookings.filter(b => normalizeEmail(b.email) === targetEmail);
+            if (!targetEmail || sameRecipientBookings.length === 0) return;
+
+            const template = emailTemplateService.buildBatchConfirmation(sameRecipientBookings);
+            await this._sendViaApi({
+                to: targetEmail,
+                ...template,
+            });
+        } catch (err) {
+            console.warn('[EmailNotify] sendBatchConfirmation failed:', err);
         }
     },
 

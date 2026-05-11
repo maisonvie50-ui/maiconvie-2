@@ -399,4 +399,77 @@ export const emailTemplateService = {
 
         return { subject, html, text };
     },
+
+    /**
+     * 5. Email cho đối tác/khách: Xác nhận nhiều booking cùng lúc
+     */
+    buildBatchConfirmation(bookings: Booking[]): EmailTemplate {
+        const first = bookings[0];
+        const lang = first ? getLang(first) : 'vi';
+        const isVi = lang === 'vi';
+        const sorted = [...bookings].sort((a, b) => {
+            const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
+            if (dateCompare !== 0) return dateCompare;
+            return (a.time || '').localeCompare(b.time || '');
+        });
+
+        const subject = isVi
+            ? `✅ Xác nhận ${sorted.length} đặt bàn — Maison Vie`
+            : `✅ ${sorted.length} reservations confirmed — Maison Vie`;
+        const title = isVi
+            ? `✅ XÁC NHẬN ${sorted.length} ĐẶT BÀN`
+            : `✅ ${sorted.length} RESERVATIONS CONFIRMED`;
+
+        const rows = sorted.map((booking, index) => `
+            <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textSecondary};font-size:13px;">${index + 1}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;font-weight:700;">${esc(booking.bookingCode || booking.customerName || '—')}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;">${esc(formatDate(booking.bookingDate))}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;font-weight:700;">${esc(booking.time || '—')}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;">${esc(String(booking.pax || 0))}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;">${esc(tableInfo(booking, lang))}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;">${esc(formatMenus(booking, lang))}</td>
+            </tr>
+        `).join('');
+
+        const intro = isVi
+            ? `Chào ${first?.customerName || 'Quý đối tác'},<br/><br/>Maison Vie xác nhận các đặt bàn dưới đây đã được ghi nhận thành công.`
+            : `Dear ${first?.customerName || 'Partner'},<br/><br/>Maison Vie confirms that the reservations below have been successfully confirmed.`;
+
+        const html = wrapHtml(title, BRAND.green, `
+            <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:${BRAND.textPrimary};">${intro}</p>
+            <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid ${BRAND.border};border-radius:12px;overflow:hidden;">
+                <thead>
+                    <tr style="background:#f8fafc;">
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">#</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Code</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Ngày' : 'Date'}</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Giờ' : 'Time'}</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Pax</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Bàn' : 'Table'}</th>
+                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Menu</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:${BRAND.textSecondary};">
+                ${isVi ? 'Vui lòng kiểm tra lại danh sách đoàn. Nếu có thay đổi/hủy đoàn, vui lòng phản hồi để Maison Vie cập nhật.' : 'Please review the list above. If there are any changes or cancellations, kindly reply so Maison Vie can update accordingly.'}
+            </p>
+        `, lang);
+
+        const textRows = sorted.map((booking, index) =>
+            `${index + 1}. ${booking.bookingCode || booking.customerName || '—'} | ${formatDate(booking.bookingDate)} ${booking.time || '—'} | ${booking.pax || 0} pax | ${tableInfo(booking, lang)} | ${formatMenus(booking, lang)}`
+        );
+        const text = [
+            title,
+            '',
+            isVi ? 'Maison Vie xác nhận các đặt bàn dưới đây:' : 'Maison Vie confirms the reservations below:',
+            '',
+            ...textRows,
+            '',
+            isVi ? 'Nếu có thay đổi/hủy đoàn, vui lòng phản hồi email này.' : 'If there are any changes or cancellations, please reply to this email.',
+        ].join('\n');
+
+        return { subject, html, text };
+    },
 };

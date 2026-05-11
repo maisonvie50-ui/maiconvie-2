@@ -99,6 +99,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<any>({});
   const [filterShift, setFilterShift] = useState<'all' | 'lunch' | 'dinner'>('all');
+  const [sortMode, setSortMode] = useState<'time' | 'partner'>('time');
+  const [expandedSeriesKeys, setExpandedSeriesKeys] = useState<Record<string, boolean>>({});
+  const [confirmingSeriesKey, setConfirmingSeriesKey] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // View & Filter States
@@ -399,6 +402,246 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     return true;
   });
 
+  const getBookingPartner = (booking: Booking): string => {
+    const notes = booking.notes || [];
+    const partnerNote = notes.find(note => {
+      const normalized = String(note || '').toLowerCase().trim();
+      return normalized.startsWith('đối tác:') || normalized.startsWith('doi tac:') || normalized.startsWith('partner:');
+    });
+
+    if (partnerNote) {
+      const partner = String(partnerNote).replace(/^(đối tác|doi tac|partner)\s*:\s*/i, '').trim();
+      if (partner) return partner;
+    }
+
+    if (booking.customerType === 'tour') return 'Khác / Chưa rõ đối tác';
+    return 'Khách lẻ';
+  };
+
+  const normalizeSeriesValue = (value?: string) => String(value || '').trim().toLowerCase();
+
+  const getBookingReceivedDate = (booking: Booking): string => {
+    const createdAt = booking.createdAt;
+    if (createdAt) return createdAt.split('T')[0];
+    return booking.bookingDate || 'unknown';
+  };
+
+  const formatSeriesDate = (date?: string): string => {
+    if (!date || date === 'unknown') return 'Chưa rõ';
+    const parts = date.split('-');
+    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : date;
+  };
+
+  const getBookingSeriesKey = (booking: Booking): string => {
+    const partner = normalizeSeriesValue(getBookingPartner(booking));
+    const email = normalizeSeriesValue(booking.email || 'no-email');
+    const receivedDate = getBookingReceivedDate(booking);
+    return `${partner}__${email}__${receivedDate}`;
+  };
+
+  type BookingSeriesGroup = {
+    key: string;
+    partner: string;
+    email: string;
+    receivedDate: string;
+    bookings: Booking[];
+    totalPax: number;
+    statusCounts: Record<string, number>;
+  };
+
+  const groupBookingsBySeries = (items: Booking[]): BookingSeriesGroup[] => {
+    const map = new Map<string, BookingSeriesGroup>();
+
+    sortBookingsForDisplay(items, { confirmedDatePriority: true }).forEach(booking => {
+      const key = getBookingSeriesKey(booking);
+      const existing = map.get(key);
+      if (existing) {
+        existing.bookings.push(booking);
+        existing.totalPax += booking.pax || 0;
+        existing.statusCounts[booking.status] = (existing.statusCounts[booking.status] || 0) + 1;
+      } else {
+        map.set(key, {
+          key,
+          partner: getBookingPartner(booking),
+          email: booking.email || 'Chưa có email',
+          receivedDate: getBookingReceivedDate(booking),
+          bookings: [booking],
+          totalPax: booking.pax || 0,
+          statusCounts: { [booking.status]: 1 },
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      const partnerCompare = a.partner.localeCompare(b.partner, 'vi');
+      if (partnerCompare !== 0) return partnerCompare;
+      return a.receivedDate.localeCompare(b.receivedDate);
+    });
+  };
+
+  const isPartnerSortActive = sortMode === 'partner';
+
+  const sortBookingsForDisplay = (items: Booking[], options?: { confirmedDatePriority?: boolean }) => {
+    return [...items].sort((a, b) => {
+      if (sortMode === 'partner') {
+        const partnerCompare = getBookingPartner(a).localeCompare(getBookingPartner(b), 'vi');
+        if (partnerCompare !== 0) return partnerCompare;
+
+        const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
+        if (dateCompare !== 0) return dateCompare;
+      } else if (options?.confirmedDatePriority) {
+        const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
+        if (dateCompare !== 0) return dateCompare;
+      }
+
+      const timeCompare = (a.time || '').localeCompare(b.time || '');
+      if (timeCompare !== 0) return timeCompare;
+
+      return (a.bookingCode || a.customerName || '').localeCompare(b.bookingCode || b.customerName || '', 'vi');
+    });
+  };
+
+  const PartnerBadge = ({ booking, compact = false }: { booking: Booking; compact?: boolean }) => {
+    const partner = getBookingPartner(booking);
+    const isRetail = partner === 'Khách lẻ';
+    if (!isPartnerSortActive && isRetail) return null;
+
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-full border font-bold ${compact
+          ? 'px-1.5 py-0.5 text-[10px]'
+          : 'px-2 py-0.5 text-[11px]'
+          } ${isRetail
+            ? 'bg-slate-50 text-slate-500 border-slate-200'
+            : 'bg-violet-50 text-violet-700 border-violet-200'
+          }`}
+        title={`Đối tác: ${partner}`}
+      >
+        <span aria-hidden="true">🏢</span>
+        <span className="truncate max-w-[150px]">{partner}</span>
+      </span>
+    );
+  };
+
+  const SeriesGroupCard = ({ series, index, col }: { series: BookingSeriesGroup; index: number; col: any }) => {
+    const isExpanded = !!expandedSeriesKeys[series.key];
+    const actionCount = ['new', 'pending', 'waiting_info', 'change_requested']
+      .reduce((sum, status) => sum + (series.statusCounts[status] || 0), 0);
+    const confirmedCount = series.statusCounts.confirmed || 0;
+    const cancelledCount = series.statusCounts.cancelled || 0;
+    const displayBookings = isExpanded ? series.bookings : series.bookings.slice(0, 3);
+
+    return (
+      <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-white via-violet-50/50 to-indigo-50/60 shadow-sm overflow-hidden ring-1 ring-violet-100/70">
+        <div className="p-3.5 border-b border-violet-100 bg-white/75 backdrop-blur">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-200">🏢</span>
+                <div className="min-w-0">
+                  <h4 className="font-black text-slate-900 text-sm truncate">{series.partner}</h4>
+                  <p className="text-[11px] text-slate-500 truncate">📧 {series.email}</p>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold">
+                <span className="px-2 py-1 rounded-full bg-white text-violet-700 border border-violet-100">📥 Nhận {formatSeriesDate(series.receivedDate)}</span>
+                <span className="px-2 py-1 rounded-full bg-white text-slate-700 border border-slate-100">{series.bookings.length} đoàn</span>
+                <span className="px-2 py-1 rounded-full bg-white text-emerald-700 border border-emerald-100">{series.totalPax} pax</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-black text-violet-500 bg-violet-100 px-2 py-1 rounded-full">SERIES #{index + 1}</span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-2 py-1.5">
+              <div className="text-sm font-black text-amber-700">{actionCount}</div>
+              <div className="text-[9px] font-bold text-amber-600">Cần chốt</div>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-2 py-1.5">
+              <div className="text-sm font-black text-emerald-700">{confirmedCount}</div>
+              <div className="text-[9px] font-bold text-emerald-600">Đã chốt</div>
+            </div>
+            <div className="rounded-xl bg-rose-50 border border-rose-100 px-2 py-1.5">
+              <div className="text-sm font-black text-rose-700">{cancelledCount}</div>
+              <div className="text-[9px] font-bold text-rose-600">Đã hủy</div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            {actionCount > 0 && (
+              <button
+                type="button"
+                disabled={confirmingSeriesKey === series.key}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleConfirmSeries(series.bookings);
+                }}
+                className={`flex-1 px-3 py-2 rounded-xl text-white text-xs font-black shadow-lg transition-colors ${confirmingSeriesKey === series.key
+                  ? 'bg-slate-400 shadow-slate-200 cursor-wait'
+                  : 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700'
+                }`}
+              >
+                {confirmingSeriesKey === series.key ? 'Đang chốt...' : 'Chốt cả nhóm'}
+              </button>
+            )}
+            <button
+              onClick={() => setExpandedSeriesKeys(current => ({ ...current, [series.key]: !isExpanded }))}
+              className="px-3 py-2 rounded-xl bg-white text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-50 transition-colors"
+            >
+              {isExpanded ? 'Thu gọn' : 'Mở danh sách'}
+            </button>
+          </div>
+        </div>
+
+        <div className="p-2.5 space-y-2">
+          {displayBookings.map((booking, childIndex) => {
+            const statusConfig = columns.find(c => c.id === booking.status);
+            return (
+              <Draggable key={booking.id} draggableId={booking.id} index={index * 1000 + childIndex}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    onDoubleClick={() => setViewingBooking(booking)}
+                    className={`bg-white rounded-xl border border-slate-100 p-2.5 cursor-grab hover:shadow-md transition-all ${snapshot.isDragging ? 'shadow-xl rotate-1 scale-105 z-50' : ''}`}
+                    style={provided.draggableProps.style}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-slate-900 truncate">{booking.bookingCode || booking.customerName || 'Không tên'}</div>
+                        <div className="mt-1 flex flex-wrap gap-1 text-[10px] font-semibold text-slate-500">
+                          <span>📅 {booking.bookingDate ? formatSeriesDate(booking.bookingDate) : '—'}</span>
+                          <span>⏰ {booking.time || '—'}</span>
+                          <span>👥 {booking.pax || 0}</span>
+                        </div>
+                      </div>
+                      {statusConfig && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${statusConfig.color} ${statusConfig.borderColor.replace('border-', 'text-')}`}>
+                          {statusConfig.label}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Draggable>
+            );
+          })}
+          {!isExpanded && series.bookings.length > 3 && (
+            <button
+              onClick={() => setExpandedSeriesKeys(current => ({ ...current, [series.key]: true }))}
+              className="w-full py-2 text-[11px] font-black text-violet-700 bg-white/70 rounded-xl border border-dashed border-violet-200 hover:bg-white transition-colors"
+            >
+              +{series.bookings.length - 3} đoàn khác
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // New Booking Form State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newBooking, setNewBooking] = useState<Partial<Booking>>({
@@ -618,6 +861,47 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       fetchBookings();
       alert('Lỗi cập nhật trạng thái');
     }
+  };
+
+  const handleConfirmSeries = async (seriesBookings: Booking[]) => {
+    const actionableStatuses: BookingStatus[] = ['new', 'pending', 'waiting_info', 'change_requested'];
+    const targets = seriesBookings.filter(booking => actionableStatuses.includes(booking.status));
+    const seriesKey = targets[0] ? getBookingSeriesKey(targets[0]) : getBookingSeriesKey(seriesBookings[0]);
+
+    if (confirmingSeriesKey) return;
+
+    if (targets.length === 0) {
+      alert('Nhóm này không còn đơn cần chốt.');
+      return;
+    }
+
+    const ok = window.confirm(`Chốt ${targets.length} đơn trong nhóm này? Hệ thống sẽ gom email xác nhận thành 1 email tổng hợp.`);
+    if (!ok) return;
+
+    setConfirmingSeriesKey(seriesKey);
+    setBookings(current => current.map(booking =>
+      targets.some(target => target.id === booking.id)
+        ? { ...booking, status: 'confirmed' as BookingStatus }
+        : booking
+    ));
+
+    const results = await Promise.allSettled(
+      targets.map(target => bookingService.updateBookingStatus(target.id, 'confirmed'))
+    );
+
+    const successCount = results.filter(result => result.status === 'fulfilled').length;
+    const failedCount = results.length - successCount;
+
+    await fetchBookings();
+    setExpandedSeriesKeys(current => ({ ...current, [seriesKey]: true }));
+    setConfirmingSeriesKey(null);
+
+    if (failedCount > 0) {
+      alert(`Đã chốt ${successCount}/${targets.length} đơn. ${failedCount} đơn lỗi, vui lòng kiểm tra lại.`);
+      return;
+    }
+
+    alert(`Đã chốt ${successCount} đơn trong nhóm. Email xác nhận sẽ được gom và gửi sau khoảng 10 giây.`);
   };
 
   const handleApproveChangeRequest = async (bookingId: string) => {
@@ -943,7 +1227,23 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           )}
         </div>
 
-        {/* Row 3: Status Tabs */}
+        {/* Row 3: Sort Mode */}
+        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setSortMode('time')}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${sortMode === 'time' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+          >
+            Theo giờ
+          </button>
+          <button
+            onClick={() => setSortMode('partner')}
+            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-black transition-all ${sortMode === 'partner' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-500'}`}
+          >
+            Theo đối tác
+          </button>
+        </div>
+
+        {/* Row 4: Status Tabs */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {(['action_needed', 'upcoming', 'active', 'done'] as const).map(tab => {
             const count = getTabCount(tab);
@@ -984,8 +1284,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             <p className="text-sm">Không tìm thấy đơn đặt bàn nào</p>
           </div>
         ) : (
-          filteredBookings
-            .sort((a, b) => a.time.localeCompare(b.time))
+          sortBookingsForDisplay(filteredBookings)
             .map(booking => {
               const statusConfig = columns.find(c => c.id === booking.status);
               return (
@@ -1041,9 +1340,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
                     </div>
 
-                    {/* Row 3: Table + Notes (compact) */}
-                    {(booking.tableName || (booking.notes && booking.notes.length > 0)) && (
+                    {/* Row 3: Partner + Table + Notes (compact) */}
+                    {(getBookingPartner(booking) || booking.tableName || (booking.notes && booking.notes.length > 0)) && (
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <PartnerBadge booking={booking} compact />
                         {booking.tableName && (
                           <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-50 text-teal-700 rounded text-[10px] font-bold border border-teal-200">
                             <LayoutGrid className="w-3 h-3" />
@@ -1182,7 +1482,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   };
 
   const renderDesktopTable = () => {
-    const sorted = [...filteredBookings].sort((a, b) => a.time.localeCompare(b.time));
+    const sorted = sortBookingsForDisplay(filteredBookings);
 
     return (
       <div className="flex-1 overflow-auto p-6">
@@ -1232,8 +1532,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                       {/* Khách hàng */}
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-gray-900">{booking.customerName || 'Không có tên'}</span>
+                            <PartnerBadge booking={booking} compact />
                             {booking.customerType === 'tour' ? (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">Dégustation</span>
                             ) : booking.customerType === 'retail' ? (
@@ -1816,19 +2117,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       <div className="flex-1 relative p-6 overflow-hidden">
         <div className="flex gap-5 h-full">
           {boardColumns.map((col) => {
-            const colBookings = filteredBookings
-              .filter(b => (col.statuses as BookingStatus[]).includes(b.status))
-              .sort((a, b) => {
-                // Keep original time sorting for most columns. For "Đã chốt",
-                // include the date so older confirmed bookings stay visible and
-                // ordered before upcoming ones instead of being lost by filters.
-                if (col.id === 'col_confirmed') {
-                  const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
-                  if (dateCompare !== 0) return dateCompare;
-                }
+            const colBookings = sortBookingsForDisplay(
+              filteredBookings.filter(b => (col.statuses as BookingStatus[]).includes(b.status)),
+              { confirmedDatePriority: col.id === 'col_confirmed' }
+            );
 
-                return (a.time || '').localeCompare(b.time || '');
-              });
             const ColIcon = col.icon;
 
             return (
@@ -1853,7 +2146,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
                     {/* Cards Container */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-                      {colBookings.map((booking, index) => {
+                      {isPartnerSortActive ? (
+                        groupBookingsBySeries(colBookings).map((series, index) => (
+                          <SeriesGroupCard key={series.key} series={series} index={index} col={col} />
+                        ))
+                      ) : (
+                        colBookings.map((booking, index) => {
                         const statusConfig = columns.find(c => c.id === booking.status);
                         const isServing = col.id === 'col_serving';
                         return (
@@ -1873,10 +2171,10 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                 style={provided.draggableProps.style}
                               >
                                 <div className="p-3" onDoubleClick={() => setViewingBooking(booking)}>
-                                  {/* Row 1: Name + badges + edit */}
-                                  <div className="flex justify-between items-start mb-1.5">
-                                    <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="flex justify-between items-start mb-1.5 gap-2">
+                                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                       <h4 className="font-semibold text-gray-900 text-sm truncate">{booking.customerName || 'Không tên'}</h4>
+                                      <PartnerBadge booking={booking} compact />
                                       {booking.customerType === 'tour' && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700 flex-shrink-0">Dégustation</span>
                                       )}
@@ -2010,7 +2308,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                             )}
                           </Draggable>
                         );
-                      })}
+                      })
+                      )}
                       {provided.placeholder}
                     </div>
                   </div>
@@ -2268,6 +2567,24 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               title="Tổng quan ngày"
             >
               <BarChart2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Sort Mode */}
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <button
+              onClick={() => setSortMode('time')}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${sortMode === 'time' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              title="Sắp xếp theo giờ"
+            >
+              Theo giờ
+            </button>
+            <button
+              onClick={() => setSortMode('partner')}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all ${sortMode === 'partner' ? 'bg-white shadow-sm text-violet-700' : 'text-slate-500 hover:text-slate-700'}`}
+              title="Gom các đơn cùng đối tác nằm gần nhau"
+            >
+              Theo đối tác
             </button>
           </div>
 

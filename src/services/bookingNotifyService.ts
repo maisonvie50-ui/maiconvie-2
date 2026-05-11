@@ -2,6 +2,24 @@ import { Booking, BookingStatus } from '../types/booking';
 import { settingsService } from './settingsService';
 import { emailNotificationService } from './emailNotificationService';
 
+const BATCH_CONFIRMATION_DELAY_MS = 10_000;
+type ConfirmationBatch = {
+    bookings: Booking[];
+    timer: ReturnType<typeof setTimeout>;
+    oldStatus?: BookingStatus;
+    newStatus?: BookingStatus;
+};
+const confirmationBatches = new Map<string, ConfirmationBatch>();
+
+function normalizeEmail(email?: string): string {
+    return String(email || '').trim().toLowerCase();
+}
+
+function getBookingBatchKey(booking: Booking): string {
+    const email = normalizeEmail(booking.email);
+    return email || `booking:${booking.id}`;
+}
+
 export interface BookingNotificationPayload {
     type: 'new_booking' | 'status_change' | 'booking_confirmed';
     booking: Booking;
@@ -92,8 +110,9 @@ export const bookingNotifyService = {
             const webhookUrl = settings?.webhookUrl;
             const emailEnabled = settings?.emailEnabled;
             const notificationEmail = settings?.notificationEmail;
+            const smtpEnabled = settings?.smtpEnabled;
 
-            if (!webhookEnabled && !emailEnabled) return;
+            if (!webhookEnabled && !emailEnabled && !smtpEnabled) return;
 
             // Nếu chuyển sang confirmed → gửi webhook xác nhận đặc biệt
             const isConfirmation = newStatus === 'confirmed';
@@ -136,16 +155,86 @@ export const bookingNotifyService = {
             }
 
             // Fire-and-forget: gửi email SMTP tự động (song song với webhook)
-            emailNotificationService.handleBookingEvent(
-                isConfirmation ? 'booking_confirmed' : 'status_change',
-                booking,
-                oldStatus,
-                newStatus
-            ).catch(err =>
-                console.warn('[BookingNotify] SMTP email failed:', err)
-            );
+            if (isConfirmation) {
+                this._queueCustomerConfirmation(booking, oldStatus, newStatus);
+            } else {
+                emailNotificationService.handleBookingEvent(
+                    'status_change',
+                    booking,
+                    oldStatus,
+                    newStatus
+                ).catch(err =>
+                    console.warn('[BookingNotify] SMTP email failed:', err)
+                );
+            }
         } catch (err) {
             console.warn('[BookingNotify] notifyStatusChange failed:', err);
+        }
+    },
+
+    _queueCustomerConfirmation(booking: Booking, oldStatus?: BookingStatus, newStatus?: BookingStatus): void {
+        const key = getBookingBatchKey(booking);
+        const existing = confirmationBatches.get(key);
+
+        if (existing) {
+            clearTimeout(existing.timer);
+            const alreadyQueued = existing.bookings.some(item => item.id === booking.id);
+            const bookings = alreadyQueued
+                ? existing.bookings.map(item => item.id === booking.id ? booking : item)
+                : [...existing.bookings, booking];
+
+            const timer = setTimeout(() => {
+                this._flushCustomerConfirmationBatch(key).catch(err =>
+                    console.warn('[BookingNotify] Batch confirmation flush failed:', err)
+                );
+            }, BATCH_CONFIRMATION_DELAY_MS);
+
+            confirmationBatches.set(key, { bookings, timer, oldStatus, newStatus });
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            this._flushCustomerConfirmationBatch(key).catch(err =>
+                console.warn('[BookingNotify] Batch confirmation flush failed:', err)
+            );
+        }, BATCH_CONFIRMATION_DELAY_MS);
+
+        confirmationBatches.set(key, { bookings: [booking], timer, oldStatus, newStatus });
+    },
+
+    async _flushCustomerConfirmationBatch(key: string): Promise<void> {
+        const batch = confirmationBatches.get(key);
+        if (!batch) return;
+        confirmationBatches.delete(key);
+
+        const settings = await settingsService.getAppSettings();
+        const uniqueBookings = Array.from(
+            new Map(batch.bookings.map(booking => [booking.id, booking])).values()
+        );
+
+        if (uniqueBookings.length > 1) {
+            await emailNotificationService.sendBatchConfirmation(uniqueBookings, settings);
+            if (batch.oldStatus && batch.newStatus) {
+                await Promise.all(uniqueBookings.map(booking =>
+                    emailNotificationService.notifyStatusChangeInternal(
+                        booking,
+                        batch.oldStatus as BookingStatus,
+                        batch.newStatus as BookingStatus,
+                        settings
+                    )
+                ));
+            }
+            return;
+        }
+
+        const single = uniqueBookings[0];
+        if (single) {
+            await emailNotificationService.handleBookingEvent(
+                'booking_confirmed',
+                single,
+                batch.oldStatus,
+                batch.newStatus
+            );
         }
     },
 
