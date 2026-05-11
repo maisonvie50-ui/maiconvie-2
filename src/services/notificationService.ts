@@ -56,10 +56,59 @@ const resolveTargetStaffForTables = async (tableNames: string[]) => {
     };
 };
 
+// Singleton AudioContext — reused across all sound calls to avoid
+// browser rate-limiting and Autoplay Policy blocks.
+let _audioCtx: AudioContext | null = null;
+
+const getAudioContext = (): AudioContext => {
+    if (!_audioCtx) {
+        _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return _audioCtx;
+};
+
+// Resume AudioContext if suspended (Autoplay Policy).
+// Must be called during a user gesture (click/tap) at least once.
+const ensureAudioResumed = async () => {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        try {
+            await ctx.resume();
+        } catch (e) {
+            console.warn('AudioContext resume failed:', e);
+        }
+    }
+};
+
+// Warm-up: resume AudioContext on the very first user interaction.
+// This guarantees that subsequent programmatic plays work even without
+// a direct user gesture (e.g. when a broadcast arrives).
+const warmupOnce = () => {
+    ensureAudioResumed();
+    document.removeEventListener('click', warmupOnce, true);
+    document.removeEventListener('touchstart', warmupOnce, true);
+    document.removeEventListener('keydown', warmupOnce, true);
+};
+document.addEventListener('click', warmupOnce, true);
+document.addEventListener('touchstart', warmupOnce, true);
+document.addEventListener('keydown', warmupOnce, true);
+
 // Helper to create and play a sound using Web Audio API
-const createSound = (type: 'newBooking' | 'callServer' | 'callServer2' | 'callServer3') => {
+const createSound = async (type: 'newBooking' | 'callServer' | 'callServer2' | 'callServer3') => {
     try {
-        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioCtx = getAudioContext();
+
+        // Always attempt resume — no-op if already running
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+
+        // If still suspended after resume attempt, bail out silently
+        if (audioCtx.state !== 'running') {
+            console.warn('AudioContext still suspended – sound skipped. User interaction required.');
+            return;
+        }
+
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
 
