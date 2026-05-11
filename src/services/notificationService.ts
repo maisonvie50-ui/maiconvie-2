@@ -22,6 +22,8 @@ const normalizeTableName = (value: string) =>
         .replace(/\s+/g, '')
         .trim();
 
+const normalizeStaffId = (value: unknown) => String(value ?? '').trim();
+
 const resolveTargetStaffForTables = async (tableNames: string[]) => {
     const normalizedTargets = new Set(tableNames.map(normalizeTableName));
 
@@ -47,7 +49,10 @@ const resolveTargetStaffForTables = async (tableNames: string[]) => {
 
         stationIds.add(station.id);
         const staffIds = Array.isArray(station.staff_ids) ? station.staff_ids : [];
-        staffIds.forEach((staffId: string) => targetStaffIds.add(staffId));
+        staffIds
+            .map(normalizeStaffId)
+            .filter(Boolean)
+            .forEach((staffId: string) => targetStaffIds.add(staffId));
     });
 
     return {
@@ -222,12 +227,17 @@ const createSound = async (type: 'newBooking' | 'callServer' | 'callServer2' | '
 class NotificationService {
     private channel = supabase.channel('kitchen-notifications');
     private isSubscribed = false;
+    private callListeners = new Set<(payload: KitchenCallPayload) => void>();
+    private dismissListeners = new Set<(payload?: KitchenDismissPayload) => void>();
 
     // Setup broadcast subscription
     subscribeToKitchenCalls(
         onCall: (payload: KitchenCallPayload) => void,
         onDismiss?: (payload?: KitchenDismissPayload) => void
     ) {
+        this.callListeners.add(onCall);
+        if (onDismiss) this.dismissListeners.add(onDismiss);
+
         if (!this.isSubscribed) {
             this.channel
                 .on(
@@ -235,7 +245,7 @@ class NotificationService {
                     { event: 'call-server' },
                     (payload) => {
                         console.log('Received kitchen call:', payload);
-                        onCall(payload.payload as any);
+                        this.callListeners.forEach(listener => listener(payload.payload as KitchenCallPayload));
                     }
                 )
                 .on(
@@ -243,7 +253,7 @@ class NotificationService {
                     { event: 'dismiss-alert' },
                     (payload) => {
                         console.log('Alert dismissed by another device', payload);
-                        if (onDismiss) onDismiss(payload.payload as KitchenDismissPayload);
+                        this.dismissListeners.forEach(listener => listener(payload.payload as KitchenDismissPayload));
                     }
                 )
                 .subscribe((status) => {
@@ -255,8 +265,8 @@ class NotificationService {
         }
 
         return () => {
-            // Don't fully unsubscribe if multiple components might use it, 
-            // but for this simple app, we can just leave it active or handle cleanup if needed.
+            this.callListeners.delete(onCall);
+            if (onDismiss) this.dismissListeners.delete(onDismiss);
         };
     }
 

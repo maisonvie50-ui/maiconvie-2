@@ -125,7 +125,9 @@ export default function MobileCaptainApp({ onLogout }: MobileCaptainAppProps) {
     // If no station is configured for the table yet, keep legacy behavior as a safe fallback.
     if (!payload.targetStaffIds || payload.targetStaffIds.length === 0) return true;
 
-    return Boolean(user?.id && payload.targetStaffIds.includes(user.id));
+    const currentUserId = String(user?.id ?? '').trim();
+    const targetStaffIds = payload.targetStaffIds.map(id => String(id ?? '').trim());
+    return Boolean(currentUserId && targetStaffIds.includes(currentUserId));
   };
 
   // Kitchen Notification State
