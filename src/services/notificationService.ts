@@ -67,30 +67,48 @@ const getAudioContext = (): AudioContext => {
     return _audioCtx;
 };
 
-// Resume AudioContext if suspended (Autoplay Policy).
-// Must be called during a user gesture (click/tap) at least once.
-const ensureAudioResumed = async () => {
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') {
-        try {
+let _audioUnlocked = false;
+
+const unlockAudio = async () => {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') {
             await ctx.resume();
-        } catch (e) {
-            console.warn('AudioContext resume failed:', e);
         }
+
+        // Critical for iOS/Chrome mobile: actually start a silent source
+        // inside the user gesture. Resume alone is not always enough.
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0.0001, ctx.currentTime);
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.03);
+
+        _audioUnlocked = true;
+        console.info('Notification audio unlocked');
+    } catch (e) {
+        console.warn('Audio unlock failed:', e);
     }
 };
 
-// Warm-up: resume AudioContext on the very first user interaction.
-// This guarantees that subsequent programmatic plays work even without
-// a direct user gesture (e.g. when a broadcast arrives).
+// Warm-up: unlock AudioContext on every early user interaction until success.
+// This guarantees that subsequent programmatic plays work even when a
+// realtime broadcast arrives later without a direct user gesture.
 const warmupOnce = () => {
-    ensureAudioResumed();
-    document.removeEventListener('click', warmupOnce, true);
-    document.removeEventListener('touchstart', warmupOnce, true);
-    document.removeEventListener('keydown', warmupOnce, true);
+    unlockAudio().then(() => {
+        if (_audioUnlocked) {
+            document.removeEventListener('click', warmupOnce, true);
+            document.removeEventListener('touchstart', warmupOnce, true);
+            document.removeEventListener('pointerdown', warmupOnce, true);
+            document.removeEventListener('keydown', warmupOnce, true);
+        }
+    });
 };
 document.addEventListener('click', warmupOnce, true);
 document.addEventListener('touchstart', warmupOnce, true);
+document.addEventListener('pointerdown', warmupOnce, true);
 document.addEventListener('keydown', warmupOnce, true);
 
 // Helper to create and play a sound using Web Audio API
