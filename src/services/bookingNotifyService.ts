@@ -174,6 +174,33 @@ export const bookingNotifyService = {
         }
     },
 
+    async sendSeriesConfirmationPreview(
+        confirmedBookings: Booking[],
+        unavailableBookings: Booking[],
+        lang: 'vi' | 'en'
+    ): Promise<void> {
+        try {
+            const settings = await settingsService.getAppSettings();
+            const allBookings = [...confirmedBookings, ...unavailableBookings];
+            if (allBookings.length === 0) return;
+
+            const normalizedConfirmed = confirmedBookings.map(booking => ({ ...booking, lang }));
+            const normalizedUnavailable = unavailableBookings.map(booking => ({
+                ...booking,
+                lang,
+                capacityFull: true,
+            }));
+
+            await emailNotificationService.sendBatchConfirmation(normalizedConfirmed, settings, {
+                unavailableBookings: normalizedUnavailable,
+                lang,
+            });
+        } catch (err) {
+            console.warn('[BookingNotify] sendSeriesConfirmationPreview failed:', err);
+            throw err;
+        }
+    },
+
     _queueCustomerConfirmation(booking: Booking, oldStatus?: BookingStatus, newStatus?: BookingStatus): void {
         const key = getBookingBatchKey(booking);
         const existing = confirmationBatches.get(key);

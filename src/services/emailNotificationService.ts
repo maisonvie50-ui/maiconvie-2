@@ -102,20 +102,25 @@ export const emailNotificationService = {
     /**
      * Gửi một email xác nhận tổng hợp cho nhiều booking cùng email đối tác/khách.
      */
-    async sendBatchConfirmation(bookings: Booking[], settings?: any): Promise<void> {
+    async sendBatchConfirmation(bookings: Booking[], settings?: any, options?: { unavailableBookings?: Booking[]; lang?: 'vi' | 'en' }): Promise<void> {
         try {
             const s = settings || await settingsService.getAppSettings();
             if (!s?.smtpEnabled) return;
             if (!s?.sendCustomerEmail) return;
 
-            const validBookings = bookings.filter(b => normalizeEmail(b.email));
+            const allBookings = [...bookings, ...(options?.unavailableBookings || [])];
+            const validBookings = allBookings.filter(b => normalizeEmail(b.email));
             if (validBookings.length === 0) return;
 
             const targetEmail = normalizeEmail(validBookings[0].email);
-            const sameRecipientBookings = validBookings.filter(b => normalizeEmail(b.email) === targetEmail);
-            if (!targetEmail || sameRecipientBookings.length === 0) return;
+            const sameRecipientConfirmed = bookings.filter(b => normalizeEmail(b.email) === targetEmail);
+            const sameRecipientUnavailable = (options?.unavailableBookings || []).filter(b => normalizeEmail(b.email) === targetEmail);
+            if (!targetEmail || (sameRecipientConfirmed.length === 0 && sameRecipientUnavailable.length === 0)) return;
 
-            const template = emailTemplateService.buildBatchConfirmation(sameRecipientBookings);
+            const template = emailTemplateService.buildBatchConfirmation(sameRecipientConfirmed, {
+                unavailableBookings: sameRecipientUnavailable,
+                lang: options?.lang,
+            });
             await this._sendViaApi({
                 to: targetEmail,
                 ...template,

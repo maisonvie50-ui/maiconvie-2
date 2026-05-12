@@ -145,6 +145,7 @@ export const bookingService = {
             changeRequestData: b.change_request_data || b.changeRequestData || undefined,
             lang: b.lang || 'vi',
             createdAt: b.created_at,
+            capacityFull: !!b.capacity_full,
         })) as Booking[];
     },
 
@@ -192,6 +193,7 @@ export const bookingService = {
                 linked_table_names: booking.linked_table_names || [],
                 customer_id: customerId, // Liên kết với CRM
                 lang: booking.lang || 'vi',
+                capacity_full: !!booking.capacityFull,
             })
             .select()
             .single();
@@ -221,6 +223,7 @@ export const bookingService = {
             linked_table_ids: data.linked_table_ids || [],
             linked_table_names: data.linked_table_names || [],
             lang: data.lang || 'vi',
+            capacityFull: !!data.capacity_full,
         } as Booking;
 
         // Fire-and-forget: thông báo booking mới qua webhook/email
@@ -497,6 +500,7 @@ export const bookingService = {
         if (updates.tableId !== undefined) dbUpdates.table_id = updates.tableId || null;
         if (updates.tableName !== undefined) dbUpdates.table_name = updates.tableName || null;
         if (updates.bookingCode !== undefined) dbUpdates.booking_code = updates.bookingCode;
+        if (updates.capacityFull !== undefined) dbUpdates.capacity_full = updates.capacityFull;
         if (updates.linked_table_ids !== undefined) dbUpdates.linked_table_ids = updates.linked_table_ids;
         if (updates.linked_table_names !== undefined) dbUpdates.linked_table_names = updates.linked_table_names;
 
@@ -560,6 +564,31 @@ export const bookingService = {
             } catch (err) {
                 console.error('Error syncing table update:', err);
             }
+        }
+    },
+
+    async updateBookingCapacityFull(id: string, capacityFull: boolean) {
+        const { error } = await supabase
+            .from('bookings')
+            .update({ capacity_full: capacityFull, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating booking capacity flag:', error);
+            throw error;
+        }
+    },
+
+    async bulkUpdateCapacityFull(ids: string[], capacityFull: boolean) {
+        if (ids.length === 0) return;
+        const { error } = await supabase
+            .from('bookings')
+            .update({ capacity_full: capacityFull, updated_at: new Date().toISOString() })
+            .in('id', ids);
+
+        if (error) {
+            console.error('Error bulk updating capacity flag:', error);
+            throw error;
         }
     },
 
@@ -682,7 +711,8 @@ export const bookingService = {
             linked_table_ids: b.linked_table_ids || [],
             linked_table_names: b.linked_table_names || [],
             changeRequestData: b.change_request_data || b.changeRequestData || undefined,
-            createdAt: b.created_at
+            createdAt: b.created_at,
+            capacityFull: !!b.capacity_full
         })) as (Booking & { createdAt?: string })[];
     },
 
@@ -735,7 +765,8 @@ export const bookingService = {
             linked_table_ids: b.linked_table_ids || [],
             linked_table_names: b.linked_table_names || [],
             createdAt: b.created_at,
-            changeRequestData: b.change_request_data
+            changeRequestData: b.change_request_data,
+            capacityFull: !!b.capacity_full
         })) as (Booking & { createdAt?: string; changeRequestData?: any })[];
     },
 

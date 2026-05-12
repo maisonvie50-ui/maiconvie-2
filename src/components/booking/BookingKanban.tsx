@@ -42,6 +42,7 @@ import CheckoutModal from './CheckoutModal'; // Added CheckoutModal import
 import { settingsService } from '../../services/settingsService';
 import { tableService } from '../../services/tableService';
 import { notificationService } from '../../services/notificationService';
+import { bookingNotifyService } from '../../services/bookingNotifyService';
 import { menuService } from '../../services/menuService';
 import { Table } from '../../types';
 
@@ -102,6 +103,16 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [filterCustomerType, setFilterCustomerType] = useState<'all' | 'tour' | 'retail'>('all');
   const [expandedSeriesKeys, setExpandedSeriesKeys] = useState<Record<string, boolean>>({});
   const [confirmingSeriesKey, setConfirmingSeriesKey] = useState<string | null>(null);
+  const [seriesPreview, setSeriesPreview] = useState<{
+    open: boolean;
+    bookings: Booking[];
+    partner: string;
+    email: string;
+    seriesKey: string;
+    fullIds: Set<string>;
+    lang: 'vi' | 'en';
+    sending: boolean;
+  } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   // View & Filter States
@@ -624,7 +635,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleConfirmSeries(series.bookings);
+                  handleOpenSeriesPreview(series.bookings);
                 }}
                 className={`flex-1 px-3 py-2 rounded-xl text-white text-xs font-black shadow-lg transition-colors ${confirmingSeriesKey === series.key
                   ? 'bg-slate-400 shadow-slate-200 cursor-wait'
@@ -672,6 +683,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                             {statusConfig.label}
                           </span>
                         )}
+                        {booking.capacityFull && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-100 text-red-600 whitespace-nowrap">🚫 Hết bàn</span>
+                        )}
                         {/* Quick action menu */}
                         <div className="relative" data-dropdown-root="true">
                           <button
@@ -690,6 +704,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                 <div className="h-px bg-gray-100 my-1"></div>
                                 <button onClick={() => { handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
                                 <button onClick={() => { handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
+                                <div className="h-px bg-gray-100 my-1"></div>
+                                <button onClick={async () => { const newVal = !booking.capacityFull; setBookings(cur => cur.map(b => b.id === booking.id ? { ...b, capacityFull: newVal } : b)); bookingService.updateBookingCapacityFull(booking.id, newVal).catch(() => fetchBookings()); setStatusDropdownId(null); }} className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-1.5 ${booking.capacityFull ? 'hover:bg-emerald-50 hover:text-emerald-700' : 'hover:bg-red-50 hover:text-red-700'}`}>{booking.capacityFull ? '✅ Bỏ hết bàn' : '🚫 Đánh dấu hết bàn'}</button>
                               </div>
                             </>
                           )}
@@ -935,7 +951,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     }
   };
 
-  const handleConfirmSeries = async (seriesBookings: Booking[]) => {
+  const handleOpenSeriesPreview = (seriesBookings: Booking[]) => {
     const actionableStatuses: BookingStatus[] = ['new', 'pending', 'waiting_info', 'change_requested'];
     const targets = seriesBookings.filter(booking => actionableStatuses.includes(booking.status));
     const seriesKey = targets[0] ? getBookingSeriesKey(targets[0]) : getBookingSeriesKey(seriesBookings[0]);
@@ -947,33 +963,80 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       return;
     }
 
-    const ok = window.confirm(`Chốt ${targets.length} đơn trong nhóm này? Hệ thống sẽ gom email xác nhận thành 1 email tổng hợp.`);
-    if (!ok) return;
+    const partner = getBookingPartner(targets[0]);
+    const email = targets[0].email || '';
+    const existingFullIds = new Set(targets.filter(b => b.capacityFull).map(b => b.id));
 
+    setSeriesPreview({
+      open: true,
+      bookings: targets,
+      partner,
+      email,
+      seriesKey,
+      fullIds: existingFullIds,
+      lang: (targets[0]?.lang as 'vi' | 'en') || 'vi',
+      sending: false,
+    });
+  };
+
+  const handleConfirmSeriesFromPreview = async () => {
+    if (!seriesPreview || seriesPreview.sending) return;
+
+    const { bookings: targets, fullIds, lang, seriesKey } = seriesPreview;
+    const confirmedTargets = targets.filter(b => !fullIds.has(b.id));
+    const fullTargets = targets.filter(b => fullIds.has(b.id));
+
+    setSeriesPreview(prev => prev ? { ...prev, sending: true } : null);
     setConfirmingSeriesKey(seriesKey);
-    setBookings(current => current.map(booking =>
-      targets.some(target => target.id === booking.id)
-        ? { ...booking, status: 'confirmed' as BookingStatus, confirmationSeriesKey: seriesKey }
-        : booking
-    ));
 
-    const results = await Promise.allSettled(
-      targets.map(target => bookingService.updateBookingStatus(target.id, 'confirmed', seriesKey))
-    );
+    // Optimistic UI update
+    setBookings(current => current.map(booking => {
+      if (confirmedTargets.some(t => t.id === booking.id)) {
+        return { ...booking, status: 'confirmed' as BookingStatus, confirmationSeriesKey: seriesKey, capacityFull: false };
+      }
+      if (fullTargets.some(t => t.id === booking.id)) {
+        return { ...booking, capacityFull: true };
+      }
+      return booking;
+    }));
 
-    const successCount = results.filter(result => result.status === 'fulfilled').length;
-    const failedCount = results.length - successCount;
+    try {
+      // 1. Confirm non-full bookings
+      if (confirmedTargets.length > 0) {
+        const results = await Promise.allSettled(
+          confirmedTargets.map(t => bookingService.updateBookingStatus(t.id, 'confirmed', seriesKey))
+        );
+        const failedCount = results.filter(r => r.status === 'rejected').length;
+        if (failedCount > 0) {
+          alert(`${failedCount} đơn xác nhận bị lỗi. Vui lòng kiểm tra lại.`);
+        }
+      }
 
-    await fetchBookings();
-    setExpandedSeriesKeys(current => ({ ...current, [seriesKey]: true }));
-    setConfirmingSeriesKey(null);
+      // 2. Mark full bookings
+      if (fullTargets.length > 0) {
+        await bookingService.bulkUpdateCapacityFull(fullTargets.map(b => b.id), true);
+      }
 
-    if (failedCount > 0) {
-      alert(`Đã chốt ${successCount}/${targets.length} đơn. ${failedCount} đơn lỗi, vui lòng kiểm tra lại.`);
-      return;
+      // 3. Send combined email via preview flow
+      if (confirmedTargets.length > 0 || fullTargets.length > 0) {
+        await bookingNotifyService.sendSeriesConfirmationPreview(
+          confirmedTargets.map(b => ({ ...b, lang })),
+          fullTargets.map(b => ({ ...b, lang, capacityFull: true })),
+          lang
+        );
+      }
+
+      await fetchBookings();
+      setExpandedSeriesKeys(current => ({ ...current, [seriesKey]: true }));
+      alert(`Đã chốt ${confirmedTargets.length} đơn${fullTargets.length > 0 ? `, ${fullTargets.length} đơn hết bàn` : ''}. Email đã gửi.`);
+    } catch (err) {
+      console.error('handleConfirmSeriesFromPreview error:', err);
+      alert('Có lỗi xảy ra khi chốt nhóm.');
+      await fetchBookings();
+    } finally {
+      setConfirmingSeriesKey(null);
+      setSeriesPreview(null);
     }
-
-    alert(`Đã chốt ${successCount} đơn trong nhóm. Email xác nhận sẽ được gom và gửi sau khoảng 10 giây.`);
   };
 
   const handleApproveChangeRequest = async (bookingId: string) => {
@@ -2250,6 +2313,9 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                       {isMissingInfo(booking) && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0">!</span>
                                       )}
+                                      {booking.capacityFull && (
+                                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0 whitespace-nowrap">🚫 Hết bàn</span>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-1 flex-shrink-0">
                                       {col.statuses.length > 1 && statusConfig && (
@@ -2277,6 +2343,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                                 <div className="h-px bg-gray-100 my-1"></div>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
+                                                <div className="h-px bg-gray-100 my-1"></div>
+                                                <button onClick={(e) => { e.stopPropagation(); const newVal = !booking.capacityFull; setBookings(cur => cur.map(b => b.id === booking.id ? { ...b, capacityFull: newVal } : b)); bookingService.updateBookingCapacityFull(booking.id, newVal).catch(() => fetchBookings()); setStatusDropdownId(null); }} className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-1.5 ${booking.capacityFull ? 'hover:bg-emerald-50 hover:text-emerald-700' : 'hover:bg-red-50 hover:text-red-700'}`}>{booking.capacityFull ? '✅ Bỏ hết bàn' : '🚫 Đánh dấu hết bàn'}</button>
                                               </div>
                                             </>
                                           )}
@@ -3677,6 +3745,132 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
               >
                 <Edit className="w-4 h-4" />
                 Sửa thông tin đơn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════ SERIES PREVIEW MODAL ═══════ */}
+      {seriesPreview && seriesPreview.open && (
+        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => !seriesPreview.sending && setSeriesPreview(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900">📋 Xem trước chốt nhóm</h2>
+                  <p className="text-sm text-gray-500 mt-1">🏢 {seriesPreview.partner} · 📧 {seriesPreview.email}</p>
+                </div>
+                <button onClick={() => !seriesPreview.sending && setSeriesPreview(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              {/* Language selector */}
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-600">🌐 Ngôn ngữ email:</span>
+                <button
+                  onClick={() => setSeriesPreview(prev => prev ? { ...prev, lang: 'vi' } : null)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${seriesPreview.lang === 'vi' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400'}`}
+                >
+                  🇻🇳 Tiếng Việt
+                </button>
+                <button
+                  onClick={() => setSeriesPreview(prev => prev ? { ...prev, lang: 'en' } : null)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${seriesPreview.lang === 'en' ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400'}`}
+                >
+                  🇬🇧 English
+                </button>
+              </div>
+            </div>
+
+            {/* Booking list */}
+            <div className="p-5">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left">
+                    <th className="pb-2 font-bold text-gray-500 text-xs">Mã đoàn</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs">Ngày</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs">Giờ</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs">Pax</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs text-center">🚫 Hết bàn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {seriesPreview.bookings.map(booking => {
+                    const isFull = seriesPreview.fullIds.has(booking.id);
+                    return (
+                      <tr key={booking.id} className={`border-b border-gray-50 ${isFull ? 'bg-red-50/50' : ''}`}>
+                        <td className={`py-2.5 font-bold ${isFull ? 'text-red-600 line-through' : 'text-gray-900'}`}>
+                          {booking.bookingCode || booking.customerName || '—'}
+                        </td>
+                        <td className="py-2.5 text-gray-600">
+                          {booking.bookingDate ? booking.bookingDate.split('-').reverse().join('/') : '—'}
+                        </td>
+                        <td className="py-2.5 font-bold text-gray-800">{booking.time || '—'}</td>
+                        <td className="py-2.5 text-gray-600">{booking.pax || 0}</td>
+                        <td className="py-2.5 text-center">
+                          <button
+                            onClick={() => {
+                              setSeriesPreview(prev => {
+                                if (!prev) return null;
+                                const newFullIds = new Set(prev.fullIds);
+                                if (newFullIds.has(booking.id)) {
+                                  newFullIds.delete(booking.id);
+                                } else {
+                                  newFullIds.add(booking.id);
+                                }
+                                return { ...prev, fullIds: newFullIds };
+                              });
+                            }}
+                            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center text-sm font-black transition-all ${
+                              isFull
+                                ? 'bg-red-500 border-red-500 text-white'
+                                : 'bg-white border-gray-200 text-gray-300 hover:border-red-400 hover:text-red-400'
+                            }`}
+                          >
+                            {isFull ? '✓' : ''}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Summary */}
+              <div className="mt-4 flex flex-wrap gap-3 text-xs font-black">
+                <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  ✅ Xác nhận: {seriesPreview.bookings.length - seriesPreview.fullIds.size} đơn
+                </span>
+                {seriesPreview.fullIds.size > 0 && (
+                  <span className="px-3 py-1.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+                    🚫 Hết bàn: {seriesPreview.fullIds.size} đơn
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 border-t border-gray-100 flex gap-3 justify-end">
+              <button
+                onClick={() => setSeriesPreview(null)}
+                disabled={seriesPreview.sending}
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmSeriesFromPreview}
+                disabled={seriesPreview.sending || (seriesPreview.bookings.length - seriesPreview.fullIds.size === 0 && seriesPreview.fullIds.size === 0)}
+                className={`px-5 py-2.5 text-sm font-black text-white rounded-xl shadow-lg transition-all ${
+                  seriesPreview.sending
+                    ? 'bg-slate-400 cursor-wait'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200'
+                }`}
+              >
+                {seriesPreview.sending ? 'Đang xử lý...' : `Xác nhận & Gửi email (${seriesPreview.lang === 'vi' ? 'VN' : 'EN'})`}
               </button>
             </div>
           </div>

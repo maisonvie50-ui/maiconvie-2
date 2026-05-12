@@ -403,26 +403,35 @@ export const emailTemplateService = {
     /**
      * 5. Email cho đối tác/khách: Xác nhận nhiều booking cùng lúc
      */
-    buildBatchConfirmation(bookings: Booking[]): EmailTemplate {
-        const first = bookings[0];
-        const lang = first ? getLang(first) : 'vi';
+    buildBatchConfirmation(bookings: Booking[], options?: { unavailableBookings?: Booking[]; lang?: 'vi' | 'en' }): EmailTemplate {
+        const first = bookings[0] || (options?.unavailableBookings || [])[0];
+        const lang = options?.lang || (first ? getLang(first) : 'vi');
         const isVi = lang === 'vi';
-        const sorted = [...bookings].sort((a, b) => {
+        const unavailable = options?.unavailableBookings || [];
+
+        const sortByDate = (list: Booking[]) => [...list].sort((a, b) => {
             const dateCompare = (a.bookingDate || '').localeCompare(b.bookingDate || '');
             if (dateCompare !== 0) return dateCompare;
             return (a.time || '').localeCompare(b.time || '');
         });
 
-        const subject = isVi
-            ? `✅ Xác nhận ${sorted.length} đặt bàn — Maison Vie`
-            : `✅ ${sorted.length} reservations confirmed — Maison Vie`;
-        const title = isVi
-            ? `✅ XÁC NHẬN ${sorted.length} ĐẶT BÀN`
-            : `✅ ${sorted.length} RESERVATIONS CONFIRMED`;
+        const confirmedSorted = sortByDate(bookings);
+        const unavailableSorted = sortByDate(unavailable);
 
-        const rows = sorted.map((booking, index) => `
+        const totalConfirmed = confirmedSorted.length;
+        const totalUnavailable = unavailableSorted.length;
+        const totalAll = totalConfirmed + totalUnavailable;
+
+        const subject = isVi
+            ? `✅ Xác nhận ${totalConfirmed} đặt bàn${totalUnavailable > 0 ? ` (${totalUnavailable} hết bàn)` : ''} — Maison Vie`
+            : `✅ ${totalConfirmed} reservations confirmed${totalUnavailable > 0 ? ` (${totalUnavailable} unavailable)` : ''} — Maison Vie`;
+        const title = isVi
+            ? `✅ XÁC NHẬN ĐẶT BÀN`
+            : `✅ RESERVATIONS UPDATE`;
+
+        const buildTableRows = (list: Booking[], startIndex: number) => list.map((booking, i) => `
             <tr>
-                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textSecondary};font-size:13px;">${index + 1}</td>
+                <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textSecondary};font-size:13px;">${startIndex + i + 1}</td>
                 <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;font-weight:700;">${esc(booking.bookingCode || booking.customerName || '—')}</td>
                 <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;">${esc(formatDate(booking.bookingDate))}</td>
                 <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;color:${BRAND.textPrimary};font-size:13px;font-weight:700;">${esc(booking.time || '—')}</td>
@@ -432,43 +441,98 @@ export const emailTemplateService = {
             </tr>
         `).join('');
 
-        const intro = isVi
-            ? `Chào ${first?.customerName || 'Quý đối tác'},<br/><br/>Maison Vie xác nhận các đặt bàn dưới đây đã được ghi nhận thành công.`
-            : `Dear ${first?.customerName || 'Partner'},<br/><br/>Maison Vie confirms that the reservations below have been successfully confirmed.`;
+        const tableHeaders = `
+            <thead>
+                <tr style="background:#f8fafc;">
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">#</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Code</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Ngày' : 'Date'}</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Giờ' : 'Time'}</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Pax</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Bàn' : 'Table'}</th>
+                    <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Menu</th>
+                </tr>
+            </thead>`;
 
-        const html = wrapHtml(title, BRAND.green, `
+        const partnerName = first?.customerName || (isVi ? 'Quý đối tác' : 'Partner');
+        const intro = isVi
+            ? `Chào ${partnerName},<br/><br/>Maison Vie xin gửi xác nhận đặt bàn cho các đoàn dưới đây.`
+            : `Dear ${partnerName},<br/><br/>Maison Vie would like to confirm the reservations listed below.`;
+
+        // Confirmed section
+        let confirmedSection = '';
+        if (totalConfirmed > 0) {
+            const sectionTitle = isVi
+                ? `✅ Các đoàn đã xác nhận (${totalConfirmed})`
+                : `✅ Confirmed groups (${totalConfirmed})`;
+            confirmedSection = `
+                <h3 style="margin:20px 0 10px;font-size:15px;color:${BRAND.green};">${sectionTitle}</h3>
+                <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid ${BRAND.border};border-radius:12px;overflow:hidden;">
+                    ${tableHeaders}
+                    <tbody>${buildTableRows(confirmedSorted, 0)}</tbody>
+                </table>`;
+        }
+
+        // Unavailable section
+        let unavailableSection = '';
+        if (totalUnavailable > 0) {
+            const sectionTitle = isVi
+                ? `🚫 Các đoàn hiện chưa thể nhận do hết bàn (${totalUnavailable})`
+                : `🚫 Groups currently unavailable due to full capacity (${totalUnavailable})`;
+            const noteText = isVi
+                ? 'Chúng tôi rất tiếc vì hiện không đủ bàn cho các đoàn trên. Xin vui lòng liên hệ để sắp xếp lại.'
+                : 'We regret that we are currently unable to accommodate the groups above. Please contact us to rearrange.';
+            unavailableSection = `
+                <h3 style="margin:24px 0 10px;font-size:15px;color:${BRAND.red};">${sectionTitle}</h3>
+                <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #fecaca;border-radius:12px;overflow:hidden;">
+                    ${tableHeaders}
+                    <tbody>${buildTableRows(unavailableSorted, totalConfirmed)}</tbody>
+                </table>
+                <div style="margin-top:10px;padding:12px 16px;background:#fef2f2;border-radius:10px;border:1px solid #fecaca;">
+                    <p style="margin:0;font-size:13px;color:#991b1b;line-height:1.6;">${noteText}</p>
+                </div>`;
+        }
+
+        const footerText = isVi
+            ? 'Vui lòng kiểm tra lại danh sách đoàn. Nếu có thay đổi/hủy đoàn, vui lòng phản hồi để Maison Vie cập nhật.'
+            : 'Please review the list above. If there are any changes or cancellations, kindly reply so Maison Vie can update accordingly.';
+
+        const html = wrapHtml(title, totalUnavailable > 0 ? BRAND.amber : BRAND.green, `
             <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:${BRAND.textPrimary};">${intro}</p>
-            <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid ${BRAND.border};border-radius:12px;overflow:hidden;">
-                <thead>
-                    <tr style="background:#f8fafc;">
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">#</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Code</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Ngày' : 'Date'}</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Giờ' : 'Time'}</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Pax</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">${isVi ? 'Bàn' : 'Table'}</th>
-                        <th style="padding:10px 12px;text-align:left;color:${BRAND.textSecondary};font-size:12px;">Menu</th>
-                    </tr>
-                </thead>
-                <tbody>${rows}</tbody>
-            </table>
+            ${confirmedSection}
+            ${unavailableSection}
             <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:${BRAND.textSecondary};">
-                ${isVi ? 'Vui lòng kiểm tra lại danh sách đoàn. Nếu có thay đổi/hủy đoàn, vui lòng phản hồi để Maison Vie cập nhật.' : 'Please review the list above. If there are any changes or cancellations, kindly reply so Maison Vie can update accordingly.'}
+                ${footerText}
             </p>
         `, lang);
 
-        const textRows = sorted.map((booking, index) =>
-            `${index + 1}. ${booking.bookingCode || booking.customerName || '—'} | ${formatDate(booking.bookingDate)} ${booking.time || '—'} | ${booking.pax || 0} pax | ${tableInfo(booking, lang)} | ${formatMenus(booking, lang)}`
+        // Plain text version
+        const buildTextRows = (list: Booking[], startIndex: number) => list.map((booking, i) =>
+            `${startIndex + i + 1}. ${booking.bookingCode || booking.customerName || '—'} | ${formatDate(booking.bookingDate)} ${booking.time || '—'} | ${booking.pax || 0} pax | ${tableInfo(booking, lang)} | ${formatMenus(booking, lang)}`
         );
-        const text = [
+
+        const textLines = [
             title,
             '',
-            isVi ? 'Maison Vie xác nhận các đặt bàn dưới đây:' : 'Maison Vie confirms the reservations below:',
+            isVi ? 'Maison Vie xin gửi xác nhận đặt bàn:' : 'Maison Vie reservation confirmation:',
             '',
-            ...textRows,
-            '',
-            isVi ? 'Nếu có thay đổi/hủy đoàn, vui lòng phản hồi email này.' : 'If there are any changes or cancellations, please reply to this email.',
-        ].join('\n');
+        ];
+
+        if (totalConfirmed > 0) {
+            textLines.push(isVi ? `--- ĐÃ XÁC NHẬN (${totalConfirmed}) ---` : `--- CONFIRMED (${totalConfirmed}) ---`);
+            textLines.push(...buildTextRows(confirmedSorted, 0));
+            textLines.push('');
+        }
+
+        if (totalUnavailable > 0) {
+            textLines.push(isVi ? `--- HẾT BÀN (${totalUnavailable}) ---` : `--- FULL CAPACITY (${totalUnavailable}) ---`);
+            textLines.push(...buildTextRows(unavailableSorted, totalConfirmed));
+            textLines.push('');
+        }
+
+        textLines.push(footerText);
+
+        const text = textLines.join('\n');
 
         return { subject, html, text };
     },
