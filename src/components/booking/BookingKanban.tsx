@@ -3787,14 +3787,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
             {/* Booking list */}
             <div className="p-5">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead>
                   <tr className="border-b border-gray-200 text-left">
-                    <th className="pb-2 font-bold text-gray-500 text-xs">Mã đoàn</th>
-                    <th className="pb-2 font-bold text-gray-500 text-xs">Ngày</th>
-                    <th className="pb-2 font-bold text-gray-500 text-xs">Giờ</th>
-                    <th className="pb-2 font-bold text-gray-500 text-xs">Pax</th>
-                    <th className="pb-2 font-bold text-gray-500 text-xs text-center">🚫 Hết bàn</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs w-[30%]">Mã đoàn</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs w-[22%]">Ngày</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs w-[12%]">Giờ</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs w-[10%]">Pax</th>
+                    <th className="pb-2 font-bold text-gray-500 text-xs text-center w-[26%]">🚫 Hết bàn</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3824,7 +3824,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                 return { ...prev, fullIds: newFullIds };
                               });
                             }}
-                            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center text-sm font-black transition-all ${
+                            className={`mx-auto w-7 h-7 rounded-lg border-2 flex items-center justify-center text-sm font-black transition-all ${
                               isFull
                                 ? 'bg-red-500 border-red-500 text-white'
                                 : 'bg-white border-gray-200 text-gray-300 hover:border-red-400 hover:text-red-400'
