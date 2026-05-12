@@ -656,6 +656,16 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             {col.id === 'col_action' && (
               <button
                 onClick={() => {
+                  const rawDate = series.receivedDate;
+                  let dummyCreatedAtStr = '';
+                  if (rawDate && rawDate !== 'unknown') {
+                    const [year, month, day] = rawDate.split('-');
+                    if (year && month && day) {
+                      const dummyDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+                      dummyCreatedAtStr = dummyDate.toISOString();
+                    }
+                  }
+
                   setEditingId(null);
                   const partnerName = series.partner;
                   const partnerNotes: string[] = [];
@@ -672,7 +682,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     notes: partnerNotes,
                     source: 'email',
                     customerType: 'tour',
-                    seriesGroupKey: series.key, // Ép đơn vào đúng nhóm series này
+                    createdAt: dummyCreatedAtStr || undefined, // Hack: dùng createdAt để ghép nhóm mà không cần thêm cột DB
                   });
                   setShowModal(true);
                 }}
@@ -1210,7 +1220,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           bookingCode: newBooking.bookingCode,
           linked_table_ids: newBooking.linked_table_ids,
           linked_table_names: newBooking.linked_table_names,
-          seriesGroupKey: newBooking.seriesGroupKey
+          seriesGroupKey: newBooking.seriesGroupKey,
+          createdAt: newBooking.createdAt // Truyền createdAt xuống để ép nhóm
         };
 
         const created = await bookingService.createBooking(bookingData);
