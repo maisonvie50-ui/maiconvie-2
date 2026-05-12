@@ -20,6 +20,7 @@ export interface Booking {
   lang?: 'vi' | 'en';
   createdAt?: string;
   confirmationSeriesKey?: string;
+  seriesGroupKey?: string;
   capacityFull?: boolean;
   linked_table_ids?: string[];
   linked_table_names?: string[];

@@ -146,6 +146,7 @@ export const bookingService = {
             lang: b.lang || 'vi',
             createdAt: b.created_at,
             capacityFull: !!b.capacity_full,
+            seriesGroupKey: b.series_group_key || undefined,
         })) as Booking[];
     },
 
@@ -195,6 +196,7 @@ export const bookingService = {
                 customer_id: customerId, // Liên kết với CRM
                 lang: booking.lang || 'vi',
                 capacity_full: !!booking.capacityFull,
+                series_group_key: booking.seriesGroupKey || null,
             })
             .select()
             .single();

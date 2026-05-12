@@ -479,6 +479,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   };
 
   const getBookingSeriesKey = (booking: Booking): string => {
+    // Nếu đơn có seriesGroupKey (ví dụ: thêm thủ công qua "Đơn phụ"), ưu tiên dùng key này
+    if (booking.seriesGroupKey) return booking.seriesGroupKey;
     const partner = normalizeSeriesValue(getBookingPartner(booking));
     const email = normalizeSeriesValue(booking.email || 'no-email');
     const receivedDate = getBookingReceivedDate(booking);
@@ -653,16 +655,6 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             </button>
             <button
               onClick={() => {
-                const rawDate = series.receivedDate;
-                let dummyCreatedAtStr = '';
-                if (rawDate && rawDate !== 'unknown') {
-                  const [year, month, day] = rawDate.split('-');
-                  if (year && month && day) {
-                    const dummyDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
-                    dummyCreatedAtStr = dummyDate.toISOString();
-                  }
-                }
-                
                 setEditingId(null);
                 const partnerName = series.partner;
                 const partnerNotes: string[] = [];
@@ -679,7 +671,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   notes: partnerNotes,
                   source: 'email',
                   customerType: 'tour',
-                  createdAt: dummyCreatedAtStr || undefined
+                  seriesGroupKey: series.key, // Ép đơn vào đúng nhóm series này
                 });
                 setShowModal(true);
               }}
