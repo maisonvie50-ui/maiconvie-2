@@ -107,6 +107,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   // View & Filter States
   const [viewMode, setViewMode] = useState<'kanban' | 'table' | 'overview'>('kanban');
   const [dateFilterMode, setDateFilterMode] = useState<'day' | 'week' | 'month'>('day');
+  const switchViewMode = (mode: 'kanban' | 'table' | 'overview') => {
+    setViewMode(mode);
+    if (mode === 'table') {
+      setDateFilterMode('month');
+    }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeStatusTab, setActiveStatusTab] = useState<'action_needed' | 'upcoming' | 'active' | 'done'>('action_needed');
@@ -2240,14 +2246,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                       {booking.customerType === 'retail' && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">A la carte</span>
                                       )}
-                                      {booking.bookingCode && (
-                                        <span
-                                          className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-gray-50 text-gray-600 border border-gray-200 flex-shrink-0 max-w-[96px] truncate"
-                                          title={`Mã booking: ${booking.bookingCode}`}
-                                        >
-                                          {booking.bookingCode}
-                                        </span>
-                                      )}
+
                                       {isMissingInfo(booking) && (
                                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-600 flex-shrink-0">!</span>
                                       )}
@@ -2261,7 +2260,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
                                       {/* Quick Status Action Menu for 'action_needed' column */}
                                       {col.id === 'col_action' && (
-                                        <div className="relative">
+                                        <div className="relative" data-dropdown-root="true">
                                           <button
                                             onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === booking.id ? null : booking.id); }}
                                             className="text-gray-300 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
@@ -2273,11 +2272,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                             <>
                                               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
                                               <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => { handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
-                                                <button onClick={() => { handleStatusChange(booking.id, 'change_requested'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Đổi giờ/ngày</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'change_requested'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Đổi giờ/ngày</button>
                                                 <div className="h-px bg-gray-100 my-1"></div>
-                                                <button onClick={() => { handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
-                                                <button onClick={() => { handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'cancelled'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><Ban className="w-3 h-3" /> Đã hủy</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'no_show'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-red-50 hover:text-red-700 flex items-center gap-1.5"><UserX className="w-3 h-3" /> Không đến</button>
                                               </div>
                                             </>
                                           )}
@@ -2600,21 +2599,21 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           {/* View Toggles */}
           <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
             <button
-              onClick={() => setViewMode('kanban')}
+              onClick={() => switchViewMode('kanban')}
               className={`p-1.5 rounded-md transition-all ${viewMode === 'kanban' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
               title="Kanban"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setViewMode('table')}
+              onClick={() => switchViewMode('table')}
               className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
               title="Bảng"
             >
               <List className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setViewMode('overview')}
+              onClick={() => switchViewMode('overview')}
               className={`p-1.5 rounded-md transition-all ${viewMode === 'overview' ? 'bg-white shadow-sm text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}
               title="Tổng quan ngày"
             >
