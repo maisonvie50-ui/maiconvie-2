@@ -1207,7 +1207,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           tableName: assignedTableName,
           bookingCode: newBooking.bookingCode,
           linked_table_ids: newBooking.linked_table_ids,
-          linked_table_names: newBooking.linked_table_names
+          linked_table_names: newBooking.linked_table_names,
+          seriesGroupKey: newBooking.seriesGroupKey
         };
 
         const created = await bookingService.createBooking(bookingData);
