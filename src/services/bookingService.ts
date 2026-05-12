@@ -181,6 +181,7 @@ export const bookingService = {
                 booking_date: booking.bookingDate,
                 pax: booking.pax,
                 status: booking.status,
+                created_at: booking.createdAt,
                 notes: booking.notes,
                 area: booking.area,
                 source: booking.source,

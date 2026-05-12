@@ -647,9 +647,39 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             )}
             <button
               onClick={() => setExpandedSeriesKeys(current => ({ ...current, [series.key]: !isExpanded }))}
-              className="px-3 py-2 rounded-xl bg-white text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-50 transition-colors"
+              className="px-3 py-2 rounded-xl bg-white text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-50 transition-colors whitespace-nowrap"
             >
               {isExpanded ? 'Thu gọn' : 'Mở danh sách'}
+            </button>
+            <button
+              onClick={() => {
+                const rawDate = series.receivedDate;
+                let dummyCreatedAtStr = '';
+                if (rawDate && rawDate !== 'unknown') {
+                  const [year, month, day] = rawDate.split('-');
+                  if (year && month && day) {
+                    const dummyDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
+                    dummyCreatedAtStr = dummyDate.toISOString();
+                  }
+                }
+                
+                setEditingId(null);
+                setNewBooking({
+                  customerName: series.partner !== 'Khách lẻ' ? series.partner : '',
+                  email: series.email !== 'Chưa có email' && series.email !== 'no-email' ? series.email : '',
+                  phone: '',
+                  time: '',
+                  pax: 0,
+                  status: 'new',
+                  customerType: filterCustomerType === 'tour' ? 'tour' : undefined,
+                  createdAt: dummyCreatedAtStr || undefined
+                });
+                setShowModal(true);
+              }}
+              className="px-3 py-2 rounded-xl bg-violet-50 text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap shadow-sm"
+              title="Thêm đơn mới vào nhóm này"
+            >
+              + Đơn phụ
             </button>
           </div>
         </div>
