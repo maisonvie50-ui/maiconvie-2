@@ -698,7 +698,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                           {statusDropdownId === `series-${booking.id}` && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
-                              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
+                              <div className="absolute right-0 top-full mt-1 w-max min-w-[10rem] bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => { handleStatusChange(booking.id, 'confirmed'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5"><CheckCircle className="w-3 h-3" /> Xác nhận</button>
                                 <button onClick={() => { handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
                                 <div className="h-px bg-gray-100 my-1"></div>
@@ -2337,7 +2337,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                           {statusDropdownId === booking.id && (
                                             <>
                                               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
-                                              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
+                                              <div className="absolute right-0 top-full mt-1 w-max min-w-[10rem] bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'change_requested'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Đổi giờ/ngày</button>
                                                 <div className="h-px bg-gray-100 my-1"></div>
