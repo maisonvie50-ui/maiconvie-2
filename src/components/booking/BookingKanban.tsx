@@ -2869,7 +2869,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       {/* Add Booking Modal (Shared) */}
       {showModal && (
         <div
-          className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm md:p-4"
+          className="fixed inset-0 z-[120] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm md:p-4"
           onClick={() => setShowModal(false)}
         >
           <div
@@ -3531,7 +3531,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       {/* Booking Details Read-Only Modal */}
       {viewingBooking && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={() => setViewingBooking(null)}
         >
           <div
