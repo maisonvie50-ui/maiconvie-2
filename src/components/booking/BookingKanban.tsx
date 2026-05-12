@@ -653,33 +653,35 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
             >
               {isExpanded ? 'Thu gọn' : 'Mở danh sách'}
             </button>
-            <button
-              onClick={() => {
-                setEditingId(null);
-                const partnerName = series.partner;
-                const partnerNotes: string[] = [];
-                if (partnerName && partnerName !== 'Khách lẻ' && partnerName !== 'Khác / Chưa rõ đối tác') {
-                  partnerNotes.push(`Đối tác: ${partnerName}`);
-                }
-                setNewBooking({
-                  customerName: '',
-                  email: series.email !== 'Chưa có email' && series.email !== 'no-email' ? series.email : '',
-                  phone: '',
-                  time: '',
-                  pax: 0,
-                  status: 'new',
-                  notes: partnerNotes,
-                  source: 'email',
-                  customerType: 'tour',
-                  seriesGroupKey: series.key, // Ép đơn vào đúng nhóm series này
-                });
-                setShowModal(true);
-              }}
-              className="px-3 py-2 rounded-xl bg-violet-50 text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap shadow-sm"
-              title="Thêm đơn mới vào nhóm này"
-            >
-              + Đơn phụ
-            </button>
+            {col.id === 'col_action' && (
+              <button
+                onClick={() => {
+                  setEditingId(null);
+                  const partnerName = series.partner;
+                  const partnerNotes: string[] = [];
+                  if (partnerName && partnerName !== 'Khách lẻ' && partnerName !== 'Khác / Chưa rõ đối tác') {
+                    partnerNotes.push(`Đối tác: ${partnerName}`);
+                  }
+                  setNewBooking({
+                    customerName: '',
+                    email: series.email !== 'Chưa có email' && series.email !== 'no-email' ? series.email : '',
+                    phone: '',
+                    time: '',
+                    pax: 0,
+                    status: 'new',
+                    notes: partnerNotes,
+                    source: 'email',
+                    customerType: 'tour',
+                    seriesGroupKey: series.key, // Ép đơn vào đúng nhóm series này
+                  });
+                  setShowModal(true);
+                }}
+                className="px-3 py-2 rounded-xl bg-violet-50 text-violet-700 text-xs font-black border border-violet-200 hover:bg-violet-100 transition-colors whitespace-nowrap shadow-sm"
+                title="Thêm đơn mới vào nhóm này"
+              >
+                + Đơn phụ
+              </button>
+            )}
           </div>
         </div>
 
