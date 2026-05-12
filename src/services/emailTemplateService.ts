@@ -326,7 +326,8 @@ export const emailTemplateService = {
         const lang = getLang(booking);
         let subject = SUBJECT[lang].confirmed;
         const code = booking.bookingCode || booking.customerName;
-        if (booking.customerType === 'tour' && code && code !== 'Khách lẻ') {
+        
+        if (code && code !== 'Khách lẻ') {
             subject += ` - ${code}`;
         }
 
