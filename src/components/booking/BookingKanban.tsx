@@ -594,7 +594,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     return (
       <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-white via-violet-50/50 to-indigo-50/60 shadow-sm overflow-visible ring-1 ring-violet-100/70">
-        <div className="p-3.5 border-b border-violet-100 bg-white/75 backdrop-blur">
+        <div className="p-3.5 border-b border-violet-100 bg-white/75 backdrop-blur rounded-t-2xl">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
