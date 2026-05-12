@@ -664,14 +664,21 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 }
                 
                 setEditingId(null);
+                const partnerName = series.partner;
+                const partnerNotes: string[] = [];
+                if (partnerName && partnerName !== 'Khách lẻ' && partnerName !== 'Khác / Chưa rõ đối tác') {
+                  partnerNotes.push(`Đối tác: ${partnerName}`);
+                }
                 setNewBooking({
-                  customerName: series.partner !== 'Khách lẻ' ? series.partner : '',
+                  customerName: '',
                   email: series.email !== 'Chưa có email' && series.email !== 'no-email' ? series.email : '',
                   phone: '',
                   time: '',
                   pax: 0,
                   status: 'new',
-                  customerType: filterCustomerType === 'tour' ? 'tour' : undefined,
+                  notes: partnerNotes,
+                  source: 'email',
+                  customerType: 'tour',
                   createdAt: dummyCreatedAtStr || undefined
                 });
                 setShowModal(true);
