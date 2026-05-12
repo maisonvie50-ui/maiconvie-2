@@ -325,8 +325,9 @@ export const emailTemplateService = {
     buildCustomerConfirmation(booking: Booking, config?: EmailTemplatesConfig): EmailTemplate {
         const lang = getLang(booking);
         let subject = SUBJECT[lang].confirmed;
-        if (booking.customerType === 'tour' && booking.bookingCode) {
-            subject += ` - ${booking.bookingCode}`;
+        const code = booking.bookingCode || booking.customerName;
+        if (booking.customerType === 'tour' && code && code !== 'Khách lẻ') {
+            subject += ` - ${code}`;
         }
 
         const bodyText = config?.customerConfirmBody
