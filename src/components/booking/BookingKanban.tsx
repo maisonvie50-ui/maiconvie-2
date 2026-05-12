@@ -580,7 +580,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     const displayBookings = isExpanded ? series.bookings : series.bookings.slice(0, 3);
 
     return (
-      <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-white via-violet-50/50 to-indigo-50/60 shadow-sm overflow-hidden ring-1 ring-violet-100/70">
+      <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-white via-violet-50/50 to-indigo-50/60 shadow-sm overflow-visible ring-1 ring-violet-100/70">
         <div className="p-3.5 border-b border-violet-100 bg-white/75 backdrop-blur">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -597,7 +597,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 <span className="px-2 py-1 rounded-full bg-white text-emerald-700 border border-emerald-100">{fullSeries.totalPax} pax</span>
               </div>
             </div>
-            <span className="text-[10px] font-black text-violet-500 bg-violet-100 px-2 py-1 rounded-full">SERIES #{index + 1}</span>
+            <span className="text-[10px] font-black text-violet-500 bg-violet-100 px-2 py-1 rounded-full whitespace-nowrap">SERIES #{index + 1}</span>
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
