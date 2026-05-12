@@ -627,7 +627,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           </div>
 
           <div className="mt-3 flex gap-2">
-            {actionCount > 0 && (
+            {col.id === 'col_action' && actionCount > 0 && (
               <button
                 type="button"
                 disabled={confirmingSeriesKey === series.key}
