@@ -3801,7 +3801,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                   {seriesPreview.bookings.map(booking => {
                     const isFull = seriesPreview.fullIds.has(booking.id);
                     return (
-                      <tr key={booking.id} className={`border-b border-gray-50 ${isFull ? 'bg-red-50/50' : ''}`}>
+                      <tr 
+                        key={booking.id} 
+                        className={`border-b border-gray-50 cursor-pointer hover:bg-teal-50/30 transition-colors ${isFull ? 'bg-red-50/50' : ''}`}
+                        onDoubleClick={() => setViewingBooking(booking)}
+                      >
                         <td className={`py-2.5 font-bold ${isFull ? 'text-red-600 line-through' : 'text-gray-900'}`}>
                           {booking.bookingCode || booking.customerName || '—'}
                         </td>
