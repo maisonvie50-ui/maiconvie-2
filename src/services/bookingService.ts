@@ -227,6 +227,8 @@ export const bookingService = {
             linked_table_names: data.linked_table_names || [],
             lang: data.lang || 'vi',
             capacityFull: !!data.capacity_full,
+            seriesGroupKey: data.series_group_key || undefined,
+            createdAt: data.created_at,
         } as Booking;
 
         // Fire-and-forget: thông báo booking mới qua webhook/email
