@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Send, Check, Loader2, Server, ShieldCheck, FileText } from 'lucide-react';
+import { Mail, Send, Check, Loader2, Server, ShieldCheck, FileText, Plus, X } from 'lucide-react';
 import { settingsService } from '../../services/settingsService';
 import { emailNotificationService } from '../../services/emailNotificationService';
 
@@ -47,6 +47,7 @@ export default function SmtpSettingsPanel() {
     const [smtpEnabled, setSmtpEnabled] = useState(false);
     const [sendCustomerEmail, setSendCustomerEmail] = useState(false);
     const [internalEmail, setInternalEmail] = useState('');
+    const [newInternalEmail, setNewInternalEmail] = useState('');
 
     const [selectedTemplate, setSelectedTemplate] = useState<TemplateKey>('internalNew');
     const [templateValues, setTemplateValues] = useState<Record<TemplateKey, string>>({
@@ -145,6 +146,34 @@ export default function SmtpSettingsPanel() {
         });
     };
 
+    const internalEmailList = internalEmail
+        .split(',')
+        .map(email => email.trim())
+        .filter(Boolean);
+
+    const addInternalEmail = () => {
+        const email = newInternalEmail.trim().toLowerCase();
+        if (!email) return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+        if (internalEmailList.includes(email)) {
+            setNewInternalEmail('');
+            return;
+        }
+        setInternalEmail([...internalEmailList, email].join(', '));
+        setNewInternalEmail('');
+    };
+
+    const removeInternalEmail = (emailToRemove: string) => {
+        setInternalEmail(internalEmailList.filter(email => email !== emailToRemove).join(', '));
+    };
+
+    const handleInternalEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addInternalEmail();
+        }
+    };
+
     if (!loaded) {
         return (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex items-center justify-center min-h-[200px]">
@@ -187,16 +216,54 @@ export default function SmtpSettingsPanel() {
 
                     {smtpEnabled && (
                         <>
-                            <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm">
-                                <label className="block text-sm font-bold text-gray-800 mb-2">Email nhận thông báo nội bộ</label>
-                                <input
-                                    type="email"
-                                    value={internalEmail}
-                                    onChange={(e) => setInternalEmail(e.target.value)}
-                                    placeholder="info@maisonvie.vn"
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-base text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:bg-white outline-none transition-colors"
-                                />
-                                <p className="text-xs text-gray-500 mt-2">Dùng cho lễ tân/quản lý (mặc định tiếng Việt).</p>
+                            <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-800 mb-1">Email nhận thông báo nội bộ</label>
+                                    <p className="text-xs text-gray-500">Thêm từng email lễ tân/quản lý để nhận thông báo booking.</p>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <input
+                                        type="email"
+                                        value={newInternalEmail}
+                                        onChange={(e) => setNewInternalEmail(e.target.value)}
+                                        onKeyDown={handleInternalEmailKeyDown}
+                                        placeholder="Nhập email rồi bấm Thêm"
+                                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-base text-gray-800 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 focus:bg-white outline-none transition-colors"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={addInternalEmail}
+                                        className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-teal-600 text-white font-bold hover:bg-teal-700 active:scale-[0.98] transition-all shadow-sm shadow-teal-100"
+                                    >
+                                        <Plus className="w-4 h-4" /> Thêm
+                                    </button>
+                                </div>
+
+                                {internalEmailList.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        {internalEmailList.map(email => (
+                                            <span key={email} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 text-teal-800 border border-teal-100 text-sm font-semibold">
+                                                <Mail className="w-3.5 h-3.5 text-teal-500" />
+                                                {email}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeInternalEmail(email)}
+                                                    className="ml-1 rounded-full p-0.5 hover:bg-teal-100 text-teal-600 transition-colors"
+                                                    title="Xóa email"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                                        Chưa có email nội bộ nào. Thêm ít nhất 1 email để nhận thông báo.
+                                    </div>
+                                )}
+
+                                <p className="text-[11px] text-gray-400">Có thể bấm Enter sau khi nhập email. Hệ thống vẫn lưu theo định dạng tương thích SMTP.</p>
                             </div>
 
                             <button

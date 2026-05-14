@@ -139,10 +139,40 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
   const [checkoutBooking, setCheckoutBooking] = useState<{ id: string, customerId?: string } | null>(null);
   const [checkoutAmount, setCheckoutAmount] = useState('');
 
+  const NEW_BOOKING_AUTO_PENDING_MINUTES = 30;
+  const autoPendingInFlightRef = useRef(false);
+
+  const markStaleNewBookingsAsPending = async (list: Booking[]) => {
+    if (autoPendingInFlightRef.current) return list;
+
+    const now = Date.now();
+    const thresholdMs = NEW_BOOKING_AUTO_PENDING_MINUTES * 60 * 1000;
+    const staleBookings = list.filter(b => {
+      if (b.status !== 'new' || !b.createdAt) return false;
+      const createdAtMs = new Date(b.createdAt).getTime();
+      return Number.isFinite(createdAtMs) && now - createdAtMs >= thresholdMs;
+    });
+
+    if (staleBookings.length === 0) return list;
+
+    autoPendingInFlightRef.current = true;
+    try {
+      setBookings(cur => cur.map(b => staleBookings.some(stale => stale.id === b.id) ? { ...b, status: 'pending' } : b));
+      await Promise.all(staleBookings.map(b => bookingService.updateBookingStatus(b.id, 'pending')));
+      return list.map(b => staleBookings.some(stale => stale.id === b.id) ? { ...b, status: 'pending' as BookingStatus } : b);
+    } catch (error) {
+      console.error('Failed to auto-move stale new bookings to pending', error);
+      return list;
+    } finally {
+      autoPendingInFlightRef.current = false;
+    }
+  };
+
   const fetchBookings = async () => {
     try {
       const data = await bookingService.getBookings();
-      setBookings(data);
+      const normalizedData = await markStaleNewBookingsAsPending(data);
+      setBookings(normalizedData);
     } catch (error) {
       console.error('Failed to load bookings', error);
     }
@@ -253,9 +283,14 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       }
     });
 
+    const staleNewTimer = setInterval(() => {
+      fetchBookings();
+    }, 60 * 1000);
+
     return () => {
       // Clean up subscription when component unmounts
       if (fetchBookingsTimerRef.current) clearTimeout(fetchBookingsTimerRef.current);
+      clearInterval(staleNewTimer);
       subscription.unsubscribe();
     };
   }, []);
@@ -383,6 +418,36 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
   // Filter Logic
   const filteredBookings = bookings.filter(b => {
+    const isSearchActive = searchQuery.trim().length > 0;
+
+    if (isSearchActive) {
+      const query = searchQuery.trim().toLowerCase();
+      // Loại bỏ các ký tự không phải là số để tìm kiếm SĐT chính xác hơn (bỏ dấu +, khoảng trắng, gạch ngang...)
+      const normalizePhone = (p: string) => p.replace(/\D/g, '');
+      const queryDigits = normalizePhone(query);
+
+      const bPhoneDigits = normalizePhone(b.phone || '');
+
+      const nameMatch = (b.customerName || '').toLowerCase().includes(query);
+      // Chỉ kiểm tra số điện thoại nếu người dùng nhập ít nhất một số
+      const phoneMatch = queryDigits && bPhoneDigits && bPhoneDigits.includes(queryDigits);
+      const emailMatch = (b.email || '').toLowerCase().includes(query);
+      const codeMatch = (b.bookingCode || '').toLowerCase().includes(query);
+      const notesMatch = b.notes?.some(n => n.toLowerCase().includes(query)) || false;
+      const partnerMatch = getBookingPartner(b).toLowerCase().includes(query);
+
+      const isMatch = nameMatch || phoneMatch || emailMatch || codeMatch || notesMatch || partnerMatch;
+      if (!isMatch) return false;
+
+      // Khi đang tìm kiếm, TẤT CẢ các bộ lọc khác (Ngày, Ca, Loại Khách) đều bị bỏ qua.
+      // Chỉ áp dụng bộ lọc trạng thái nếu user chủ ý click chọn ở chế độ List (nếu có).
+      if (!isMobile && selectedStatuses.length > 0 && !selectedStatuses.includes(b.status)) return false;
+
+      return true;
+    }
+
+    // ── KHI KHÔNG TÌM KIẾM: ÁP DỤNG CÁC BỘ LỌC GỐC ──
+
     const actionNeededStatuses = statusGroups.action_needed;
     const isActiveOperationalStatus = [
       ...statusGroups.action_needed,
@@ -427,18 +492,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
     // 2. Filter by Status (Desktop only)
     if (!isMobile && selectedStatuses.length > 0 && !selectedStatuses.includes(b.status)) return false;
 
-    // 3. Filter by Search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchSearch =
-        (b.customerName || '').toLowerCase().includes(query) ||
-        (b.phone || '').includes(query) ||
-        (b.email || '').toLowerCase().includes(query) ||
-        (b.bookingCode || '').toLowerCase().includes(query);
-      if (!matchSearch) return false;
-    }
-
-    // 4. Filter by Shift (Ca trưa / Ca tối)
+    // 3. Filter by Shift (Ca trưa / Ca tối)
     if (filterShift && filterShift !== 'all') {
       const hour = parseInt(b.time?.split(':')[0] || '0', 10);
 
@@ -452,7 +506,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
       if (filterShift === 'dinner' && (hour < dinnerStart || hour > dinnerEnd)) return false;
     }
 
-    // 5. Filter by Customer Type (Khách đoàn / Khách lẻ)
+    // 4. Filter by Customer Type (Khách đoàn / Khách lẻ)
     if (filterCustomerType !== 'all') {
       const partner = getBookingPartner(b);
       const isTour = partner !== 'Khách lẻ';
@@ -699,6 +753,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
           {displayBookings.map((booking, childIndex) => {
             const statusConfig = columns.find(c => c.id === booking.status);
             return (
+              // @ts-ignore react-beautiful-dnd accepts key at runtime; local type setup rejects it.
               <Draggable key={booking.id} draggableId={booking.id} index={index * 1000 + childIndex}>
                 {(provided, snapshot) => (
                   <div
@@ -1649,11 +1704,12 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
 
     return (
       <div className="flex-1 overflow-auto p-6">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* Remove overflow-hidden and add bottom padding to prevent dropdown clipping */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-visible pb-32 min-h-[400px]">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[80px]">Giờ</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[80px] rounded-tl-xl">Giờ</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Khách hàng</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[120px]">SĐT</th>
                 <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px]">Pax</th>
@@ -1661,7 +1717,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[90px]">Nguồn</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 w-[180px]">Trạng thái</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Ghi chú</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px]"></th>
+                <th className="text-center px-4 py-3 font-semibold text-gray-600 w-[60px] rounded-tr-xl"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -1754,10 +1810,11 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                         )}
                       </td>
 
-                      {/* Trạng thái (Dropdown) */}
+                      {/* Trạng thái (Dropdown) - Fixed position to escape overflow clipping */}
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="relative">
                           <button
+                            id={`status-btn-${booking.id}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setStatusDropdownId(statusDropdownId === booking.id ? null : booking.id);
@@ -1769,37 +1826,55 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                             <ChevronDown className="w-3 h-3 opacity-50" />
                           </button>
 
-                          {statusDropdownId === booking.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-[70]"
-                                onClick={() => setStatusDropdownId(null)}
-                              />
-                              <div className="absolute top-full left-0 mt-1 z-[80] bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150">
-                                {columns.map(col => {
-                                  const ColIcon = col.icon;
-                                  const isActive = booking.status === col.id;
-                                  return (
-                                    <button
-                                      key={col.id}
-                                      onClick={() => {
-                                        handleStatusChange(booking.id, col.id);
-                                        setStatusDropdownId(null);
-                                      }}
-                                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-left ${isActive
-                                        ? 'bg-teal-50 text-teal-700 font-bold'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                        }`}
-                                    >
-                                      {ColIcon && <ColIcon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-500' : 'text-gray-400'}`} />}
-                                      {col.label}
-                                      {isActive && <CheckCircle className="w-3 h-3 ml-auto text-teal-500" />}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
+                          {statusDropdownId === booking.id && (() => {
+                            const btnEl = document.getElementById(`status-btn-${booking.id}`);
+                            const rect = btnEl?.getBoundingClientRect();
+                            const dropdownTop = (rect?.bottom ?? 0) + 4;
+                            const dropdownLeft = rect?.left ?? 0;
+                            // If dropdown would overflow viewport bottom, show above
+                            const spaceBelow = window.innerHeight - dropdownTop;
+                            const showAbove = spaceBelow < 280;
+                            const finalTop = showAbove ? (rect?.top ?? 0) - 4 : dropdownTop;
+
+                            return (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[70]"
+                                  onClick={() => setStatusDropdownId(null)}
+                                />
+                                <div
+                                  className="fixed z-[80] bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in slide-in-from-top-1 duration-150"
+                                  style={{
+                                    top: showAbove ? undefined : `${finalTop}px`,
+                                    bottom: showAbove ? `${window.innerHeight - finalTop}px` : undefined,
+                                    left: `${dropdownLeft}px`,
+                                  }}
+                                >
+                                  {columns.map(col => {
+                                    const ColIcon = col.icon;
+                                    const isActive = booking.status === col.id;
+                                    return (
+                                      <button
+                                        key={col.id}
+                                        onClick={() => {
+                                          handleStatusChange(booking.id, col.id);
+                                          setStatusDropdownId(null);
+                                        }}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-medium transition-colors text-left ${isActive
+                                          ? 'bg-teal-50 text-teal-700 font-bold'
+                                          : 'text-gray-600 hover:bg-gray-50'
+                                          }`}
+                                      >
+                                        {ColIcon && <ColIcon className={`w-3.5 h-3.5 ${isActive ? 'text-teal-500' : 'text-gray-400'}`} />}
+                                        {col.label}
+                                        {isActive && <CheckCircle className="w-3 h-3 ml-auto text-teal-500" />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </td>
 
@@ -2319,6 +2394,7 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                     <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
                       {isPartnerSortActive ? (
                         groupBookingsBySeries(colBookings).map((series) => (
+                          // @ts-ignore React key is valid in JSX but excluded from the component prop type.
                           <SeriesGroupCard key={series.key} series={series} index={globalSeriesIndexMap.get(series.key) ?? 0} col={col} />
                         ))
                       ) : (
@@ -2367,8 +2443,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                         </span>
                                       )}
 
-                                      {/* Quick Status Action Menu for 'action_needed' column */}
-                                      {col.id === 'col_action' && (
+                                      {/* Quick Status Action Menu for 'action_needed' & 'confirmed' columns */}
+                                      {(col.id === 'col_action' || col.id === 'col_confirmed') && (
                                         <div className="relative" data-dropdown-root="true">
                                           <button
                                             onClick={(e) => { e.stopPropagation(); setStatusDropdownId(statusDropdownId === booking.id ? null : booking.id); }}
@@ -2381,6 +2457,8 @@ export default function BookingKanban({ isModalOpen, onToggleModal, onAddBooking
                                             <>
                                               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setStatusDropdownId(null); }}></div>
                                               <div className="absolute right-0 top-full mt-1 w-max min-w-[10rem] bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1" onClick={e => e.stopPropagation()}>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'new'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-orange-50 hover:text-orange-700 flex items-center gap-1.5"><AlertCircle className="w-3 h-3" /> Mới nhận</button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'pending'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-orange-50 hover:text-orange-700 flex items-center gap-1.5"><Clock className="w-3 h-3" /> Chờ xác nhận</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'waiting_info'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-yellow-50 hover:text-yellow-700 flex items-center gap-1.5"><HelpCircle className="w-3 h-3" /> Chờ bổ sung</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleStatusChange(booking.id, 'change_requested'); setStatusDropdownId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 hover:text-purple-700 flex items-center gap-1.5"><RefreshCw className="w-3 h-3" /> Đổi giờ/ngày</button>
                                                 <div className="h-px bg-gray-100 my-1"></div>
